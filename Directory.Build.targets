@@ -1,0 +1,78 @@
+<Project>
+  <!-- Shared auto-deploy for plugin libraries -->
+  <Target Name="VAuto_CopyToBepInEx"
+          AfterTargets="Build"
+          Condition="'$(VAutoAutoDeploy)'=='true' and '$(OutputType)'=='Library' and '$(MSBuildProjectName)'!='VAutomationCore'">
+
+    <PropertyGroup>
+      <!-- Plugins dir is provided via Directory.Build.props -->
+      <PluginsDir>$(VAutoServerPluginsDir)</PluginsDir>
+      <!-- Per-plugin subfolder -->
+      <PluginOutDir>$(PluginsDir)\$(MSBuildProjectName)</PluginOutDir>
+      <!-- Place configs alongside the plugin (not in BepInEx/config) -->
+      <ConfigDir>$(PluginOutDir)</ConfigDir>
+    </PropertyGroup>
+
+    <Message Text="Deploying $(MSBuildProjectName) to $(PluginOutDir)" Importance="high" />
+    <MakeDir Directories="$(PluginOutDir)" />
+    <MakeDir Directories="$(ConfigDir)" />
+
+    <!-- Copy binaries -->
+    <ItemGroup>
+      <BuiltDlls Include="$(TargetDir)*.dll" />
+      <BuiltPdbs Include="$(TargetDir)*.pdb" Condition="'$(Configuration)'=='Debug'" />
+      <BuiltConfigs Include="$(TargetDir)*.json;$(TargetDir)*.toml" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(BuiltDlls)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(BuiltPdbs)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(BuiltConfigs)" DestinationFolder="$(ConfigDir)" SkipUnchangedFiles="false" />
+
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\config')">
+      <PluginConfigFiles Include="$(MSBuildProjectDirectory)\config\**\*.*" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\Configuration')">
+      <PluginConfigFiles Include="$(MSBuildProjectDirectory)\Configuration\**\*.*" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\Json')">
+      <PluginConfigFiles Include="$(MSBuildProjectDirectory)\Json\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginConfigFiles)" DestinationFolder="$(ConfigDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(PluginConfigFiles)" DestinationFolder="$(VAutoServerConfigDir)" SkipUnchangedFiles="false" Condition="'$(VAutoServerConfigDir)'!=''" />
+  </Target>
+
+  <Target Name="VAuto_CopyCoreToBepInEx"
+          AfterTargets="Build"
+          Condition="'$(VAutoAutoDeploy)'=='true' and '$(MSBuildProjectName)'=='VAutomationCore'">
+
+    <PropertyGroup>
+      <PluginsDir>$(VAutoServerPluginsDir)</PluginsDir>
+      <PluginOutDir>$(PluginsDir)\$(MSBuildProjectName)</PluginOutDir>
+      <ConfigDir>$(PluginOutDir)</ConfigDir>
+    </PropertyGroup>
+
+    <Message Text="Deploying core $(MSBuildProjectName) to $(PluginOutDir)" Importance="high" />
+    <MakeDir Directories="$(PluginOutDir)" />
+
+    <ItemGroup>
+      <BuiltDllsCore Include="$(TargetDir)*.dll" />
+      <BuiltPdbsCore Include="$(TargetDir)*.pdb" Condition="'$(Configuration)'=='Debug'" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(BuiltDllsCore)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(BuiltPdbsCore)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+
+    <PropertyGroup>
+      <CorePluginBaseDir Condition="'$(VAutoCoreDeployAsPluginBase)'=='true'">$(PluginsDir)</CorePluginBaseDir>
+    </PropertyGroup>
+
+    <Copy SourceFiles="@(BuiltDllsCore)"
+          DestinationFolder="$(CorePluginBaseDir)"
+          SkipUnchangedFiles="false"
+          Condition="'$(VAutoCoreDeployAsPluginBase)'=='true'" />
+    <Copy SourceFiles="@(BuiltPdbsCore)"
+          DestinationFolder="$(CorePluginBaseDir)"
+          SkipUnchangedFiles="false"
+          Condition="'$(VAutoCoreDeployAsPluginBase)'=='true' and '@(BuiltPdbsCore)'!=''" />
+  </Target>
+</Project>

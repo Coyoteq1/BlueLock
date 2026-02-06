@@ -1,0 +1,47 @@
+﻿{
+    "zones":  [
+                  {
+                      "id":  "main_arena",
+                      "name":  "Main Combat Arena",
+                      "center":  {
+                                     "x":  -1000,
+                                     "y":  5,
+                                     "z":  -500
+                                 },
+                      "radius":  75.0,
+                      "includeDefault":  true,
+                      "includeDynamic":  true,
+                      "prefabGuid":  "12345678-1234-1234-1234-123456789abc",
+                      "isArena":  true
+                  },
+                  {
+                      "id":  "training_area",
+                      "name":  "Training Area",
+                      "center":  {
+                                     "x":  -150,
+                                     "y":  0,
+                                     "z":  -150
+                                 },
+                      "radius":  25.0,
+                      "includeDefault":  false,
+                      "includeDynamic":  true,
+                      "prefabGuid":  "87654321-4321-4321-4321-cba987654321",
+                      "isArena":  false
+                  },
+                  {
+                      "id":  "boss_arena",
+                      "name":  "Boss Arena",
+                      "center":  {
+                                     "x":  200,
+                                     "y":  0,
+                                     "z":  200
+                                 },
+                      "radius":  100.0,
+                      "includeDefault":  true,
+                      "includeDynamic":  false,
+                      "prefabGuid":  "abcdef12-abcd-abcd-abcd-abcdef123456",
+                      "isArena":  true
+                  }
+              ]
+}
+

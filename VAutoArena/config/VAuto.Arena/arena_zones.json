@@ -1,0 +1,11 @@
+﻿{
+    "zones":  [
+
+              ],
+    "default_settings":  {
+                             "enabled":  true,
+                             "max_players":  20,
+                             "auto_cleanup":  true
+                         }
+}
+

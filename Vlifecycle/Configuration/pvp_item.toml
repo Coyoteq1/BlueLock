@@ -1,0 +1,34 @@
+# Vlifecycle PVP item config (TOML)
+#
+# Stages are optional. If a stage exists it must contain one or more actions.
+
+[metadata]
+name = "Vlifecycle PVP Item"
+version = "1.0.0"
+updatedAt = "2026-02-06"
+
+[core]
+enabled = true
+strictValidation = true
+
+[dependencies]
+requiresVcf = true
+
+[optionalFeatures]
+enableZoneActions = true
+enableBloodActions = true
+
+[onUse]
+[[onUse.actions]]
+type = "message"
+message = "PVP Item activated!"
+
+[onEnterArenaZone]
+[[onEnterArenaZone.actions]]
+type = "message"
+message = "You have entered the arena zone!"
+
+[onExitArenaZone]
+[[onExitArenaZone.actions]]
+type = "message"
+message = "You have left the arena zone"

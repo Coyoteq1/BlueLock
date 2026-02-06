@@ -1,0 +1,12 @@
+﻿{
+    "center":  [
+                   -1000,
+                   0,
+                   500
+               ],
+    "radius":  300,
+    "gridIndex":  500,
+    "regionType":  5,
+    "blockSize":  10
+}
+

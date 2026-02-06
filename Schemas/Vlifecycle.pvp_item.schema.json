@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "Vlifecycle.pvp_item.schema.json",
+  "title": "Vlifecycle PVP Item Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "onUse": { "$ref": "#/$defs/stage" },
+    "onEnterArenaZone": { "$ref": "#/$defs/stage" },
+    "onExitArenaZone": { "$ref": "#/$defs/stage" }
+  },
+  "$defs": {
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions"],
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" }
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "message": { "type": ["string", "null"] },
+        "storeKey": { "type": ["string", "null"] },
+        "zoneKey": { "type": ["string", "null"] },
+        "bloodType": { "type": ["string", "null"] },
+        "commandId": { "type": ["string", "null"] },
+        "prefix": { "type": ["string", "null"] },
+        "quality": { "type": ["integer", "null"] }
+      }
+    }
+  }
+}

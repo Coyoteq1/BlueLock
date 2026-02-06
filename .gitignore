@@ -1,0 +1,66 @@
+# Build outputs and compiled artifacts
+_build/
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+
+# NuGet packages
+*.nupkg
+.nuget/
+project.assets.json
+project.packages.json
+*.nuget.props
+*.nuget.targets
+
+# IDE and editor files
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated files
+Thumbs.db
+.DS_Store
+*.swp
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Zip archives
+*.zip
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# TeamCity
+_TeamCity*
+
+# DotCover
+dotCover.settings.xml
+
+# Test results
+TestResults/
+coverage/
+
+# Debug and Release folders (if not using obj/ already)
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio cache
+.vs/
+.vscode/
+
+# NuGet cache
+~/.nuget/packages/
+
+# Rider
+.idea/

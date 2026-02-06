@@ -1,0 +1,152 @@
+﻿{
+    "version":  "1.0",
+    "lastModified":  "2024-01-31T00:00:00.0000000+00:00",
+    "ecsConfiguration":  {
+                             "enabled":  true,
+                             "validationInterval":  30.0,
+                             "healthMonitoring":  true,
+                             "performanceProfiling":  false,
+                             "debugLogging":  true
+                         },
+    "systems":  [
+                    {
+                        "name":  "GlowZoneEnforcementSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.PlayerCombatBuffSystem_InitialApplication_Aggro",
+                        "updateType":  "Before",
+                        "priority":  100,
+                        "description":  "Enforce glow zone rules for PvP combat"
+                    },
+                    {
+                        "name":  "PortalInterceptSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.TeleportSystem",
+                        "updateType":  "Before",
+                        "priority":  90,
+                        "description":  "Intercept and process portal requests"
+                    },
+                    {
+                        "name":  "CommandParsingSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.ChatMessageSystem",
+                        "updateType":  "Before",
+                        "priority":  80,
+                        "description":  "Process commands before chat display"
+                    },
+                    {
+                        "name":  "PersistenceHookSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.TriggerPersistenceSaveSystem",
+                        "updateType":  "After",
+                        "priority":  70,
+                        "description":  "Hook into save system for custom data"
+                    },
+                    {
+                        "name":  "VAutomationEventProcessingSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.CreateGameplayEventOnTickSystem",
+                        "updateType":  "After",
+                        "priority":  60,
+                        "description":  "Main automation event processing"
+                    },
+                    {
+                        "name":  "VAutomationCooldownSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.CreateGameplayEventOnTickSystem",
+                        "updateType":  "After",
+                        "priority":  50,
+                        "description":  "Process cooldowns and timers"
+                    },
+                    {
+                        "name":  "SafeZoneDamagePreventionSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.DealDamageSystem",
+                        "updateType":  "Before",
+                        "priority":  40,
+                        "description":  "Prevent damage in safe zones"
+                    },
+                    {
+                        "name":  "DamageAnalyticsSystem",
+                        "enabled":  false,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.DealDamageSystem",
+                        "updateType":  "After",
+                        "priority":  30,
+                        "description":  "Track and analyze damage events"
+                    },
+                    {
+                        "name":  "SpawnCustomizationSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.SpawnGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.SpawnCharacterSystem",
+                        "updateType":  "After",
+                        "priority":  20,
+                        "description":  "Customize entities on spawn"
+                    },
+                    {
+                        "name":  "LifecycleSpellbookSystem",
+                        "enabled":  true,
+                        "targetGroup":  "ProjectM.UpdateGroup",
+                        "referenceSystem":  "ProjectM.Gameplay.Systems.CreateGameplayEventOnTickSystem",
+                        "updateType":  "After",
+                        "priority":  10,
+                        "description":  "Manage spellbooks in lifecycle zones"
+                    }
+                ],
+    "integrationPoints":  {
+                              "pvpGlowZones":  {
+                                                   "enabled":  true,
+                                                   "combatBuffSystem":  "PlayerCombatBuffSystem_InitialApplication_Aggro",
+                                                   "damageSystem":  "DealDamageSystem",
+                                                   "zoneService":  "ZoneTrackingService",
+                                                   "glowService":  "GlowManager"
+                                               },
+                              "portalsTeleport":  {
+                                                      "enabled":  true,
+                                                      "teleportSystem":  "TeleportSystem",
+                                                      "portalService":  "PortalInterceptService",
+                                                      "teleportService":  "TeleportService"
+                                                  },
+                              "chatCommands":  {
+                                                   "enabled":  true,
+                                                   "chatSystem":  "ChatMessageSystem",
+                                                   "commandFramework":  "VampireCommandFramework"
+                                               },
+                              "persistence":  {
+                                                  "enabled":  true,
+                                                  "saveSystem":  "TriggerPersistenceSaveSystem",
+                                                  "dataService":  "DataPersistenceService"
+                                              },
+                              "spawning":  {
+                                               "enabled":  true,
+                                               "spawnSystem":  "SpawnCharacterSystem",
+                                               "spawnService":  "SpawnCommandSystem"
+                                           },
+                              "lifecycle":  {
+                                                "enabled":  true,
+                                                "spellbookSystem":  "LifecycleSpellbookService",
+                                                "autoSystem":  "AutoSystemService",
+                                                "lifecycleService":  "LifecycleService"
+                                            }
+                          },
+    "performance":  {
+                        "maxEntitiesPerFrame":  1000,
+                        "memoryCleanupInterval":  600.0,
+                        "enableProfiling":  true ,
+                        "logPerformanceMetrics":  true
+                    },
+    "debugging":  {
+                      "enableDetailedLogging":  true,
+                      "logSystemExecution":  true,
+                      "logEntityQueries":  true,
+                      "logComponentAccess":  true
+                  }
+}
+

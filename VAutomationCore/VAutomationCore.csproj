@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <OutputType>Library</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
+    <ImplicitUsings>false</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.733" IncludeAssets="compile" />
+    <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.4" />
+    <PackageReference Include="VRising.VAMP" Version="1.3.3" />
+    <PackageReference Include="Lib.Harmony" Version="2.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Unity.Entities">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Entities.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Collections">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Collections.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Mathematics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Burst">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Burst.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Transforms">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Transforms.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Physics">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Physics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ProjectM">
+      <HintPath>libs\ProjectM.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.Gameplay.Systems">
+      <HintPath>libs\ProjectM.Gameplay.Systems.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.Gameplay.Scripting">
+      <HintPath>libs\ProjectM.Gameplay.Scripting.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.Shared">
+      <HintPath>libs\ProjectM.Shared.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.GeneratedNetCode">
+      <HintPath>libs\ProjectM.GeneratedNetCode.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VRising.GameData">
+      <HintPath>libs\VRising.GameData.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Core_VRCore.cs" />
+    <Compile Include="Plugin.cs" />
+    <Compile Include="PrefabGuidConverter.cs" />
+    <Compile Include="IService.cs" />
+    <Compile Include="Configuration\\PluginManifest.cs" />
+    <Compile Include="Configuration\\PluginGuidRegistry.cs" />
+    <Compile Include="Json\\PrefabGuidJsonConverter.cs" />
+    <Compile Include="Json\\VAutoJsonOptions.cs" />
+    <Compile Include="..\\MyPluginInfo.cs" Link="MyPluginInfo.cs" />
+  </ItemGroup>
+
+</Project>
