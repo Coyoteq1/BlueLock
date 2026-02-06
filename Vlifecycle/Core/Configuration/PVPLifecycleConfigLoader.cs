@@ -16,6 +16,7 @@ namespace VAuto.Core.Configuration
     public class PVPLifecycleConfigLoader : IService
     {
         private static readonly string _logPrefix = "[PVPLifecycleConfigLoader]";
+        private static readonly string _defaultConfigBase = Path.Combine(BepInEx.Paths.ConfigPath, "VAuto", "pvp_item");
         
         public bool IsInitialized { get; private set; }
         public ManualLogSource Log { get; private set; }
@@ -33,8 +34,10 @@ namespace VAuto.Core.Configuration
             try
             {
                 if (IsInitialized) return;
-                
+
                 Log?.LogInfo($"{_logPrefix} PVP Lifecycle Config Loader initialized");
+                EnsureDefaultConfig();
+                LoadConfig(_defaultConfigBase);
                 IsInitialized = true;
             }
             catch (Exception ex)
@@ -534,6 +537,24 @@ namespace VAuto.Core.Configuration
             catch (Exception ex)
             {
                 Log?.LogError($"{_logPrefix} Failed to create sample configuration: {ex.Message}");
+            }
+        }
+
+        private void EnsureDefaultConfig()
+        {
+            try
+            {
+                var tomlPath = _defaultConfigBase + ".toml";
+                var jsonPath = _defaultConfigBase + ".json";
+                if (File.Exists(tomlPath) || File.Exists(jsonPath))
+                    return;
+
+                Directory.CreateDirectory(Path.GetDirectoryName(_defaultConfigBase)!);
+                CreateSampleConfig(jsonPath);
+            }
+            catch
+            {
+                // ignore
             }
         }
     }

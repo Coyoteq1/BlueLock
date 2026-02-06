@@ -15,6 +15,7 @@
     <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.4" />
     <PackageReference Include="VRising.VAMP" Version="1.3.3" />
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
+    <PackageReference Include="Il2CppInterop.Runtime" Version="1.4.6-ci.426" />
   </ItemGroup>
 
   <ItemGroup>
@@ -73,9 +74,18 @@
       <HintPath>libs\VRising.GameData.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="Stunlock.Core">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Stunlock.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Models\\ArenaBuilds\\**\\*.cs" />
+    <Compile Include="Models\\*.cs" />
+    <Compile Include="Helpers\\*.cs" />
+    <Compile Include="Extensions\\*.cs" />
+    <Compile Include="Chat\\ChatService.cs" />
     <Compile Include="Core_VRCore.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="PrefabGuidConverter.cs" />
@@ -85,6 +95,7 @@
     <Compile Include="Json\\PrefabGuidJsonConverter.cs" />
     <Compile Include="Json\\VAutoJsonOptions.cs" />
     <Compile Include="..\\MyPluginInfo.cs" Link="MyPluginInfo.cs" />
+    <Compile Include="..\\Commands\\**\\*.cs" />
   </ItemGroup>
 
 </Project>

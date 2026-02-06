@@ -102,7 +102,7 @@ namespace VAuto.EndGameKit.Services
         /// </summary>
         public bool Apply(Entity player, long guidValue)
         {
-            return Apply(player, new PrefabGUID(guidValue));
+            return Apply(player, new PrefabGUID((int)guidValue));
         }
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace VAuto.EndGameKit.Services
             if (consumableValues == null || consumableValues.Count == 0)
                 return 0;
 
-            var guids = consumableValues.Select(v => new PrefabGUID(v)).ToList();
+            var guids = consumableValues.Select(v => new PrefabGUID((int)v)).ToList();
             return ApplyBatch(player, guids);
         }
 

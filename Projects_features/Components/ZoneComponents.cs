@@ -38,7 +38,7 @@ namespace VAuto.Core.Components
     public class PrefabGlowConfig
     {
         public bool enabled;
-        public int prefabGuid;
+        public long prefabGuid;
         public GlowColor glowColor;
         public float glowIntensity = 2.0f;
         public float pulseSpeed = 1.0f;

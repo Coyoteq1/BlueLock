@@ -6,5 +6,6 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
     {
         void Capture(Entity character, CharacterSnapshot snapshot, EntityManager em);
         void Restore(Entity character, CharacterSnapshot snapshot, EntityManager em);
+        void Reset();
     }
 }

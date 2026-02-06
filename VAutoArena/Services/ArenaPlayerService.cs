@@ -18,13 +18,13 @@ namespace VAuto.Arena.Services
 
         public static bool DebugEnabled { get; set; }
 
-        public static float3 ArenaCenter { get; private set; } = new float3(0, 0, 0);
-        public static float ArenaRadius { get; private set; } = 50f;
-        public static float3 EntryPoint { get; private set; } = new float3(0, 0, 0);
-        public static float EntryRadius { get; private set; } = 10f;
-        public static float3 ExitPoint { get; private set; } = new float3(0, 0, 0);
-        public static float ExitRadius { get; private set; } = 10f;
-        public static float3 SpawnPoint { get; private set; } = new float3(0, 0, 0);
+        public static float3 ArenaCenter { get; private set; } = new float3(-1500, 0, -500);
+        public static float ArenaRadius { get; private set; } = 70f;
+        public static float3 EntryPoint { get; private set; } = new float3(-1500, 0, -500);
+        public static float EntryRadius { get; private set; } = 50f;
+        public static float3 ExitPoint { get; private set; } = new float3(-1500, 0, -500);
+        public static float ExitRadius { get; private set; } = 70f;
+        public static float3 SpawnPoint { get; private set; } = new float3(-1500, 0, -500);
 
         private static EntityManager EM => VRCore.EntityManager;
 
@@ -34,9 +34,16 @@ namespace VAuto.Arena.Services
         {
             // Ensure sane non-zero defaults so teleport doesn't send players to (0,0,0).
             ArenaTerritory.InitializeArenaGrid();
-            SetArenaZone(ArenaTerritory.ArenaGridCenter, Math.Max(1f, ArenaTerritory.ArenaGridRadius));
-            SetEntryPoint(ArenaTerritory.ArenaGridCenter, 10f);
-            SetExitPoint(ArenaTerritory.ArenaGridCenter, 10f);
+            var gridCenter = ArenaTerritory.ArenaGridCenter;
+            var gridRadius = Math.Max(1f, ArenaTerritory.ArenaGridRadius);
+            var useDefaults = gridCenter.Equals(float3.zero);
+
+            var center = useDefaults ? ArenaCenter : gridCenter;
+            var radius = useDefaults ? ArenaRadius : gridRadius;
+
+            SetArenaZone(center, radius);
+            SetEntryPoint(center, EntryRadius);
+            SetExitPoint(center, ExitRadius);
         }
 
         public static Entity GetUserFromCharacter(Entity characterEntity)
@@ -185,8 +192,9 @@ namespace VAuto.Arena.Services
             }
         }
 
-        public static void ManualEnterArena(Entity playerEntity)
+        public static bool ManualEnterArena(Entity playerEntity, out string error)
         {
+            error = string.Empty;
             ulong steamId = 0;
             string playerName = "Unknown";
 
@@ -196,15 +204,17 @@ namespace VAuto.Arena.Services
 
                 if (!IsValidEntity(playerEntity))
                 {
-                    Plugin.Logger?.LogWarning("[Arena] Invalid player entity for enter");
-                    return;
+                    error = "Invalid player entity (missing position/User)";
+                    Plugin.Logger?.LogWarning($"[Arena] {error}");
+                    return false;
                 }
 
                 var userEntity = GetUserFromCharacter(playerEntity);
                 if (userEntity == Entity.Null)
                 {
-                    Plugin.Logger?.LogWarning($"[Arena] No user entity for player {playerEntity}");
-                    return;
+                    error = "Could not resolve user entity from character";
+                    Plugin.Logger?.LogWarning($"[Arena] {error} ({playerEntity})");
+                    return false;
                 }
 
                 var user = EM.GetComponentData<User>(userEntity);
@@ -214,7 +224,7 @@ namespace VAuto.Arena.Services
                 if (PlayersInArena.Contains(steamId))
                 {
                     Plugin.Logger?.LogInfo($"[Arena] {playerName} already in arena");
-                    return;
+                    return true;
                 }
 
                 PlayersInArena.Add(steamId);
@@ -223,11 +233,21 @@ namespace VAuto.Arena.Services
                 if (TryGetCharacterPosition(playerEntity, out var pos))
                     LastPlayerPositions[playerEntity] = pos;
 
-                TryInvokeLifecycle("OnPlayerEnter", userEntity, playerEntity, "default");
+                if (!TryInvokeLifecycle("OnPlayerEnter", userEntity, playerEntity, "default", out var lifecycleError))
+                {
+                    // Roll back local arena state to avoid half-entered players.
+                    PlayersInArena.Remove(steamId);
+                    PlayerEntities.Remove(steamId);
+                    error = $"Lifecycle enter failed: {lifecycleError}";
+                    Plugin.Logger?.LogWarning($"[Arena] {error}");
+                    return false;
+                }
+
                 TeleportToSpawn(playerEntity);
                 SpawnArenaEffects(playerEntity);
 
                 Plugin.Logger?.LogInfo($"[Arena] {playerName} entered arena (SteamID: {steamId})");
+                return true;
             }
             catch (Exception ex)
             {
@@ -237,25 +257,30 @@ namespace VAuto.Arena.Services
                     PlayersInArena.Remove(steamId);
                     PlayerEntities.Remove(steamId);
                 }
-                throw;
+
+                error = ex.Message;
+                return false;
             }
         }
 
-        public static void ManualExitArena(Entity playerEntity)
+        public static bool ManualExitArena(Entity playerEntity, out string error)
         {
+            error = string.Empty;
             try
             {
                 if (playerEntity == Entity.Null)
                 {
-                    Plugin.Logger?.LogWarning("[Arena] Exit requested with null entity");
-                    return;
+                    error = "Exit requested with null entity";
+                    Plugin.Logger?.LogWarning($"[Arena] {error}");
+                    return false;
                 }
 
                 var userEntity = GetUserFromCharacter(playerEntity);
                 if (userEntity == Entity.Null)
                 {
-                    Plugin.Logger?.LogWarning($"[Arena] No user entity for player {playerEntity}");
-                    return;
+                    error = "Could not resolve user entity from character";
+                    Plugin.Logger?.LogWarning($"[Arena] {error} ({playerEntity})");
+                    return false;
                 }
 
                 var user = EM.GetComponentData<User>(userEntity);
@@ -265,7 +290,13 @@ namespace VAuto.Arena.Services
                 if (PlayersInArena.Remove(steamId))
                 {
                     PlayerEntities.Remove(steamId);
-                    TryInvokeLifecycle("OnPlayerExit", userEntity, playerEntity, "default");
+
+                    var lifecycleOk = TryInvokeLifecycle("OnPlayerExit", userEntity, playerEntity, "default", out var lifecycleError);
+                    if (!lifecycleOk)
+                    {
+                        error = $"Lifecycle exit failed: {lifecycleError}";
+                        Plugin.Logger?.LogWarning($"[Arena] {error}");
+                    }
 
                     if (LastPlayerPositions.TryGetValue(playerEntity, out var lastPos))
                     {
@@ -276,15 +307,19 @@ namespace VAuto.Arena.Services
                         TeleportToPosition(playerEntity, ExitPoint);
                     }
                     Plugin.Logger?.LogInfo($"[Arena] {playerName} exited arena");
+                    return true;
                 }
                 else
                 {
                     Plugin.Logger?.LogInfo($"[Arena] {playerName} was not in arena");
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Plugin.Logger?.LogError($"[Arena] ManualExitArena failed: {ex.Message}");
+                error = ex.Message;
+                return false;
             }
         }
 
@@ -353,24 +388,45 @@ namespace VAuto.Arena.Services
             Plugin.Logger?.LogInfo($"[Arena] Teleported {playerEntity} to: {position}");
         }
 
-        private static void TryInvokeLifecycle(string methodName, Entity userEntity, Entity characterEntity, string arenaId)
+        private static bool TryInvokeLifecycle(string methodName, Entity userEntity, Entity characterEntity, string arenaId, out string error)
         {
+            error = string.Empty;
             // Avoid a hard reference from VAutoArena -> Vlifecycle; invoke via reflection if present.
             try
             {
                 var mgrType = Type.GetType("VAuto.Core.Lifecycle.ArenaLifecycleManager, Vlifecycle", throwOnError: false);
-                if (mgrType == null) return;
+                if (mgrType == null)
+                {
+                    error = "Vlifecycle not loaded";
+                    return false;
+                }
 
                 var instanceProp = mgrType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
                 var instance = instanceProp?.GetValue(null);
-                if (instance == null) return;
+                if (instance == null)
+                {
+                    error = "ArenaLifecycleManager.Instance missing";
+                    return false;
+                }
 
                 var mi = mgrType.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
-                mi?.Invoke(instance, new object[] { userEntity, characterEntity, arenaId });
+                if (mi == null)
+                {
+                    error = $"Method '{methodName}' not found";
+                    return false;
+                }
+
+                var result = mi.Invoke(instance, new object[] { userEntity, characterEntity, arenaId });
+                if (result is bool b)
+                    return b;
+
+                return true;
             }
             catch (Exception ex)
             {
-                Plugin.Logger?.LogWarning($"[Arena] Lifecycle invoke '{methodName}' failed: {ex.Message}");
+                error = ex.InnerException?.Message ?? ex.Message;
+                Plugin.Logger?.LogWarning($"[Arena] Lifecycle invoke '{methodName}' failed: {error}");
+                return false;
             }
         }
 

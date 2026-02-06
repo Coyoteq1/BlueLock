@@ -287,10 +287,10 @@ namespace VAuto.Arena.Services
                 return false;
             }
 
-            // Try parse int
-            if (int.TryParse(prefabName, out var intGuid))
+            // Try parse long
+            if (long.TryParse(prefabName, out var longGuid))
             {
-                guid = new PrefabGUID(intGuid);
+                guid = new PrefabGUID((int)longGuid);
                 return true;
             }
 
@@ -321,7 +321,7 @@ namespace VAuto.Arena.Services
 
                 if (dictValue is int intGuid)
                 {
-                    guid = new PrefabGUID(intGuid);
+                    guid = new PrefabGUID((int)intGuid);
                     return true;
                 }
             }
@@ -333,7 +333,7 @@ namespace VAuto.Arena.Services
             guid = default;
             if (_config?.DefaultGlowPrefab != null && prefabName == _config.DefaultGlowPrefab && int.TryParse(prefabName, out var g))
             {
-                guid = new PrefabGUID(g);
+                guid = new PrefabGUID((int)(long)g);
                 return true;
             }
             return false;

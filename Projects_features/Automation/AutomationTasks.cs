@@ -68,7 +68,7 @@ namespace VAuto.Core.Services
             Plugin.Log.LogInfo($"[SpawnBoss] Would spawn {bossName} (ID: {prefabId}, Level: {level}) at {position}");
             
             // Example implementation once we have the proper API access:
-            // var prefabGuid = new PrefabGUID(prefabId);
+            // var prefabGuid = new PrefabGUID((int)prefabId);
             // var spawnEvent = VRCore.EntityManager.CreateEntity();
             // VRCore.EntityManager.AddComponentData(spawnEvent, new SpawnCharacterEvent
             // {

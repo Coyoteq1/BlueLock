@@ -13,5 +13,10 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
         {
             // Jewel socket restore stub.
         }
+
+        public void Reset()
+        {
+            // No internal state to reset for jewel sockets
+        }
     }
 }

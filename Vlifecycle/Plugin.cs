@@ -1,5 +1,6 @@
-using System;
+using VAuto.EndGameKit.Systems;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
@@ -7,6 +8,7 @@ using VampireCommandFramework;
 using VAuto.Core.Configuration;
 using VAuto.Core.Lifecycle;
 using VAuto;
+using Unity.Entities;
 
 namespace VAuto
 {
@@ -20,13 +22,27 @@ namespace VAuto
         public new static ManualLogSource Log => _staticLog;
         public static ManualLogSource Logger => _staticLog;
         private Harmony? _harmony;
+        private static ConfigFile? _configFile;
+        private static ConfigEntry<bool>? _configEnabled;
 
         public override void Load()
         {
             try
             {
+                _configFile = new ConfigFile(Path.Combine(Paths.ConfigPath, "VAuto.Lifecycle.cfg"), true);
+                _configEnabled = _configFile.Bind("General", "Enabled", true, "Enable or disable VAuto Lifecycle plugin.");
+                if (_configEnabled != null && !_configEnabled.Value)
+                {
+                    Log.LogInfo("[Vlifecycle] Disabled via config.");
+                    return;
+                }
+
                 var manifest = MyPluginInfo.Lifecycle.Manifest;
                 Log.LogInfo($"[{manifest.Name}] Loading v{manifest.Version}...");
+
+                // Initialize VRCore early to prevent race conditions
+                VRCore.Initialize();
+                Log.LogInfo($"[{manifest.Name}] VRCore initialized successfully.");
 
                 if (manifest.EnableHarmony)
                 {
@@ -39,8 +55,6 @@ namespace VAuto
                 var loader = new PVPLifecycleConfigLoader();
                 loader.Initialize();
 
-                var kitServiceImpl = new KitConfigService();
-
                 var serviceManager = ServiceManager.Instance;
                 var snapshotService = new SnapshotLifecycleService();
                 var vbloodService = new VBloodUnlockLifecycleService();
@@ -48,14 +62,12 @@ namespace VAuto
                 var buildingService = new BuildingService();
                 var locationTracker = new LocationTracker();
                 var kitService = new KitLifecycleService();
-                kitService.SetKitService(kitServiceImpl);
 
                 serviceManager.Register(snapshotService);
                 serviceManager.Register(vbloodService);
                 serviceManager.Register(autoEnterService);
                 serviceManager.Register(buildingService);
                 serviceManager.Register(locationTracker);
-                serviceManager.Register(kitServiceImpl);
                 serviceManager.Register(kitService);
                 serviceManager.InitializeAll();
 
@@ -67,6 +79,8 @@ namespace VAuto
                 arenaManager.RegisterService(locationTracker);
                 arenaManager.RegisterService(kitService);
                 arenaManager.PostInitialize();
+
+                TryRegisterVbloodRepairRefreshSystem();
 
                 CommandRegistry.RegisterAll();
 
@@ -90,6 +104,42 @@ namespace VAuto
             }
 
             return true;
+        }
+
+        private void TryRegisterVbloodRepairRefreshSystem()
+        {
+            try
+            {
+                var world = VRCore.ServerWorld;
+                if (world == null)
+                {
+                    Log.LogWarning("[Lifecycle] ServerWorld is null, cannot register systems");
+                    return;
+                }
+
+                // Register VBlood repair refresh system
+                var vbloodSystem = world.GetOrCreateSystemManaged<VBloodRepairRefreshSystem>();
+                var simGroup = world.GetExistingSystemManaged<SimulationSystemGroup>();
+                if (simGroup != null)
+                {
+                    simGroup.AddSystemToUpdateList(vbloodSystem);
+                    simGroup.SortSystems();
+                    Log.LogInfo("[Lifecycle] VBlood repair refresh system registered");
+                }
+
+                // Register Kit request system
+                var kitSystem = world.GetOrCreateSystemManaged<KitRequestSystem>();
+                if (simGroup != null)
+                {
+                    simGroup.AddSystemToUpdateList(kitSystem);
+                    simGroup.SortSystems();
+                    Log.LogInfo("[Lifecycle] Kit request system registered");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log?.LogWarning($"[Lifecycle] System registration failed: {ex.Message}");
+            }
         }
     }
 }

@@ -1,4 +1,6 @@
 using Unity.Entities;
+using VAuto.Core;
+using VAuto.EndGameKit;
 using VAuto.Services.Interfaces;
 
 namespace VAuto.Core.Lifecycle
@@ -9,7 +11,7 @@ namespace VAuto.Core.Lifecycle
         public bool IsInitialized { get; private set; }
         public BepInEx.Logging.ManualLogSource Log { get; private set; }
 
-        private KitConfigService _kitService;
+        private EndGameKitSystem _kitSystem;
         private LifecycleStepsConfig _steps = new();
 
         public KitLifecycleService()
@@ -26,32 +28,59 @@ namespace VAuto.Core.Lifecycle
 
         public void Cleanup() { }
 
-        public void SetKitService(KitConfigService kitService)
+        public void SetKitSystem(EndGameKitSystem kitSystem)
         {
-            _kitService = kitService;
+            _kitSystem = kitSystem;
         }
 
         public bool OnPlayerEnter(Entity user, Entity character, string arenaId)
         {
             Initialize();
+            _steps = LifecycleStepsPolicy.Load();
             if (!_steps.ApplyKit) return true;
-            if (_kitService == null || character == Entity.Null)
+            if (character == Entity.Null)
                 return false;
 
-            return _kitService.TryApplyKitForZone(user, character, arenaId);
+            var system = EnsureKitSystem();
+            if (system == null)
+                return false;
+
+            return system.TryApplyKitForZone(user, character, arenaId);
         }
 
         public bool OnPlayerExit(Entity user, Entity character, string arenaId)
         {
             Initialize();
+            _steps = LifecycleStepsPolicy.Load();
             if (!_steps.ApplyKit) return true;
-            if (_kitService == null || character == Entity.Null)
+            if (character == Entity.Null)
                 return false;
 
-            return _kitService.TryRestoreKitForZone(user, character, arenaId);
+            var system = EnsureKitSystem();
+            if (system == null)
+                return false;
+
+            return system.TryRestoreKitForZone(user, character, arenaId);
         }
 
         public bool OnArenaStart(string arenaId) => true;
         public bool OnArenaEnd(string arenaId) => true;
+
+        private EndGameKitSystem EnsureKitSystem()
+        {
+            if (_kitSystem != null && _kitSystem.IsInitialized)
+                return _kitSystem;
+
+            VRCore.Initialize();
+            var em = VRCore.EntityManager;
+            if (em == default)
+                return null;
+
+            _kitSystem ??= new EndGameKitSystem(em);
+            if (!_kitSystem.IsInitialized)
+                _kitSystem.Initialize();
+
+            return _kitSystem;
+        }
     }
 }

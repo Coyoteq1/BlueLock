@@ -5,6 +5,7 @@ using VAuto.Core.Lifecycle.Snapshots;
 using VAuto.Core.Lifecycle.Snapshots.Sections;
 using ProjectM.Network;
 using VAuto.Services.Interfaces;
+using VAuto.Core.Chat;
 
 namespace VAuto.Core.Lifecycle
 {
@@ -40,6 +41,7 @@ namespace VAuto.Core.Lifecycle
         public bool OnPlayerEnter(Entity user, Entity character, string arenaId)
         {
             Initialize();
+            _steps = LifecycleStepsPolicy.Load();
             if (!_steps.SaveSnapshotOnEnter) return true;
             var em = VRCore.EntityManager;
             var platformId = GetPlatformId(em, user, character);
@@ -64,6 +66,7 @@ namespace VAuto.Core.Lifecycle
         public bool OnPlayerExit(Entity user, Entity character, string arenaId)
         {
             Initialize();
+            _steps = LifecycleStepsPolicy.Load();
             if (!_steps.RestoreSnapshotOnExit) return true;
             var em = VRCore.EntityManager;
             var platformId = GetPlatformId(em, user, character);
@@ -79,16 +82,16 @@ namespace VAuto.Core.Lifecycle
             _inventorySaver.Restore(character, snap, em);
             _equipmentSaver.Restore(character, snap, em);
             _jewelSaver.Restore(character, snap, em);
+            _spellbookSaver.Reset();
             _spellbookSaver.Restore(character, snap, em);
             _buffSaver.Restore(character, snap, em);
             _vbloodSaver.Restore(character, snap, em);
 
-            var vbloodRan = snap.VBloodMode == VBloodSnapshotMode.RepairOnly || snap.VBloodMode == VBloodSnapshotMode.RestoreExact;
-            var spellSlotsChanged = _spellbookSaver.SlotsChanged;
+            var requiresSpellbookRebuild = _spellbookSaver.RequiresRebuild;
 
-            if (!vbloodRan && _steps.OpenSpellbookUi && spellSlotsChanged)
+            if (_steps.OpenSpellbookUi && requiresSpellbookRebuild)
             {
-                // Spellbook UI open request would go here if component is known.
+                NotifySpellbookMenu(em, user, arenaId);
             }
 
             _store.Delete(platformId, arenaId);
@@ -110,6 +113,23 @@ namespace VAuto.Core.Lifecycle
             catch { }
 
             return 0;
+        }
+
+        private void NotifySpellbookMenu(EntityManager em, Entity user, string arenaId)
+        {
+            try
+            {
+                if (user == Entity.Null || em == default || !em.Exists(user) || !em.HasComponent<User>(user))
+                    return;
+
+                var platformId = em.GetComponentData<User>(user).PlatformId;
+                var message = $"Spellbook slots may need manual review after arena '{arenaId}'. Open the spellbook menu to refresh your loadout.";
+                ChatService.TrySendSystemMessage(platformId, message, out _);
+            }
+            catch
+            {
+                // best effort
+            }
         }
 
     }

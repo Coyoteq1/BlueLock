@@ -39,7 +39,7 @@ namespace VAuto.Core
         public static bool TryGetName(PrefabGUID guid, out string prefabName)
         {
             prefabName = string.Empty;
-            if (guid.GuidHash == 0)
+            if (guid.GuidHash == 0L)
                 return false;
 
             var system = VRCore.ServerWorld?.GetExistingSystemManaged<PrefabCollectionSystem>();
@@ -81,7 +81,7 @@ namespace VAuto.Core
 
                 if (dictValue is int intGuid)
                 {
-                    guid = new PrefabGUID(intGuid);
+                    guid = new PrefabGUID((int)intGuid);
                     return true;
                 }
             }
@@ -100,7 +100,7 @@ namespace VAuto.Core
 
                 if (dictValue is int intGuid)
                 {
-                    guid = new PrefabGUID(intGuid);
+                    guid = new PrefabGUID((int)intGuid);
                     return true;
                 }
             }
@@ -125,7 +125,7 @@ namespace VAuto.Core
                     return true;
                 }
 
-                if (dictValue is int intGuid && intGuid == guid.GuidHash)
+                if (dictValue is int intGuid && (long)intGuid == guid.GuidHash)
                 {
                     prefabName = keyStr;
                     return true;

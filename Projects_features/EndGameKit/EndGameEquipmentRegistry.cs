@@ -179,7 +179,7 @@ namespace VAuto.EndGameKit
                     if (string.IsNullOrEmpty(entry.Name))
                         continue;
 
-                    var guid = new PrefabGUID(entry.Guid);
+                    var guid = new PrefabGUID((int)entry.Guid);
                     RegisterPrefab(entry.Name, guid);
                 }
 

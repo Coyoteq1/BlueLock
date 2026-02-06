@@ -10,7 +10,7 @@ namespace VAuto.Core.Lifecycle
         public bool ApplyKit { get; set; } = true;
         public bool ApplySpellbooks { get; set; } = true;
         public bool OpenSpellbookUi { get; set; } = true;
-        public bool UnlockVBloods { get; set; } = true;
+        public bool UnlockVBloods { get; set; } = false;
         public bool SpawnZoneGlows { get; set; } = true;
         public bool SaveSnapshotOnEnter { get; set; } = true;
         public bool RestoreSnapshotOnExit { get; set; } = true;
@@ -34,6 +34,15 @@ namespace VAuto.Core.Lifecycle
                         AllowTrailingCommas = true,
                         ReadCommentHandling = JsonCommentHandling.Skip
                     }) ?? new LifecycleStepsConfig();
+                    
+                    // Migration guard: preserve UnlockVBloods=true for existing configs
+                    // that don't explicitly set this value (avoids breaking behavior change)
+                    if (!json.Contains("\"UnlockVBloods\"", StringComparison.OrdinalIgnoreCase) &&
+                        !json.Contains("'UnlockVBloods'", StringComparison.OrdinalIgnoreCase))
+                    {
+                        cfg.UnlockVBloods = true; // Preserve old default behavior
+                    }
+                    
                     return Normalize(cfg);
                 }
             }

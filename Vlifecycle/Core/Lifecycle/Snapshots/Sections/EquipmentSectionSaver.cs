@@ -13,5 +13,10 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
         {
             // Equipment restore stub.
         }
+
+        public void Reset()
+        {
+            // No internal state to reset for equipment
+        }
     }
 }

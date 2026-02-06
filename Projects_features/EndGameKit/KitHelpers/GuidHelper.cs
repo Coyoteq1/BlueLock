@@ -31,7 +31,7 @@ namespace VAuto.EndGameKit.Helpers
         /// </summary>
         public static bool Create(long value, out PrefabGUID guid)
         {
-            guid = new PrefabGUID(value);
+            guid = new PrefabGUID((int)value);
             return IsValid(guid);
         }
 
@@ -44,7 +44,7 @@ namespace VAuto.EndGameKit.Helpers
             {
                 throw new ArgumentException("GUID value cannot be zero", nameof(value));
             }
-            return new PrefabGUID(value);
+            return new PrefabGUID((int)value);
         }
 
         /// <summary>
@@ -60,17 +60,17 @@ namespace VAuto.EndGameKit.Helpers
             // Try parsing as long
             if (long.TryParse(input, out var value))
             {
-                guid = new PrefabGUID(value);
+                guid = new PrefabGUID((int)value);
                 return true;
             }
 
             // Try parsing as GUID string (for systems that use GUID format)
             if (Guid.TryParse(input, out var systemGuid))
             {
-                // Convert System.Guid to int (using first 4 bytes)
+                // Convert System.Guid to long (using first 8 bytes)
                 var bytes = systemGuid.ToByteArray();
-                var intValue = BitConverter.ToInt32(bytes, 0);
-                guid = new PrefabGUID(intValue);
+                var longValue = BitConverter.ToInt64(bytes, 0);
+                guid = new PrefabGUID((int)longValue);
                 return true;
             }
 
@@ -85,7 +85,7 @@ namespace VAuto.EndGameKit.Helpers
         {
             var timestamp = (int)(DateTime.UtcNow.Ticks % int.MaxValue);
             var random = new Random().Next(1, int.MaxValue);
-            return new PrefabGUID(timestamp ^ random);
+            return new PrefabGUID((int)(long)(timestamp ^ random));
         }
 
         /// <summary>
@@ -171,7 +171,7 @@ namespace VAuto.EndGameKit.Helpers
             var result = new PrefabGUID[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
-                result[i] = new PrefabGUID(values[i]);
+                result[i] = new PrefabGUID((int)values[i]);
             }
             return result;
         }

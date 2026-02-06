@@ -73,7 +73,7 @@ namespace VAuto.Commands.Core
         }
 
         [Command("setzonePrefab", description: "Create a glow zone with prefab at your position", adminOnly: true)]
-        public static void SetZonePrefab(ChatCommandContext ctx, string zoneId, int prefabGuid, float radius)
+        public static void SetZonePrefab(ChatCommandContext ctx, string zoneId, long prefabGuid, float radius)
         {
             try
             {

@@ -82,7 +82,7 @@ namespace VAuto.Core.Services
                 ChestsPerSpawn = 2,
                 ContainerGlowColor = new float3(1f, 0.5f, 0f),
                 ContainerGlowRadius = 5f,
-                ContainerPrefabGuid = new PrefabGUID(45), // Level 15 chest
+                ContainerPrefabGuid = new PrefabGUID((int)(long)45), // Level 15 chest
                 WaypointTrapGlowColor = new float3(1f, 0f, 0f),
                 WaypointTrapGlowRadius = 8f,
                 WaypointTrapThreshold = 10,

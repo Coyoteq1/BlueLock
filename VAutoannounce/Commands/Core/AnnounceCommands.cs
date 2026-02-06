@@ -1,4 +1,4 @@
-﻿using VampireCommandFramework;
+using VampireCommandFramework;
 using VAuto.Core.Services;
 
 namespace VAuto.Commands.Core

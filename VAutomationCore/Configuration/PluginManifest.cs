@@ -26,7 +26,7 @@ namespace VAuto.Core.Configuration
             string name,
             string version,
             bool enableHarmony,
-            string? harmonyId = null)
+            string harmonyId = null)
         {
             if (string.IsNullOrWhiteSpace(guid))
             {
@@ -57,4 +57,3 @@ namespace VAuto.Core.Configuration
         }
     }
 }
-

@@ -150,8 +150,8 @@ namespace VAuto.Arena.Services
             if (!TryLoadPrefabConfig(out var config)) return false;
             if (config.Prefabs == null) return false;
 
-            if (!config.Prefabs.TryGetValue(prefabName, out var intGuid)) return false;
-            guid = new PrefabGUID(intGuid);
+            if (!config.Prefabs.TryGetValue(prefabName, out var longGuid)) return false;
+            guid = new PrefabGUID((int)longGuid);
             return true;
         }
 
@@ -206,11 +206,11 @@ namespace VAuto.Arena.Services
 
                 if (parsed.TryGetValue("prefabs", out var pObj) && pObj is Dictionary<string, object> pTable)
                 {
-                    c.Prefabs = new Dictionary<string, int>();
+                    c.Prefabs = new Dictionary<string, long>();
                     foreach (var kvp in pTable)
                     {
-                        var intGuid = kvp.Value is int i ? i : Convert.ToInt32(kvp.Value);
-                        c.Prefabs[kvp.Key] = intGuid;
+                        var longGuid = kvp.Value is int i ? i : Convert.ToInt64(kvp.Value);
+                        c.Prefabs[kvp.Key] = longGuid;
                     }
                 }
 
@@ -254,7 +254,7 @@ namespace VAuto.Arena.Services
 
                 if (dictValue is int intGuid)
                 {
-                    guid = new PrefabGUID(intGuid);
+                    guid = new PrefabGUID((int)intGuid);
                     return true;
                 }
             }
@@ -293,7 +293,7 @@ namespace VAuto.Arena.Services
         private sealed class GlowPrefabConfig
         {
             public string DefaultPrefab { get; set; }
-            public Dictionary<string, int> Prefabs { get; set; }
+            public Dictionary<string, long> Prefabs { get; set; }
         }
     }
 }

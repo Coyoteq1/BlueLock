@@ -88,7 +88,7 @@ namespace VAuto.EndGameKit.Services
 
                 try
                 {
-                    var itemGuid = new PrefabGUID(guidValue);
+                    var itemGuid = new PrefabGUID((int)guidValue);
                     _serverGameManager.EquipItem(player, itemGuid, slot.ToSlotIndex(), true);
                     equippedCount++;
                     

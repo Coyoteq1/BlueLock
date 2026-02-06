@@ -96,7 +96,7 @@ namespace VAuto.EndGameKit.Services
         /// </summary>
         public bool AttachJewel(Entity player, long guidValue)
         {
-            return AttachJewel(player, new PrefabGUID(guidValue));
+            return AttachJewel(player, new PrefabGUID((int)guidValue));
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace VAuto.EndGameKit.Services
             if (jewelValues == null || jewelValues.Count == 0)
                 return 0;
 
-            var guids = jewelValues.Select(v => new PrefabGUID(v)).ToList();
+            var guids = jewelValues.Select(v => new PrefabGUID((int)v)).ToList();
             return AttachJewels(player, guids);
         }
 

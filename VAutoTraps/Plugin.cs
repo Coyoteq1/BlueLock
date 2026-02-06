@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
@@ -19,11 +21,21 @@ namespace VAuto
         public new static ManualLogSource Log => _staticLog;
         public static ManualLogSource Logger => _staticLog;
         private Harmony? _harmony;
+        private static ConfigFile? _configFile;
+        private static ConfigEntry<bool>? _configEnabled;
 
         public override void Load()
         {
             try
             {
+                _configFile = new ConfigFile(Path.Combine(Paths.ConfigPath, "VAuto.Traps.cfg"), true);
+                _configEnabled = _configFile.Bind("General", "Enabled", true, "Enable or disable VAuto Traps plugin.");
+                if (_configEnabled != null && !_configEnabled.Value)
+                {
+                    Log.LogInfo("[VAutoTraps] Disabled via config.");
+                    return;
+                }
+
                 var manifest = MyPluginInfo.Traps.Manifest;
                 Log.LogInfo($"[{manifest.Name}] Loading v{manifest.Version}...");
 

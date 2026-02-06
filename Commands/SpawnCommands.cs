@@ -1,4 +1,4 @@
-using VampireCommandFramework;
+﻿using VampireCommandFramework;
 using ProjectM;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -11,14 +11,14 @@ using VAuto.Services.World;
 namespace VAuto.Commands.Core
 {
     [CommandGroup("spawn", "Spawn commands for glows and prefabs")]
-    public class SpawnCommands
+    public static class SpawnCommands
     {
         /// <summary>
         /// Spawn a circular glow zone around the player's position.
         /// Usage: .spawnglow circle <radius> [spacing]
         /// </summary>
         [Command("glow", "Spawn a circular glow zone around your position", adminOnly: true)]
-        public void SpawnGlowCommand(ChatContext ctx, float radius = 10f, float spacing = 3f)
+        public static void SpawnGlowCommand(ICommandContext ctx, float radius = 10f, float spacing = 3f)
         {
             try
             {
@@ -51,7 +51,7 @@ namespace VAuto.Commands.Core
         /// Usage: .spawnglow box <width> <length> [spacing]
         /// </summary>
         [Command("glowbox", "Spawn a box glow zone around your position", adminOnly: true)]
-        public void SpawnGlowBoxCommand(ChatContext ctx, float width = 10f, float length = 10f, float spacing = 3f)
+        public static void SpawnGlowBoxCommand(ICommandContext ctx, float width = 10f, float length = 10f, float spacing = 3f)
         {
             try
             {
@@ -81,7 +81,7 @@ namespace VAuto.Commands.Core
         /// Usage: .spawnglow clear
         /// </summary>
         [Command("glowclear", "Clear all glow zones", adminOnly: true)]
-        public void ClearGlowsCommand(ChatContext ctx)
+        public static void ClearGlowsCommand(ICommandContext ctx)
         {
             try
             {
@@ -99,7 +99,7 @@ namespace VAuto.Commands.Core
         /// Usage: .spawn prefabname [amount]
         /// </summary>
         [Command("spawn", "Spawn a prefab at your position", adminOnly: true)]
-        public void SpawnPrefabCommand(ChatContext ctx, string prefabName, int amount = 1)
+        public static void SpawnPrefabCommand(ICommandContext ctx, string prefabName, int amount = 1)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace VAuto.Commands.Core
         /// Usage: .spawn list [search]
         /// </summary>
         [Command("spawnlist", "List available prefabs (optional: search filter)", adminOnly: true)]
-        public void ListPrefabsCommand(ChatContext ctx, string searchFilter = "")
+        public static void ListPrefabsCommand(ICommandContext ctx, string searchFilter = "")
         {
             try
             {
@@ -175,7 +175,7 @@ namespace VAuto.Commands.Core
         /// Usage: .giveitem itemname [amount]
         /// </summary>
         [Command("giveitem", "Give an item to yourself", adminOnly: true)]
-        public void GiveItemCommand(ChatContext ctx, string itemName, int amount = 1)
+        public static void GiveItemCommand(ICommandContext ctx, string itemName, int amount = 1)
         {
             try
             {
@@ -218,7 +218,7 @@ namespace VAuto.Commands.Core
         /// Usage: .giveitemto player itemname [amount]
         /// </summary>
         [Command("giveitemto", "Give an item to another player", adminOnly: true)]
-        public void GiveItemToCommand(ChatContext ctx, string targetPlayerName, string itemName, int amount = 1)
+        public static void GiveItemToCommand(ICommandContext ctx, string targetPlayerName, string itemName, int amount = 1)
         {
             try
             {
@@ -268,11 +268,11 @@ namespace VAuto.Commands.Core
         /// List all configured zones.
         /// Usage: .zone list
         /// </summary>
-        [Command("zone", "Zone management commands")]
-        public class ZoneCommands
+        [CommandGroup("zone", "Zone management commands")]
+        public static class ZoneCommands
         {
             [Command("list", "List all configured zones", adminOnly: true)]
-            public void ListZonesCommand(ChatContext ctx)
+            public static void ListZonesCommand(ICommandContext ctx)
             {
                 try
                 {
@@ -326,7 +326,7 @@ namespace VAuto.Commands.Core
             /// Usage: .zoneset radius <zoneId> <radius>
             /// </summary>
             [Command("setradius", "Set the radius of a zone", adminOnly: true)]
-            public void SetZoneRadiusCommand(ChatContext ctx, int zoneId, float radius)
+            public static void SetZoneRadiusCommand(ICommandContext ctx, int zoneId, float radius)
             {
                 try
                 {
@@ -399,7 +399,7 @@ namespace VAuto.Commands.Core
             /// Usage: .zone glow <zoneId>
             /// </summary>
             [Command("glow", "Add glow to a zone at your position", adminOnly: true)]
-            public void ZoneGlowCommand(ChatContext ctx, int zoneId)
+            public static void ZoneGlowCommand(ICommandContext ctx, int zoneId)
             {
                 try
                 {
@@ -473,7 +473,7 @@ namespace VAuto.Commands.Core
             /// Usage: .zone clearglow <zoneId>
             /// </summary>
             [Command("clearglow", "Clear glow from a zone", adminOnly: true)]
-            public void ZoneClearGlowCommand(ChatContext ctx, int zoneId)
+            public static void ZoneClearGlowCommand(ICommandContext ctx, int zoneId)
             {
                 try
                 {
@@ -583,4 +583,5 @@ namespace VAuto.Commands.Core
         #endregion
     }
 }
+
 

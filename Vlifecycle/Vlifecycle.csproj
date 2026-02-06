@@ -21,6 +21,32 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Unity.Entities">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Entities.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Collections">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Collections.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Mathematics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Transforms">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Transforms.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Physics">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Physics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Unity.LowLevel removed - not available in V Rising server -->
+    <!-- <Reference Include="Unity.LowLevel"> -->
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\unity-libs\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="ProjectM">
       <HintPath>..\\VAutomationCore\\libs\\ProjectM.dll</HintPath>
       <Private>false</Private>
@@ -57,7 +83,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Core\\VRCore.cs" />
+    <!-- VRCore.cs restored - needed for lifecycle initialization -->
     <Compile Remove="Core\\PrefabGuidConverter.cs" />
     <Compile Remove="Services\\Interfaces\\IService.cs" />
   </ItemGroup>

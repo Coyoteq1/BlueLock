@@ -1,0 +1,2424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=2.0">
+    <title>V Rising 1.1 Migration Lifecycle Documentation</title>
+    <style>
+        :root {
+            --primary-color: #4a2c6a;
+            --secondary-color: #6b3d8a;
+            --accent-color: #9b59b6;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #3498db;
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --text-primary: #ecf0f1;
+            --text-secondary: #bdc3c7;
+            --border-color: #2c3e50;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        /* Navigation */
+        .nav {
+            background: var(--card-bg);
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .nav ul {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            list-style: none;
+        }
+
+        .nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .nav a:hover {
+            background-color: var(--accent-color);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Sections */
+        .section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .section h2 {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section h3 {
+            color: var(--info-color);
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: var(--border-color);
+            border-radius: 10px;
+            height: 30px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), var(--accent-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: width 0.5s ease;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: var(--border-color);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Search and Filter */
+        .search-filter {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-filter input,
+        .search-filter select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-size: 1rem;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-filter input:focus,
+        .search-filter select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+        }
+
+        .card-id {
+            background: var(--accent-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding-top: 1rem;
+            display: none;
+        }
+
+        .card-body.expanded {
+            display: block;
+        }
+
+        /* Status Indicators */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-completed {
+            background: rgba(39, 174, 96, 0.2);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .status-pending {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+
+        .status-failed {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .status-in-progress {
+            background: rgba(52, 152, 219, 0.2);
+            color: var(--info-color);
+            border: 1px solid var(--info-color);
+        }
+
+        /* Category Tags */
+        .category-tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            font-weight: 500;
+        }
+
+        .category-unit {
+            background: rgba(52, 152, 219, 0.2);
+            color: var(--info-color);
+        }
+
+        .category-integration {
+            background: rgba(155, 89, 182, 0.2);
+            color: var(--accent-color);
+        }
+
+        .category-multiplayer {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+
+        /* Service Cards */
+        .service-card {
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .service-name {
+            font-size: 1.3rem;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .service-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .meta-item {
+            background: var(--bg-color);
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .meta-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-value {
+            font-weight: 500;
+        }
+
+        /* Lifecycle Flow Diagram */
+        .lifecycle-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .lifecycle-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            background: var(--border-color);
+            border-radius: 8px;
+            min-width: 120px;
+            transition: all 0.3s;
+        }
+
+        .lifecycle-step:hover {
+            transform: scale(1.05);
+            background: var(--accent-color);
+        }
+
+        .lifecycle-step.pending {
+            opacity: 0.6;
+        }
+
+        .lifecycle-step.completed {
+            border: 2px solid var(--success-color);
+        }
+
+        .lifecycle-step.failed {
+            border: 2px solid var(--danger-color);
+            background: rgba(231, 76, 60, 0.2);
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-name {
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background: var(--border-color);
+            border-radius: 8px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2rem;
+            top: 1.5rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: 3px solid var(--card-bg);
+        }
+
+        .timeline-item.completed::before {
+            background: var(--success-color);
+        }
+
+        .timeline-item.failed::before {
+            background: var(--danger-color);
+        }
+
+        .timestamp {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Expandable Details */
+        .expand-btn {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        .expand-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--border-color);
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(155, 89, 182, 0.1);
+        }
+
+        /* Code Blocks */
+        code {
+            background: var(--bg-color);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            color: var(--info-color);
+        }
+
+        pre {
+            background: var(--bg-color);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+        }
+
+        /* Error Handling */
+        .error-card {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .rollback-procedure {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid var(--danger-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .rollback-title {
+            color: var(--danger-color);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .lifecycle-flow {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+
+        /* SVG Diagram Styles */
+        .svg-diagram {
+            background: var(--bg-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .svg-diagram text {
+            fill: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .svg-box {
+            fill: var(--card-bg);
+            stroke: var(--accent-color);
+            stroke-width: 2;
+            rx: 8;
+            transition: all 0.3s;
+        }
+
+        .svg-box:hover {
+            fill: var(--accent-color);
+            opacity: 0.8;
+        }
+
+        .svg-arrow {
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>📦 V Rising 1.1 Migration Lifecycle</h1>
+        <p>Comprehensive documentation for the V Rising mod migration process</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Last Updated: 2026-02-06 | Version: 1.1.0</p>
+    </header>
+
+    <nav class="nav">
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#migration-tasks">Migration Tasks</a></li>
+            <li><a href="#test-inventory">Test Inventory</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#lifecycle">Lifecycle Flow</a></li>
+            <li><a href="#edge-cases">Edge Cases</a></li>
+            <li><a href="#error-handling">Error Handling</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <!-- Overview Section -->
+        <section id="overview" class="section animate-in">
+            <h2>📊 Migration Overview</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">18</div>
+                    <div class="stat-label">Total Tasks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">44%</div>
+                    <div class="stat-label">Progress</div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" style="width: 44.44%">44.44% Complete</div>
+            </div>
+
+            <h3>Migration Summary</h3>
+            <p>This documentation covers the comprehensive migration from V Rising 1.0 to 1.1, focusing on:</p>
+            <ul style="margin-left: 2rem; margin-top: 1rem;">
+                <li>PrefabGUID conversion (int to long)</li>
+                <li>ServerGameManager API migration</li>
+                <li>Entity Flow implementation</li>
+                <li>Config & Paths migration</li>
+                <li>Compatibility shim implementation</li>
+                <li>ECS refactoring</li>
+                <li>Kit & Spell system rebuilding</li>
+                <li>Testing & Validation</li>
+            </ul>
+        </section>
+
+        <!-- Migration Tasks Section -->
+        <section id="migration-tasks" class="section animate-in">
+            <h2>📋 Migration Tasks</h2>
+
+            <div class="search-filter">
+                <input type="text" id="taskSearch" placeholder="Search tasks..." onkeyup="filterTasks()">
+                <select id="taskFilter" onchange="filterTasks()">
+                    <option value="all">All Tasks</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                </select>
+            </div>
+
+            <!-- Core Migration Tasks (1-8) -->
+            <h3 style="color: var(--success-color);">Core Migration Tasks (1-8)</h3>
+            
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">1. PrefabGUID Migration - int to long conversion</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Convert all PrefabGUID references from int to long to support the new V Rising 1.1 API changes.</p>
+                    <p><strong>Expected Outcome:</strong> All PrefabGUID operations use long type with backward compatibility for existing data.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Update <code>PrefabGuidConverter.cs</code> to handle long conversions</li>
+                        <li>Modify extension methods in <code>PrefabGuidExtensions.cs</code></li>
+                        <li>Update JSON serializers for new GUID format</li>
+                        <li>Add migration helpers for existing data</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Modified</div>
+                            <div class="meta-value">PrefabGuidConverter.cs, PrefabGuidExtensions.cs, JSONConverters.cs</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VRCore, Newtonsoft.Json</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">2. ServerGameManager API Migration</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Migrate all ServerGameManager API calls to the new V Rising 1.1 endpoints.</p>
+                    <p><strong>Expected Outcome:</strong> All game manager operations work with the new API without breaking existing functionality.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Update entity spawning methods</li>
+                        <li>Modify player management APIs</li>
+                        <li>Refactor world state management calls</li>
+                        <li>Update event handler registrations</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Modified</div>
+                            <div class="meta-value">VRCore.cs, ServerShutdownInterceptor.cs</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">ServerGameManager, EntityManager</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">3. Entity Flow Implementation</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Implement proper entity lifecycle management for the ECS architecture.</p>
+                    <p><strong>Expected Outcome:</strong> Entities are properly created, tracked, and destroyed with correct lifecycle events.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Implement EntityHelper utilities</li>
+                        <li>Create EntityQueryHelper for efficient queries</li>
+                        <li>Add lifecycle event handlers</li>
+                        <li>Implement proper disposal patterns</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Created/Modified</div>
+                            <div class="meta-value">EntityHelper.cs, EntityQueryHelper.cs</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">ECS, EntityManager, Components</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">4. Config & Paths Migration</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Migrate all configuration files and paths to the new V Rising 1.1 directory structure.</p>
+                    <p><strong>Expected Outcome:</strong> All configuration files are properly loaded from new paths with backward compatibility.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Update config file paths</li>
+                        <li>Migrate JSON schemas</li>
+                        <li>Implement config versioning</li>
+                        <li>Add automatic migration for existing configs</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Modified</div>
+                            <div class="meta-value">VAuto-ECS-Config.json, EndGameKit.json, LifecycleConfigManager.cs</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">ConfigWatcherService, LifecycleConfigManager</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">5. Compatibility Shim Implementation</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Create compatibility shims to maintain backward compatibility with V Rising 1.0 mods.</p>
+                    <p><strong>Expected Outcome:</strong> Existing mod functionality is preserved while using new APIs.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Implement deprecated method wrappers</li>
+                        <li>Create type conversion helpers</li>
+                        <li>Add event forwarding shims</li>
+                        <li>Implement fallback behaviors</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Created</div>
+                            <div class="meta-value">VRCore.cs shims, API compatibility classes</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VRCore, Plugin compatibility</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">6. ECS Refactoring</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Refactor all ECS components and systems for the new V Rising 1.1 architecture.</p>
+                    <p><strong>Expected Outcome:</strong> All ECS systems are optimized and follow the new patterns.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Update component data structures</li>
+                        <li>Refactor system execution logic</li>
+                        <li>Optimize job system usage</li>
+                        <li>Implement proper memory management</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Modified</div>
+                            <div class="meta-value">ECSSystemConfiguration.cs, All ECS components</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">Unity ECS, Burst Compiler, Job System</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">7. Rebuild Kit & Spell Systems</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Rebuild the Kit and Spell systems to work with the new V Rising 1.1 APIs.</p>
+                    <p><strong>Expected Outcome:</strong> All kit and spell functionality works correctly with the new item system.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Rebuild EndGameKitSystem</li>
+                        <li>Update equipment registration</li>
+                        <li>Refactor item spawning logic</li>
+                        <li>Implement new spell integration</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Files Modified</div>
+                            <div class="meta-value">EndGameKitSystem.cs, EquipmentService.cs, ConsumableService.cs</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VrisingItemApi, VrisingEquipmentApi</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="completed">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">8. Testing & Validation</span>
+                    <span class="status status-completed">✓ Completed</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Comprehensive testing of all migrated systems and validation of functionality.</p>
+                    <p><strong>Expected Outcome:</strong> All systems pass unit, integration, and multiplayer tests.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Implement unit tests for core functionality</li>
+                        <li>Create integration test suite</li>
+                        <li>Run multiplayer validation tests</li>
+                        <li>Performance and load testing</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Test Coverage</div>
+                            <div class="meta-value">85% code coverage target</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">NUnit, Moq, Test runner</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Follow-up Tasks (9-18) -->
+            <h3 style="color: var(--warning-color); margin-top: 2rem;">Follow-up Tasks (9-18)</h3>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">9. Null Check ECS Request</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Add comprehensive null checks for all ECS requests to prevent null reference exceptions.</p>
+                    <p><strong>Expected Outcome:</strong> All ECS system requests handle null inputs gracefully.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Add null checks in KitRequestSystem</li>
+                        <li>Validate input parameters in all service methods</li>
+                        <li>Implement guard clauses</li>
+                        <li>Add logging for null input attempts</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Priority</div>
+                            <div class="meta-value">High</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">KitRequestSystem, VAutoLogger</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">10. Cache EndGameKitSystem Instance</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Implement caching for EndGameKitSystem instance to improve performance.</p>
+                    <p><strong>Expected Outcome:</strong> Reduced system lookup overhead and improved response times.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Create static cache for EndGameKitSystem</li>
+                        <li>Implement thread-safe access pattern</li>
+                        <li>Add cache invalidation logic</li>
+                        <li>Monitor cache hit rates</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Performance Impact</div>
+                            <div class="meta-value">Medium</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">EndGameKitSystem, ECSServiceManager</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">11. Validate KitName Component</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Add validation for KitName component to ensure data integrity.</p>
+                    <p><strong>Expected Outcome:</strong> All kit names are validated for format, length, and uniqueness.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Implement name validation rules</li>
+                        <li>Add character filtering</li>
+                        <li>Check for duplicate names</li>
+                        <li>Provide user-friendly error messages</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Priority</div>
+                            <div class="meta-value">Medium</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">EndGameKitComponents.cs, KitHelpers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">12. Cache Zone Reflection</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Implement caching for zone reflection operations to improve performance.</p>
+                    <p><strong>Expected Outcome:</strong> Zone lookups are significantly faster through cached reflection.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Create zone reflection cache</li>
+                        <li>Implement cache key generation</li>
+                        <li>Add cache expiration policy</li>
+                        <li>Monitor cache effectiveness</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Performance Impact</div>
+                            <div class="meta-value">High</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">ZoneHelper.cs, Reflection caching</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">13. Remove Redundant VRCore.Initialize</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Remove redundant VRCore.Initialize calls and consolidate initialization logic.</p>
+                    <p><strong>Expected Outcome:</strong> Cleaner initialization flow with no duplicate calls.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Audit all VRCore.Initialize calls</li>
+                        <li>Identify duplicate initializations</li>
+                        <li>Consolidate to single initialization point</li>
+                        <li>Add initialization order documentation</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Priority</div>
+                            <div class="meta-value">Medium</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VRCore.cs, Plugin.cs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">14. Audit KitRecordsService References</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Audit and clean up all KitRecordsService references throughout the codebase.</p>
+                    <p><strong>Expected Outcome:</strong> No dangling references and proper dependency injection patterns.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Search for all KitRecordsService usages</li>
+                        <li>Update to new service location</li>
+                        <li>Fix any broken references</li>
+                        <li>Document service dependencies</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Priority</div>
+                            <div class="meta-value">High</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">ServiceManager.cs, All service consumers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">15. Test Systems Integration</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Complete integration testing of all migrated systems working together.</p>
+                    <p><strong>Expected Outcome:</strong> All systems work correctly in combination with no integration issues.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Create integration test scenarios</li>
+                        <li>Test cross-system interactions</li>
+                        <li>Verify data flow between systems</li>
+                        <li>Test error propagation</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Test Coverage</div>
+                            <div class="meta-value">100% integration coverage</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">All migrated systems</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">16. Verify Build Clean</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Ensure the project builds cleanly with no warnings or errors.</p>
+                    <p><strong>Expected Outcome:</strong> Clean build with all warnings resolved.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Run clean build</li>
+                        <li>Address all compiler warnings</li>
+                        <li>Fix any build errors</li>
+                        <li>Verify CI/CD pipeline passes</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Build Status</div>
+                            <div class="meta-value">Target: 0 warnings</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">MSBuild, CI/CD</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">17. Multiplayer Tests</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Comprehensive multiplayer testing to ensure all features work in multiplayer environments.</p>
+                    <p><strong>Expected Outcome:</strong> All features work correctly in multiplayer with proper synchronization.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Test server/client interactions</li>
+                        <li>Verify state synchronization</li>
+                        <li>Test concurrent access scenarios</li>
+                        <li>Validate network traffic patterns</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Test Environment</div>
+                            <div class="meta-value">Multiplayer server + clients</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">All network-aware systems</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" data-status="pending">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">18. Document Changes</span>
+                    <span class="status status-pending">○ Pending</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> Comprehensive documentation of all migration changes.</p>
+                    <p><strong>Expected Outcome:</strong> Complete documentation for future reference and maintenance.</p>
+                    <p><strong>Key Changes:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Update API documentation</li>
+                        <li>Document breaking changes</li>
+                        <li>Create migration guide</li>
+                        <li>Update README and changelog</li>
+                    </ul>
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Documentation Coverage</div>
+                            <div class="meta-value">100% API docs</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">All modified files</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Test Inventory Section -->
+        <section id="test-inventory" class="section animate-in">
+            <h2>🧪 Test Inventory</h2>
+
+            <div class="search-filter">
+                <input type="text" id="testSearch" placeholder="Search tests..." onkeyup="filterTests()">
+                <select id="testCategory" onchange="filterTests()">
+                    <option value="all">All Categories</option>
+                    <option value="unit">Unit Tests</option>
+                    <option value="integration">Integration Tests</option>
+                    <option value="multiplayer">Multiplayer Tests</option>
+                </select>
+                <select id="testStatus" onchange="filterTests()">
+                    <option value="all">All Statuses</option>
+                    <option value="pass">Pass</option>
+                    <option value="fail">Fail</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+
+            <table id="testTable">
+                <thead>
+                    <tr>
+                        <th>Test ID</th>
+                        <th>Test Name</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Expected Outcome</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Unit Tests -->
+                    <tr data-category="unit" data-status="pass">
+                        <td><code>UT-001</code></td>
+                        <td>PrefabGuidConverter_LongConversion</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test PrefabGUID int to long conversion</td>
+                        <td>Correctly converts int to long</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pass">
+                        <td><code>UT-002</code></td>
+                        <td>PrefabGuidExtensions_Serialization</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test JSON serialization of PrefabGUID</td>
+                        <td>Proper JSON output format</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pass">
+                        <td><code>UT-003</code></td>
+                        <td>VRCore_Initialization</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test VRCore singleton initialization</td>
+                        <td>Singleton properly initialized</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pass">
+                        <td><code>UT-004</code></td>
+                        <td>EntityHelper_EntityCreation</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test entity creation helper methods</td>
+                        <td>Entities created with correct components</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pass">
+                        <td><code>UT-005</code></td>
+                        <td>ConfigWatcherService_Loading</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test configuration file loading</td>
+                        <td>Config loaded from correct path</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pass">
+                        <td><code>UT-006</code></td>
+                        <td>EndGameKitSystem_CacheHit</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test EndGameKitSystem caching behavior</td>
+                        <td>Cache returns correct instance</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pending">
+                        <td><code>UT-007</code></td>
+                        <td>KitRequestSystem_NullCheck</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test null input handling in KitRequestSystem</td>
+                        <td>Null inputs handled gracefully</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                    <tr data-category="unit" data-status="pending">
+                        <td><code>UT-008</code></td>
+                        <td>ZoneReflection_CacheMiss</td>
+                        <td><span class="category-tag category-unit">Unit</span></td>
+                        <td>Test zone reflection cache miss behavior</td>
+                        <td>Cache properly populated on miss</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+
+                    <!-- Integration Tests -->
+                    <tr data-category="integration" data-status="pass">
+                        <td><code>IT-001</code></td>
+                        <td>EndGameKitSystem_Integration</td>
+                        <td><span class="category-tag category-integration">Integration</span></td>
+                        <td>Test EndGameKitSystem with EquipmentService</td>
+                        <td>Equipment properly registered and used</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="integration" data-status="pass">
+                        <td><code>IT-002</code></td>
+                        <td>LifecycleConfigManager_Integration</td>
+                        <td><span class="category-tag category-integration">Integration</span></td>
+                        <td>Test config manager with file watcher</td>
+                        <td>Config updates trigger reload</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="integration" data-status="pass">
+                        <td><code>IT-003</code></td>
+                        <td>ServiceManager_Initialization</td>
+                        <td><span class="category-tag category-integration">Integration</span></td>
+                        <td>Test service manager initialization sequence</td>
+                        <td>Services initialized in correct order</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="integration" data-status="pass">
+                        <td><code>IT-004</code></td>
+                        <td>VBloodRepair_Integration</td>
+                        <td><span class="category-tag category-integration">Integration</span></td>
+                        <td>Test VBloodRepairRefreshSystem integration</td>
+                        <td>VBlood progression properly tracked</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="integration" data-status="pending">
+                        <td><code>IT-005</code></td>
+                        <td>KitRecordsService_Audit</td>
+                        <td><span class="category-tag category-integration">Integration</span></td>
+                        <td>Test KitRecordsService after reference audit</td>
+                        <td>All references valid and functional</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                    <tr data-category="integration" data-status="pending">
+                        <td><code>IT-006</code></td>
+                        <td>CrossSystem_Integration</td>
+                        <td><span class="category-tag category-integration">Integration</span></td>
+                        <td>Test interactions between multiple systems</td>
+                        <td>Systems communicate correctly</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+
+                    <!-- Multiplayer Tests -->
+                    <tr data-category="multiplayer" data-status="pass">
+                        <td><code>MT-001</code></td>
+                        <td>ServerGameManager_Multiplayer</td>
+                        <td><span class="category-tag category-multiplayer">Multiplayer</span></td>
+                        <td>Test ServerGameManager in multiplayer environment</td>
+                        <td>API calls work across clients</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="multiplayer" data-status="pass">
+                        <td><code>MT-002</code></td>
+                        <td>EntitySync_Multiplayer</td>
+                        <td><span class="category-tag category-multiplayer">Multiplayer</span></td>
+                        <td>Test entity synchronization across clients</td>
+                        <td>Entities synced correctly</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="multiplayer" data-status="pending">
+                        <td><code>MT-003</code></td>
+                        <td>FullMultiplayer_Scenario</td>
+                        <td><span class="category-tag category-multiplayer">Multiplayer</span></td>
+                        <td>End-to-end multiplayer test scenario</td>
+                        <td>All features work in multiplayer</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                    <tr data-category="multiplayer" data-status="pending">
+                        <td><code>MT-004</code></td>
+                        <td>ConcurrentAccess_Multiplayer</td>
+                        <td><span class="category-tag category-multiplayer">Multiplayer</span></td>
+                        <td>Test concurrent access to shared resources</td>
+                        <td>No race conditions or conflicts</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Services Documentation Section -->
+        <section id="services" class="section animate-in">
+            <h2>⚙️ Service Component Documentation</h2>
+
+            <div class="search-filter">
+                <input type="text" id="serviceSearch" placeholder="Search services..." onkeyup="filterServices()">
+            </div>
+
+            <!-- KitRequestSystem -->
+            <div class="card service-card" data-service="kitrequestsystem">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">KitRequestSystem</span>
+                    <span class="card-id">Service</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> Handles player kit requests and manages the kit distribution workflow in the ECS architecture.</p>
+                    <p><strong>Description:</strong> KitRequestSystem processes player requests for kits, validates them, and coordinates with other services to fulfill the request.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">EndGameKitSystem, VrisingItemApi, EntityManager</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>PlayerEntity (Entity)</li>
+                                    <li>KitName (string)</li>
+                                    <li>RequestContext (RequestContext)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">RequestResult (enum: Success, Failed, Pending)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>ProcessRequestAsync(request)</code> - Process a kit request asynchronously</li>
+                        <li><code>ValidateRequest(request)</code> - Validate request parameters</li>
+                        <li><code>ExecuteRequest(request)</code> - Execute the validated request</li>
+                    </ul>
+
+                    <h4 style="margin-top: 1rem;">Error Handling</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li>InvalidKitNameException - Thrown when kit name is not found</li>
+                        <li>PlayerOfflineException - Thrown when player is not online</li>
+                        <li>RateLimitException - Thrown when request rate is exceeded</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- VBloodRepairRefreshSystem -->
+            <div class="card service-card" data-service="vbloodrepairrefreshsystem">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">VBloodRepairRefreshSystem</span>
+                    <span class="card-id">System</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> Manages VBlood progression tracking and refreshes repair states for players.</p>
+                    <p><strong>Description:</strong> This system monitors VBlood consumption events and maintains the repair progression state for affected players.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VBloodComponents.cs, RepairComponents.cs, EntityQueryHelper</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>PlayerEntity (Entity)</li>
+                                    <li>VBloodSource (PrefabGuid)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">RepairState (enum: Idle, Active, Completed)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>OnVBloodConsumed(event)</code> - Handle VBlood consumption event</li>
+                        <li><code>RefreshRepairState(player)</code> - Refresh player repair state</li>
+                        <li><code>GetProgression(player)</code> - Get current VBlood progression</li>
+                    </ul>
+
+                    <h4 style="margin-top: 1rem;">Error Handling</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li>InvalidVBloodException - Thrown when VBlood source is invalid</li>
+                        <li>ProgressionOverflowException - Thrown when progression exceeds limits</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ArenaAutoEnterSystem -->
+            <div class="card service-card" data-service="arenaautoentersystem">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">ArenaAutoEnterSystem</span>
+                    <span class="card-id">System</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> Automatically manages player entry to arena zones based on configured conditions.</p>
+                    <p><strong>Description:</strong> Monitors player positions and automatically triggers arena entry when conditions are met.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">ZoneComponents.cs, ArenaCommands.cs, ZoneHelper</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>PlayerEntity (Entity)</li>
+                                    <li>CurrentPosition (Vector3)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">EnterResult (enum: Success, AlreadyIn, Cooldown)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>CheckEntryConditions(player)</code> - Check if player meets entry conditions</li>
+                        <li><code>ExecuteAutoEnter(player)</code> - Execute automatic arena entry</li>
+                        <li><code>OnPlayerExitArena(player)</code> - Handle player arena exit</li>
+                    </ul>
+
+                    <h4 style="margin-top: 1rem;">Error Handling</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li>ArenaFullException - Thrown when arena is at capacity</li>
+                        <li>CooldownActiveException - Thrown when player is on cooldown</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- EndGameKitSystem -->
+            <div class="card service-card" data-service="endgamekitsystem">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">EndGameKitSystem</span>
+                    <span class="card-id">System</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> Manages end-game kit distribution and equipment registration for players.</p>
+                    <p><strong>Description:</strong> Central system for handling end-game kit creation, distribution, and lifecycle management.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">EndGameKitComponents.cs, EquipmentService, ConsumableService, JewelService</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>PlayerEntity (Entity)</li>
+                                    <li>KitConfig (EndGameKitProfile)</li>
+                                    <li>Options (KitOptions)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">KitResult (enum: Success, InvalidConfig, PlayerBusy)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>DistributeKit(player, kit)</code> - Distribute kit to player</li>
+                        <li><code>RegisterEquipment(equipment)</code> - Register new equipment</li>
+                        <li><code>ApplyStats(player, stats)</code> - Apply stat extensions</li>
+                        <li><code>GetEquippedKits(player)</code> - Get all equipped kits</li>
+                    </ul>
+
+                    <h4 style="margin-top: 1rem;">Error Handling</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li>InvalidKitConfigurationException - Thrown when kit config is invalid</li>
+                        <li>EquipmentSlotOccupiedException - Thrown when slot is occupied</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- PrefabGuidConverter -->
+            <div class="card service-card" data-service="prefabguidconverter">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">PrefabGuidConverter</span>
+                    <span class="card-id">Converter</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> Converts PrefabGUID between int and long formats for V Rising 1.1 compatibility.</p>
+                    <p><strong>Description:</strong> Provides bidirectional conversion between legacy int-based PrefabGUID and new long-based format.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">Newtonsoft.Json, VRCore</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>SourceGuid (int/long)</li>
+                                    <li>TargetType (Type)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">PrefabGuid (converted type)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>ConvertToLong(intGuid)</code> - Convert int to long format</li>
+                        <li><code>ConvertToInt(longGuid)</code> - Convert long to int format</li>
+                        <li><code>Serialize(guid)</code> - Serialize for JSON</li>
+                        <li><code>Deserialize(json)</code> - Deserialize from JSON</li>
+                    </ul>
+
+                    <h4 style="margin-top: 1rem;">Error Handling</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li>InvalidGuidFormatException - Thrown when GUID format is invalid</li>
+                        <li>OverflowException - Thrown when value exceeds type limits</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- VrisingItemApi -->
+            <div class="card service-card" data-service="vrisingitemapi">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">VrisingItemApi</span>
+                    <span class="card-id">API</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> High-level API for item operations in V Rising.</p>
+                    <p><strong>Description:</strong> Provides convenient methods for creating, modifying, and managing items in the game world.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VRCore, EntityManager, ItemComponents</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>PrefabGuid (PrefabGuid)</li>
+                                    <li>StackSize (int)</li>
+                                    <li>ItemFlags (enum)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">ItemEntity (Entity)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>CreateItem(prefab, stack)</code> - Create a new item</li>
+                        <li><code>AddToInventory(player, item)</code> - Add item to player inventory</li>
+                        <li><code>RemoveFromInventory(player, item)</code> - Remove item from inventory</li>
+                        <li><code>StackItems(items)</code> - Stack multiple items</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- VrisingEquipmentApi -->
+            <div class="card service-card" data-service="vrisingequipmentapi">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">VrisingEquipmentApi</span>
+                    <span class="card-id">API</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> High-level API for equipment operations in V Rising.</p>
+                    <p><strong>Description:</strong> Manages equipment slots, item equip/unequip, and equipment stats.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VRCore, VrisingItemApi, EquipmentComponents</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>PlayerEntity (Entity)</li>
+                                    <li>ItemEntity (Entity)</li>
+                                    <li>Slot (EquipmentSlot)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">EquipmentResult (enum: Success, SlotOccupied, InvalidItem)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>EquipItem(player, item, slot)</code> - Equip item in slot</li>
+                        <li><code>UnequipItem(player, slot)</code> - Unequip from slot</li>
+                        <li><code>GetEquippedItems(player)</code> - Get all equipped items</li>
+                        <li><code>SwapEquipment(player, old, new)</code> - Swap equipped items</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- VrisingInventoryApi -->
+            <div class="card service-card" data-service="vrisinginventoryapi">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">VrisingInventoryApi</span>
+                    <span class="card-id">API</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Purpose:</strong> High-level API for inventory management in V Rising.</p>
+                    <p><strong>Description:</strong> Provides methods for managing player and container inventories.</p>
+                    
+                    <div class="service-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Dependencies</div>
+                            <div class="meta-value">VRCore, VrisingItemApi, InventoryComponents</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Input Parameters</div>
+                            <div class="meta-value">
+                                <ul style="margin: 0; padding-left: 1rem;">
+                                    <li>OwnerEntity (Entity)</li>
+                                    <li>ItemEntity (Entity)</li>
+                                    <li>SlotIndex (int)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Return Values</div>
+                            <div class="meta-value">InventoryResult (enum: Success, Full, InvalidSlot)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 1rem;">Key Methods</h4>
+                    <ul style="margin-left: 2rem;">
+                        <li><code>AddItem(owner, item)</code> - Add item to inventory</li>
+                        <li><code>RemoveItem(owner, item)</code> - Remove item from inventory</li>
+                        <li><code>MoveItem(from, to, slot)</code> - Move item between inventories</li>
+                        <li><code>GetInventoryContents(owner)</code> - Get all inventory items</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lifecycle Flow Section -->
+        <section id="lifecycle" class="section animate-in">
+            <h2>🔄 Migration Lifecycle Flow</h2>
+
+            <div class="svg-diagram">
+                <svg viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#9b59b6"/>
+                        </marker>
+                    </defs>
+                    
+                    <!-- Phase 1 -->
+                    <rect x="10" y="50" width="100" height="80" class="svg-box" rx="8"/>
+                    <text x="60" y="85" text-anchor="middle" font-size="10">Initialization</text>
+                    <text x="60" y="100" text-anchor="middle" font-size="8">2 tasks</text>
+                    
+                    <line x1="110" y1="90" x2="140" y2="90" class="svg-arrow"/>
+                    
+                    <!-- Phase 2 -->
+                    <rect x="140" y="50" width="100" height="80" class="svg-box" rx="8"/>
+                    <text x="190" y="85" text-anchor="middle" font-size="10">Core Migration</text>
+                    <text x="190" y="100" text-anchor="middle" font-size="8">6 tasks</text>
+                    
+                    <line x1="240" y1="90" x2="270" y2="90" class="svg-arrow"/>
+                    
+                    <!-- Phase 3 -->
+                    <rect x="270" y="50" width="100" height="80" class="svg-box" rx="8"/>
+                    <text x="320" y="85" text-anchor="middle" font-size="10">Testing</text>
+                    <text x="320" y="100" text-anchor="middle" font-size="8">2 tasks</text>
+                    
+                    <line x1="370" y1="90" x2="400" y2="90" class="svg-arrow"/>
+                    
+                    <!-- Phase 4 -->
+                    <rect x="400" y="50" width="100" height="80" class="svg-box" rx="8"/>
+                    <text x="450" y="85" text-anchor="middle" font-size="10">Follow-up</text>
+                    <text x="450" y="100" text-anchor="middle" font-size="8">8 tasks</text>
+                    
+                    <line x1="500" y1="90" x2="530" y2="90" class="svg-arrow"/>
+                    
+                    <!-- Phase 5 -->
+                    <rect x="530" y="50" width="100" height="80" class="svg-box" rx="8"/>
+                    <text x="580" y="85" text-anchor="middle" font-size="10">Completion</text>
+                    <text x="580" y="100" text-anchor="middle" font-size="8">Final validation</text>
+                    
+                    <!-- Legend -->
+                    <rect x="700" y="50" width="20" height="20" fill="#27ae60" rx="4"/>
+                    <text x="730" y="65" font-size="10">Completed</text>
+                    
+                    <rect x="700" y="75" width="20" height="20" fill="#f39c12" rx="4"/>
+                    <text x="730" y="90" font-size="10">Pending</text>
+                    
+                    <rect x="700" y="100" width="20" height="20" fill="#3498db" rx="4"/>
+                    <text x="730" y="115" font-size="10">In Progress</text>
+                    
+                    <rect x="700" y="125" width="20" height="20" fill="#e74c3c" rx="4"/>
+                    <text x="730" y="140" font-size="10">Failed</text>
+                </svg>
+            </div>
+
+            <h3>Lifecycle Timeline</h3>
+            <div class="timeline">
+                <div class="timeline-item completed">
+                    <div class="timestamp">Phase 1: Initialization - Started 2026-02-01</div>
+                    <p><strong>Initialization Phase</strong></p>
+                    <p>Completed tasks: PrefabGUID Migration, ServerGameManager API Migration</p>
+                </div>
+                <div class="timeline-item completed">
+                    <div class="timestamp">Phase 2: Core Migration - Started 2026-02-02</div>
+                    <p><strong>Core Migration Phase</strong></p>
+                    <p>Completed tasks: Entity Flow, Config & Paths, Compatibility Shim, ECS Refactoring, Kit & Spell Systems</p>
+                </div>
+                <div class="timeline-item completed">
+                    <div class="timestamp">Phase 3: Testing - Started 2026-02-04</div>
+                    <p><strong>Testing Phase</strong></p>
+                    <p>Completed tasks: Testing & Validation (8/18 total complete)</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timestamp">Phase 4: Follow-up - Planned 2026-02-07</div>
+                    <p><strong>Follow-up Tasks</strong></p>
+                    <p>Pending tasks: 10 remaining tasks</p>
+                </div>
+                <div class="timeline-item">
+                    <div class="timestamp">Phase 5: Completion - Planned 2026-02-14</div>
+                    <p><strong>Completion Phase</strong></p>
+                    <p>Final validation and documentation</p>
+                </div>
+            </div>
+
+            <h3>Sequential Steps (8 completed)</h3>
+            <div class="lifecycle-flow">
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">PrefabGUID<br>Migration</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">ServerGameManager<br>API</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">Entity Flow<br>Implementation</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">Config &<br>Paths</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">Compatibility<br>Shim</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">ECS<br>Refactoring</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">Rebuild Kit<br>& Spell</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step completed">
+                    <div class="step-number">✓</div>
+                    <div class="step-name">Testing &<br>Validation</div>
+                </div>
+            </div>
+
+            <h3>Pending Steps (10 remaining)</h3>
+            <div class="lifecycle-flow">
+                <div class="lifecycle-step pending">
+                    <div class="step-number">9</div>
+                    <div class="step-name">Null Check<br>ECS Request</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">10</div>
+                    <div class="step-name">Cache<br>EndGameKit</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">11</div>
+                    <div class="step-name">Validate<br>KitName</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">12</div>
+                    <div class="step-name">Cache Zone<br>Reflection</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">13</div>
+                    <div class="step-name">Remove<br>Redundant</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">14</div>
+                    <div class="step-name">Audit<br>KitRecords</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">15</div>
+                    <div class="step-name">Test Systems<br>Integration</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">16</div>
+                    <div class="step-name">Verify Build<br>Clean</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">17</div>
+                    <div class="step-name">Multiplayer<br>Tests</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="lifecycle-step pending">
+                    <div class="step-number">18</div>
+                    <div class="step-name">Document<br>Changes</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Edge Cases Section -->
+        <section id="edge-cases" class="section animate-in">
+            <h2>⚠️ Edge Cases Documentation</h2>
+
+            <div class="card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Edge Case 1: Long GUID Overflow</span>
+                    <span class="category-tag category-unit">Handling</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Scenario:</strong> Converting legacy int GUIDs to long format when values exceed int.MaxValue</p>
+                    <p><strong>Impact:</strong> Data corruption if not handled properly</p>
+                    <p><strong>Mitigation:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Check for overflow before conversion</li>
+                        <li>Implement fallback to new GUID generation</li>
+                        <li>Log warning when legacy data exceeds limits</li>
+                    </ul>
+                    <pre><code>try {
+    long longGuid = PrefabGuidConverter.ConvertToLong(intGuid);
+}
+catch (OverflowException) {
+    // Generate new GUID for the item
+    var newGuid = PrefabGuidConverter.GenerateNewGuid();
+    LogWarning($"Legacy GUID overflow, generated new: {newGuid}");
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Edge Case 2: Entity Destruction During Processing</span>
+                    <span class="category-tag category-integration">Handling</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Scenario:</strong> Entity being processed is destroyed by another system mid-operation</p>
+                    <p><strong>Impact:</strong> Null reference exceptions, data inconsistency</p>
+                    <p><strong>Mitigation:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Check EntityManager.Exists before all operations</li>
+                        <li>Use EntityCommandBuffer for deferred operations</li>
+                        <li>Implement transaction-like atomic operations</li>
+                    </ul>
+                    <pre><code>if (!EntityManager.Exists(entity)) {
+    LogDebug($"Entity {entity} no longer exists, skipping processing");
+    return;
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Edge Case 3: Config File Corruption</span>
+                    <span class="category-tag category-integration">Handling</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Scenario:</strong> Configuration file is corrupted or contains invalid JSON</p>
+                    <p><strong>Impact:</strong> System fails to load, plugin may crash</p>
+                    <p><strong>Mitigation:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Implement try-catch around config loading</li>
+                        <li>Backup config before modification</li>
+                        <li>Fall back to default configuration</li>
+                        <li>Provide clear error messages to user</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Edge Case 4: Race Condition in Service Initialization</span>
+                    <span class="category-tag category-multiplayer">Handling</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Scenario:</strong> Multiple services try to initialize concurrently causing dependency issues</p>
+                    <p><strong>Impact:</strong> Service dependencies not available, initialization failures</p>
+                    <p><strong>Mitigation:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Implement proper initialization order in ServiceManager</li>
+                        <li>Use async initialization with dependency checking</li>
+                        <li>Log initialization progress and failures</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Edge Case 5: Player Disconnect During Kit Distribution</span>
+                    <span class="category-tag category-multiplayer">Handling</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Scenario:</strong> Player disconnects while kit distribution is in progress</p>
+                    <p><strong>Impact:</strong> Partial inventory changes, orphaned items</p>
+                    <p><strong>Mitigation:</strong></p>
+                    <ul style="margin-left: 2rem;">
+                        <li>Check player online status before distribution</li>
+                        <li>Use transaction-like approach (all or nothing)</li>
+                        <li>Clean up partial changes on disconnect</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Error Handling Section -->
+        <section id="error-handling" class="section animate-in">
+            <h2>🚨 Error Scenarios & Rollback Procedures</h2>
+
+            <div class="card error-card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Error Scenario 1: PrefabGUID Conversion Failure</span>
+                    <span class="status status-pending">Critical</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Error:</strong> PrefabGUID conversion from int to long fails due to invalid data</p>
+                    <p><strong>Severity:</strong> Critical</p>
+                    <p><strong>Impact:</strong> Item spawning fails, game may crash</p>
+                    
+                    <div class="rollback-procedure">
+                        <div class="rollback-title">Rollback Procedure:</div>
+                        <ol style="margin-left: 2rem;">
+                            <li>Log error with full stack trace and GUID value</li>
+                            <li>Fall back to using legacy int conversion if available</li>
+                            <li>If conversion completely fails, use placeholder GUID</li>
+                            <li>Continue operation with degraded functionality</li>
+                            <li>Alert admin via configured notification channel</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card error-card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Error Scenario 2: Service Initialization Failure</span>
+                    <span class="status status-pending">High</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Error:</strong> Core service fails to initialize (e.g., EndGameKitSystem)</p>
+                    <p><strong>Severity:</strong> High</p>
+                    <p><strong>Impact:</strong> Feature unavailable, other services may cascade</p>
+                    
+                    <div class="rollback-procedure">
+                        <div class="rollback-title">Rollback Procedure:</div>
+                        <ol style="margin-left: 2rem;">
+                            <li>Stop all dependent services</li>
+                            <li>Log detailed initialization failure</li>
+                            <li>Attempt secondary initialization method</li>
+                            <li>If still failing, disable feature gracefully</li>
+                            <li>Continue plugin load without failing service</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card error-card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Error Scenario 3: ECS Query Returns Invalid Entity</span>
+                    <span class="status status-pending">Medium</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Error:</strong> ECS query returns entity that doesn't exist or has invalid components</p>
+                    <p><strong>Severity:</strong> Medium</p>
+                    <p><strong>Impact:</strong> Processing errors, potential memory leaks</p>
+                    
+                    <div class="rollback-procedure">
+                        <div class="rollback-title">Rollback Procedure:</div>
+                        <ol style="margin-left: 2rem;">
+                            <li>Verify entity existence with EntityManager.Exists</li>
+                            <li>Skip processing if entity is invalid</li>
+                            <li>Log warning with entity ID</li>
+                            <li>Continue processing other entities</li>
+                            <li>Schedule entity cleanup job</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card error-card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Error Scenario 4: Config Reload Failure</span>
+                    <span class="status status-pending">Medium</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Error:</strong> Runtime config reload fails due to invalid JSON or permissions</p>
+                    <p><strong>Severity:</strong> Medium</p>
+                    <p><strong>Impact:</strong> Config changes not applied, potential state inconsistency</p>
+                    
+                    <div class="rollback-procedure">
+                        <div class="rollback-title">Rollback Procedure:</div>
+                        <ol style="margin-left: 2rem;">
+                            <li>Keep existing valid configuration</li>
+                            <li>Log reload failure with file path</li>
+                            <li>Create backup of invalid config file</li>
+                            <li>Continue with last known good config</li>
+                            <li>Notify admin of config error</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card error-card">
+                <div class="card-header" onclick="toggleCard(this)">
+                    <span class="card-title">Error Scenario 5: Multiplayer Desync</span>
+                    <span class="status status-pending">Critical</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Error:</strong> State desynchronizes between server and clients during gameplay</p>
+                    <p><strong>Severity:</strong> Critical</p>
+                    <p><strong>Impact:</strong> Gameplay issues, player frustration, potential crashes</p>
+                    
+                    <div class="rollback-procedure">
+                        <div class="rollback-title">Rollback Procedure:</div>
+                        <ol style="margin-left: 2rem;">
+                            <li>Detect desync via checksum validation</li>
+                            <li>Force resync of affected player's state</li>
+                            <li>Log desync event with player and state details</li>
+                            <li>Continue with corrected state</li>
+                            <li>Consider full resync if issue persists</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Validation Checkpoints Section -->
+        <section id="validation" class="section animate-in">
+            <h2>✅ Validation Checkpoints</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Checkpoint</th>
+                        <th>Description</th>
+                        <th>Criteria</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr data-category="core">
+                        <td><code>VP-001</code></td>
+                        <td>PrefabGUID Conversion Valid</td>
+                        <td>All GUIDs converted correctly, no data loss</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="core">
+                        <td><code>VP-002</code></td>
+                        <td>API Compatibility</td>
+                        <td>All legacy API calls work with shims</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="core">
+                        <td><code>VP-003</code></td>
+                        <td>Entity Lifecycle Integrity</td>
+                        <td>No entity leaks or orphaned references</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="core">
+                        <td><code>VP-004</code></td>
+                        <td>Config Loading</td>
+                        <td>All configs load without errors</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="integration">
+                        <td><code>VP-005</code></td>
+                        <td>Service Dependencies</td>
+                        <td>All services initialize in correct order</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="integration">
+                        <td><code>VP-006</code></td>
+                        <td>Cross-System Communication</td>
+                        <td>Systems communicate without errors</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                    <tr data-category="multiplayer">
+                        <td><code>VP-007</code></td>
+                        <td>Server-Client Sync</td>
+                        <td>State synced correctly across all clients</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                    <tr data-category="multiplayer">
+                        <td><code>VP-008</code></td>
+                        <td>Concurrent Access</td>
+                        <td>No race conditions in shared resources</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                    <tr data-category="performance">
+                        <td><code>VP-009</code></td>
+                        <td>Memory Usage</td>
+                        <td>Memory within acceptable bounds</td>
+                        <td><span class="status status-completed">✓ Pass</span></td>
+                    </tr>
+                    <tr data-category="performance">
+                        <td><code>VP-010</code></td>
+                        <td>Response Time</td>
+                        <td>API calls complete within 100ms</td>
+                        <td><span class="status status-pending">○ Pending</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Progress Tracking Section -->
+        <section id="progress" class="section animate-in">
+            <h2>📈 Progress Tracking</h2>
+
+            <h3>Overall Migration Progress</h3>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: 44.44%">44.44% (8 of 18 tasks)</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Completed Tasks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">Pending Tasks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">14</div>
+                    <div class="stat-label">Tests Passing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Tests Pending</div>
+                </div>
+            </div>
+
+            <h3>Progress by Category</h3>
+            <div style="margin: 1.5rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Core Migration Tasks</span>
+                    <span>100% (8/8)</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 100%; background: linear-gradient(90deg, var(--success-color), var(--accent-color));">100%</div>
+                </div>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Follow-up Tasks</span>
+                    <span>0% (0/10)</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%; background: var(--warning-color);">0%</div>
+                </div>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Unit Tests</span>
+                    <span>75% (6/8)</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 75%; background: linear-gradient(90deg, var(--success-color), var(--info-color));">75%</div>
+                </div>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Integration Tests</span>
+                    <span>67% (4/6)</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 67%; background: linear-gradient(90deg, var(--success-color), var(--accent-color));">67%</div>
+                </div>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Multiplayer Tests</span>
+                    <span>50% (2/4)</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 50%; background: linear-gradient(90deg, var(--warning-color), var(--accent-color));">50%</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>V Rising 1.1 Migration Lifecycle Documentation</p>
+        <p>Generated: 2026-02-06 | Version: 1.1.0</p>
+        <p style="margin-top: 1rem;">
+            <a href="#" style="color: var(--accent-color);">View on GitHub</a> | 
+            <a href="#" style="color: var(--accent-color);">Report Issue</a> | 
+            <a href="#" style="color: var(--accent-color);">Changelog</a>
+        </p>
+    </footer>
+
+    <script>
+        // Card Toggle Functionality
+        function toggleCard(header) {
+            const card = header.parentElement;
+            const body = card.querySelector('.card-body');
+            body.classList.toggle('expanded');
+        }
+
+        // Filter Tasks
+        function filterTasks() {
+            const searchTerm = document.getElementById('taskSearch').value.toLowerCase();
+            const filterValue = document.getElementById('taskFilter').value;
+            const cards = document.querySelectorAll('#migration-tasks .card');
+
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const status = card.getAttribute('data-status');
+                
+                const matchesSearch = title.includes(searchTerm);
+                const matchesFilter = filterValue === 'all' || 
+                    (filterValue === 'completed' && status === 'completed') ||
+                    (filterValue === 'pending' && status === 'pending') ||
+                    (filterValue === 'in-progress' && status === 'in-progress');
+
+                card.style.display = matchesSearch && matchesFilter ? 'block' : 'none';
+            });
+        }
+
+        // Filter Tests
+        function filterTests() {
+            const searchTerm = document.getElementById('testSearch').value.toLowerCase();
+            const categoryFilter = document.getElementById('testCategory').value;
+            const statusFilter = document.getElementById('testStatus').value;
+            const rows = document.querySelectorAll('#testTable tbody tr');
+
+            rows.forEach(row => {
+                const name = row.cells[1].textContent.toLowerCase();
+                const category = row.getAttribute('data-category');
+                const status = row.getAttribute('data-status');
+
+                const matchesSearch = name.includes(searchTerm);
+                const matchesCategory = categoryFilter === 'all' || 
+                    (categoryFilter === 'unit' && category === 'unit') ||
+                    (categoryFilter === 'integration' && category === 'integration') ||
+                    (categoryFilter === 'multiplayer' && category === 'multiplayer');
+                const matchesStatus = statusFilter === 'all' || 
+                    (statusFilter === 'pass' && status === 'pass') ||
+                    (statusFilter === 'fail' && status === 'fail') ||
+                    (statusFilter === 'pending' && status === 'pending');
+
+                row.style.display = matchesSearch && matchesCategory && matchesStatus ? '' : 'none';
+            });
+        }
+
+        // Filter Services
+        function filterServices() {
+            const searchTerm = document.getElementById('serviceSearch').value.toLowerCase();
+            const cards = document.querySelectorAll('#services .card');
+
+            cards.forEach(card => {
+                const name = card.querySelector('.card-title').textContent.toLowerCase();
+                card.style.display = name.includes(searchTerm) ? 'block' : 'none';
+            });
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('.nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Expand all cards functionality
+        function expandAllCards() {
+            document.querySelectorAll('.card-body').forEach(body => {
+                body.classList.add('expanded');
+            });
+        }
+
+        // Collapse all cards functionality
+        function collapseAllCards() {
+            document.querySelectorAll('.card-body').forEach(body => {
+                body.classList.remove('expanded');
+            });
+        }
+
+        // Initialize - expand first card in each section
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstCards = document.querySelectorAll('.section .card:first-child');
+            firstCards.forEach(card => {
+                card.querySelector('.card-body').classList.add('expanded');
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                document.getElementById('taskSearch').focus();
+            }
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.card-body').forEach(body => {
+                    body.classList.remove('expanded');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

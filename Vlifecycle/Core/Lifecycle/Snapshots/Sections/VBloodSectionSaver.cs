@@ -3,6 +3,7 @@ using ProjectM;
 using ProjectM.Network;
 using Stunlock.Core;
 using VAuto.Core;
+using VAuto.Core.Lifecycle;
 
 namespace VAuto.Core.Lifecycle.Snapshots.Sections
 {
@@ -15,7 +16,7 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
                 if (!em.HasBuffer<VBloodUnlockTechBuffer>(character))
                 {
                     snapshot.VBloodMode = VBloodSnapshotMode.RepairOnly;
-                    snapshot.VBloodUnlocks = new System.Collections.Generic.List<int>();
+                    snapshot.VBloodUnlocks = new System.Collections.Generic.List<long>();
                     return;
                 }
 
@@ -23,12 +24,12 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
                 if (buf.Length == 0)
                 {
                     snapshot.VBloodMode = VBloodSnapshotMode.RepairOnly;
-                    snapshot.VBloodUnlocks = new System.Collections.Generic.List<int>();
+                    snapshot.VBloodUnlocks = new System.Collections.Generic.List<long>();
                     return;
                 }
 
                 snapshot.VBloodMode = VBloodSnapshotMode.RestoreExact;
-                snapshot.VBloodUnlocks = new System.Collections.Generic.List<int>(buf.Length);
+                snapshot.VBloodUnlocks = new System.Collections.Generic.List<long>(buf.Length);
                 for (int i = 0; i < buf.Length; i++)
                 {
                     snapshot.VBloodUnlocks.Add(buf[i].Guid.GuidHash);
@@ -37,7 +38,7 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
             catch
             {
                 snapshot.VBloodMode = VBloodSnapshotMode.RepairOnly;
-                snapshot.VBloodUnlocks = new System.Collections.Generic.List<int>();
+                snapshot.VBloodUnlocks = new System.Collections.Generic.List<long>();
             }
         }
 
@@ -48,7 +49,7 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
 
             if (snapshot.VBloodMode == VBloodSnapshotMode.RepairOnly)
             {
-                TryRepairVbloodProgression();
+                RequestRepairRefresh();
                 return;
             }
 
@@ -64,21 +65,21 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
 
                     foreach (var guidValue in snapshot.VBloodUnlocks)
                     {
-                        buf.Add(new VBloodUnlockTechBuffer { Guid = new PrefabGUID(guidValue) });
+                        buf.Add(new VBloodUnlockTechBuffer { Guid = new PrefabGUID((int)guidValue) });
                     }
 
                     // Ensure any derived progression/state gets rebuilt.
-                    TryRepairVbloodProgression();
+                    RequestRepairRefresh();
                 }
                 catch
                 {
                     // Fallback to additive unlock events if buffer editing is not supported.
                     foreach (var guidValue in snapshot.VBloodUnlocks)
                     {
-                        QueueUnlock(em, character, new PrefabGUID(guidValue));
+                        QueueUnlock(em, character, new PrefabGUID((int)guidValue));
                     }
 
-                    TryRepairVbloodProgression();
+                    RequestRepairRefresh();
                 }
             }
         }
@@ -100,24 +101,28 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
             }
         }
 
-        private static void TryRepairVbloodProgression()
+        public void Reset()
+        {
+            // No internal state to reset for VBlood unlocks
+        }
+
+        private static void RequestRepairRefresh()
         {
             try
             {
-                VRCore.Initialize();
                 var world = VRCore.ServerWorld;
                 if (world == null)
+                {
+                    Plugin.Log.LogWarning("[VBloodSectionSaver] ServerWorld is null, cannot request repair refresh");
+                    return;
+                }
+
+                var em = world.EntityManager;
+                var query = em.CreateEntityQuery(ComponentType.ReadOnly<PendingVbloodRepairRefresh>());
+                if (!query.IsEmpty)
                     return;
 
-                // RepairVBloodProgressionSystem is an unmanaged ISystem. Drive a one-shot update so
-                // derived progression/state gets rebuilt after we mutate the unlock buffer.
-                var handle = world.GetExistingSystem<RepairVBloodProgressionSystem>();
-                if (handle == default)
-                    handle = world.GetOrCreateSystem<RepairVBloodProgressionSystem>();
-
-                ref var state = ref world.Unmanaged.GetExistingSystemState<RepairVBloodProgressionSystem>();
-                ref var sys = ref world.Unmanaged.GetUnsafeSystemRef<RepairVBloodProgressionSystem>(handle);
-                sys.OnUpdate(ref state);
+                em.CreateEntity(ComponentType.ReadWrite<PendingVbloodRepairRefresh>());
             }
             catch
             {

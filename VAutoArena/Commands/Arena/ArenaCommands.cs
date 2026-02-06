@@ -30,6 +30,7 @@ namespace VAuto.Commands.Arena
             ctx.Reply("  .arena enter / .ae - Enter arena");
             ctx.Reply("  .arena exit / .ax - Exit arena");
             ctx.Reply("  .arena tp - Teleport to spawn point");
+            ctx.Reply("  .arena preset default - Apply default preset settings");
             ctx.Reply("  .arena glow validate - Validate glow config");
             ctx.Reply("  .arena glow test <spacing> - Test glow point count");
             ctx.Reply("  .arena glow spawn <spacing> [prefabName] - Spawn glow border");
@@ -142,8 +143,14 @@ namespace VAuto.Commands.Arena
                 return;
             }
 
-            ArenaPlayerService.ManualEnterArena(character);
-            ctx.Reply("[Arena] Arena entry executed.");
+            if (ArenaPlayerService.ManualEnterArena(character, out var error))
+            {
+                ctx.Reply("[Arena] Entered arena.");
+            }
+            else
+            {
+                ctx.Reply($"[Arena] Enter failed: {error}");
+            }
         }
 
         [Command("arena exit", shortHand: "ax", description: "Exit the arena", adminOnly: false)]
@@ -156,8 +163,17 @@ namespace VAuto.Commands.Arena
                 return;
             }
 
-            ArenaPlayerService.ManualExitArena(character);
-            ctx.Reply("[Arena] Arena exit executed.");
+            if (ArenaPlayerService.ManualExitArena(character, out var error))
+            {
+                if (string.IsNullOrWhiteSpace(error))
+                    ctx.Reply("[Arena] Exited arena.");
+                else
+                    ctx.Reply($"[Arena] Exited arena (warning: {error})");
+            }
+            else
+            {
+                ctx.Reply($"[Arena] Exit failed: {error}");
+            }
         }
 
         [Command("arena tp", shortHand: "atp", description: "Teleport to arena spawn point", adminOnly: false)]
@@ -172,6 +188,24 @@ namespace VAuto.Commands.Arena
 
             ArenaPlayerService.TeleportToSpawn(character);
             ctx.Reply("[Arena] Teleported to spawn point.");
+        }
+
+        [Command("arena preset", shortHand: "apreset", description: "Apply arena preset", adminOnly: true)]
+        public static void ArenaPreset(ChatCommandContext ctx, string preset = "default")
+        {
+            if (!string.Equals(preset, "default", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Reply($"[Arena] Unknown preset '{preset}'. Supported: default");
+                return;
+            }
+
+            var center = new float3(-1500f, 0f, -500f);
+            ArenaPlayerService.SetArenaZone(center, 70f);
+            ArenaPlayerService.SetEntryPoint(center, 50f);
+            ArenaPlayerService.SetExitPoint(center, 70f);
+            ArenaPlayerService.SetSpawnPoint(center);
+
+            ctx.Reply("[Arena] Preset 'default' applied (center -1500,0,-500; radius 70; entry 50; exit 70).");
         }
 
         [Command("arena glow validate", shortHand: "agv", description: "Validate arena territory config", adminOnly: false)]

@@ -78,7 +78,7 @@ namespace VAuto.Arena.Services
             return sb.ToString();
         }
 
-        public static string SerializeGlowPrefabs(string defaultPrefab, Dictionary<string, int> prefabs)
+        public static string SerializeGlowPrefabs(string defaultPrefab, Dictionary<string, long> prefabs)
         {
             var sb = new StringBuilder();
             sb.AppendLine("# VAutoArena glow prefab config (TOML)");

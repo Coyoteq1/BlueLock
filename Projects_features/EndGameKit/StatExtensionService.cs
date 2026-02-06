@@ -309,7 +309,7 @@ namespace VAuto.EndGameKit.Services
 
         {
 
-            return ApplyBuff(player, new PrefabGUID(guidValue));
+            return ApplyBuff(player, new PrefabGUID((int)guidValue));
 
         }
 

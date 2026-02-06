@@ -156,7 +156,7 @@ namespace VAuto.Extensions
         public static PrefabGUID? GetGuid(this string prefabName)
         {
             var guid = Prefabs.GetPrefabGuid(prefabName);
-            return guid.HasValue ? new PrefabGUID(guid.Value) : null;
+            return guid.HasValue ? new PrefabGUID((int)guid.Value) : null;
         }
 
         /// <summary>

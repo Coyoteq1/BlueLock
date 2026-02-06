@@ -23,5 +23,10 @@ namespace VAuto.Core.Lifecycle.Snapshots.Sections
             // Best-effort: restoring glows requires a dedicated GlowService not present here.
             // We keep data for future use but do not reapply to avoid compile/runtime errors.
         }
+
+        public void Reset()
+        {
+            // No internal state to reset for buff glows
+        }
     }
 }

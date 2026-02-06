@@ -133,20 +133,33 @@ namespace VAuto.Commands.Core
             try
             {
                 // Apply kit lifecycles
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKit.EndGameKitConfigService>();
-                if (kitConfigService != null)
+                if (EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    var config = kitConfigService.GetConfiguration();
                     var appliedKits = 0;
-                    
-                    foreach (var profile in config.Profiles.Where(p => p.Enabled))
+                    var kitNames = EndGameKitCommandHelper.GetKitProfileNames(system);
+
+                    foreach (var kitName in kitNames)
                     {
-                        // Apply kit logic would go here
-                        ctx.Reply(Plugin.Log, $"[Lifecycle] ✓ Applied kit lifecycle: {profile.Name}");
-                        appliedKits++;
+                        var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
+                        if (profile == null || !EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
+                            continue;
+
+                        if (EndGameKitCommandHelper.TryApplyKit(system, targetPlayer.CharacterEntity, kitName, out var applyError))
+                        {
+                            ctx.Reply(Plugin.Log, $"[Lifecycle] ✓ Applied kit lifecycle: {kitName}");
+                            appliedKits++;
+                        }
+                        else
+                        {
+                            ctx.Reply(Plugin.Log, $"[Lifecycle] ✗ Failed to apply kit lifecycle {kitName}: {applyError}");
+                        }
                     }
                     
                     ctx.Reply(Plugin.Log, $"[Lifecycle] Applied {appliedKits} kit lifecycles");
+                }
+                else
+                {
+                    ctx.Reply(Plugin.Log, $"[Lifecycle] EndGameKit system unavailable: {error}");
                 }
 
                 // Apply PvP lifecycles
@@ -245,23 +258,20 @@ namespace VAuto.Commands.Core
             try
             {
                 // Exit kit lifecycles
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKit.EndGameKitConfigService>();
-                if (kitConfigService != null)
+                if (EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    var config = kitConfigService.GetConfiguration();
-                    var removedKits = 0;
-                    
-                    foreach (var profile in config.Profiles.Where(p => p.Enabled))
+                    if (EndGameKitCommandHelper.TryRemoveKit(system, targetPlayer.CharacterEntity, out var removeError))
                     {
-                        if (profile.RestoreOnExit)
-                        {
-                            // Restore kit logic would go here
-                            ctx.Reply(Plugin.Log, $"[Lifecycle] ✓ Restored kit: {profile.Name}");
-                            removedKits++;
-                        }
+                        ctx.Reply(Plugin.Log, $"[Lifecycle] ✓ Removed kit lifecycle");
                     }
-                    
-                    ctx.Reply(Plugin.Log, $"[Lifecycle] Restored {removedKits} kit lifecycles");
+                    else
+                    {
+                        ctx.Reply(Plugin.Log, $"[Lifecycle] ✗ Failed to remove kit lifecycle: {removeError}");
+                    }
+                }
+                else
+                {
+                    ctx.Reply(Plugin.Log, $"[Lifecycle] EndGameKit system unavailable: {error}");
                 }
 
                 // Exit PvP lifecycles

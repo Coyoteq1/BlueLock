@@ -21,36 +21,36 @@ namespace VAuto.Core.Lifecycle.Snapshots
         public List<EquipmentSlotSnapshot> Equipment { get; set; } = new();
         public List<JewelSocketSnapshot> Jewels { get; set; } = new();
         public List<SpellSlotSnapshot> Spells { get; set; } = new();
-        public List<int> Buffs { get; set; } = new();
+        public List<long> Buffs { get; set; } = new();
 
         public VBloodSnapshotMode VBloodMode { get; set; } = VBloodSnapshotMode.RepairOnly;
-        public List<int>? VBloodUnlocks { get; set; }
+        public List<long>? VBloodUnlocks { get; set; }
     }
 
     public sealed class InventorySlotSnapshot
     {
         public int Slot { get; set; }
-        public int PrefabGuid { get; set; }
+        public long PrefabGuid { get; set; }
         public int Amount { get; set; }
     }
 
     public sealed class EquipmentSlotSnapshot
     {
         public string Slot { get; set; } = string.Empty;
-        public int PrefabGuid { get; set; }
+        public long PrefabGuid { get; set; }
     }
 
     public sealed class JewelSocketSnapshot
     {
         public int WeaponSlot { get; set; }
         public int SocketIndex { get; set; }
-        public int PrefabGuid { get; set; }
+        public long PrefabGuid { get; set; }
     }
 
     public sealed class SpellSlotSnapshot
     {
         public int SlotIndex { get; set; }
-        public int PrefabGuid { get; set; }
+        public long PrefabGuid { get; set; }
         public int? Level { get; set; }
     }
 }

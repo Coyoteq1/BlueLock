@@ -33,6 +33,7 @@ namespace VAuto.Core.Lifecycle
         public bool OnPlayerEnter(Entity user, Entity character, string arenaId)
         {
             Initialize();
+            _steps = LifecycleStepsPolicy.Load();
             if (!_steps.UnlockVBloods) return true;
             if (user == Entity.Null || character == Entity.Null) return false;
 
@@ -63,4 +64,3 @@ namespace VAuto.Core.Lifecycle
         public bool OnArenaEnd(string arenaId) => true;
     }
 }
-

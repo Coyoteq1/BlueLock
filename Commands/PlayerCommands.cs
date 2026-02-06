@@ -8,6 +8,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using VAuto.Core;
+using System.Collections.Generic;
 using VAuto.Commands.Converters;
 using VAuto.Models;
 using VAuto.Services;
@@ -32,7 +33,7 @@ namespace VAuto.Commands.Core
             catch (Exception ex)
             {
                 Plugin.Log.LogWarning($"[Player] Error getting PrefabGUID from entity: {ex.Message}");
-                return new PrefabGUID(0);
+                return new PrefabGUID((int)0);
             }
         }
 
@@ -386,41 +387,57 @@ namespace VAuto.Commands.Core
             {
                 var targetPlayer = player ?? new FoundPlayer(ctx.SenderUserEntity, ctx.SenderCharacterEntity, "You");
                 var playerModel = new Player(targetPlayer.UserEntity);
-                
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKit.EndGameKitConfigService>();
-                if (kitConfigService == null)
+
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Player] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Player] Error: {error}");
                     return;
                 }
 
-                var config = kitConfigService.GetConfiguration();
                 var playerZones = playerModel.GetZones();
                 var appliedKits = 0;
 
-                foreach (var profile in config.Profiles.Where(p => p.Enabled))
+                if (EndGameKitCommandHelper.TryHasKitApplied(system, targetPlayer.CharacterEntity, out var hasKitApplied, out _)
+                    && hasKitApplied)
                 {
-                    bool shouldApply = false;
+                    ctx.Reply(Plugin.Log, $"[Player] {targetPlayer.CharacterName} already has a kit applied");
+                    return;
+                }
 
-                    // Check if kit should auto-apply based on zones
-                    if (profile.AutoApplyOnZoneEntry && profile.AutoApplyZones.Count > 0)
+                var kitNames = EndGameKitCommandHelper.GetKitProfileNames(system);
+                foreach (var kitName in kitNames)
+                {
+                    var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
+                    if (profile == null || !EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
+                        continue;
+
+                    bool shouldApply = false;
+                    var autoApply = EndGameKitCommandHelper.GetBool(profile, "AutoApplyOnZoneEntry", false);
+                    var autoZones = EndGameKitCommandHelper.GetStringList(profile, "AutoApplyZones");
+                    var allowInPvP = EndGameKitCommandHelper.GetBool(profile, "AllowInPvP", false);
+
+                    if (autoApply && autoZones.Count > 0)
                     {
-                        shouldApply = profile.AutoApplyZones.Any(zone => 
-                            playerZones.Any(playerZone => 
+                        shouldApply = autoZones.Any(zone =>
+                            playerZones.Any(playerZone =>
                                 playerZone.Equals(zone, StringComparison.OrdinalIgnoreCase)));
                     }
 
-                    // Auto-apply in PvP/EndGame zones
                     if (!shouldApply && (playerModel.IsInPvPZone() || playerModel.IsInEndGameZone()))
                     {
-                        shouldApply = profile.AllowInPvP;
+                        shouldApply = allowInPvP;
                     }
 
                     if (shouldApply)
                     {
-                        // Apply kit logic would go here
-                        ctx.Reply(Plugin.Log, $"[Player] ✓ Auto-applied kit '{profile.Name}' to {targetPlayer.CharacterName}");
-                        appliedKits++;
+                        if (EndGameKitCommandHelper.TryApplyKit(system, targetPlayer.CharacterEntity, kitName, out var applyError))
+                        {
+                            ctx.Reply(Plugin.Log, $"[Player] ✓ Auto-applied kit '{kitName}' to {targetPlayer.CharacterName}");
+                            appliedKits++;
+                            break;
+                        }
+
+                        ctx.Reply(Plugin.Log, $"[Player] ✗ Failed to auto-apply kit '{kitName}': {applyError}");
                     }
                 }
 

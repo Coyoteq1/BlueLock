@@ -1,55 +1,71 @@
-using VampireCommandFramework;
+﻿using VampireCommandFramework;
 using ProjectM;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using VAuto.Core;
-using VAuto.EndGameKit.Configuration;
-using VAuto.EndGameKit.Services;
 using VAuto.Commands.Converters;
 using System.Linq;
+using ProjectM.Network;
+using Stunlock.Core;
+using System.Reflection;
+using System;
 
 namespace VAuto.Commands.Core
 {
     [CommandGroup("kit", "EndGameKit management commands")]
-    public class KitCommands
+    public static class KitCommands
     {
+        private static Type _arenaPlayerServiceType;
+        private static MethodInfo _tryGetCharacterPositionMethod;
+        private static MethodInfo _isInZoneMethod;
+        private static PropertyInfo _arenaCenterProperty;
+        private static PropertyInfo _arenaRadiusProperty;
+
         /// <summary>
         /// Apply all enabled kits to the player (enter lifecycle).
         /// Usage: .kit enter [player]
         /// </summary>
         [Command("enter", "Apply all enabled kits (enter lifecycle)", adminOnly: true)]
-        public void KitEnterCommand(ChatContext ctx, FoundPlayer player = null)
+        public static void KitEnterCommand(ICommandContext ctx, FoundPlayer player = null)
         {
             try
             {
                 var targetPlayer = player ?? new FoundPlayer(ctx.SenderUserEntity, ctx.SenderCharacterEntity, "You");
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
-                var config = kitConfigService.GetConfiguration();
+                var kitNames = EndGameKitCommandHelper.GetKitProfileNames(system);
                 var appliedKits = 0;
                 var failedKits = 0;
 
                 ctx.Reply(Plugin.Log, $"[Kit] Starting lifecycle enter for {targetPlayer.CharacterName} - applying all enabled kits...");
 
-                foreach (var profile in config.Profiles.Where(p => p.Enabled))
+                foreach (var kitName in kitNames)
                 {
+                    var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
+                    if (profile == null || !EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
+                        continue;
+
                     try
                     {
-                        // Apply kit logic would go here
-                        // This would call the EndGameKitSystem to apply the kit
-                        ctx.Reply(Plugin.Log, $"[Kit] ✓ Applied kit: {profile.Name} to {targetPlayer.CharacterName}");
+                        if (!EndGameKitCommandHelper.TryApplyKit(system, targetPlayer.CharacterEntity, kitName, out var applyError))
+                        {
+                            ctx.Reply(Plugin.Log, $"[Kit] ✗ Failed to apply kit {kitName} to {targetPlayer.CharacterName}: {applyError}");
+                            failedKits++;
+                            continue;
+                        }
+
+                        var profileName = EndGameKitCommandHelper.GetString(profile, "Name", kitName);
+                        ctx.Reply(Plugin.Log, $"[Kit] ✓ Applied kit: {profileName} to {targetPlayer.CharacterName}");
                         appliedKits++;
                     }
                     catch (Exception ex)
                     {
-                        ctx.Reply(Plugin.Log, $"[Kit] ✗ Failed to apply kit {profile.Name} to {targetPlayer.CharacterName}: {ex.Message}");
+                        ctx.Reply(Plugin.Log, $"[Kit] ✗ Failed to apply kit {kitName} to {targetPlayer.CharacterName}: {ex.Message}");
                         failedKits++;
                     }
                 }
@@ -67,49 +83,26 @@ namespace VAuto.Commands.Core
         /// Usage: .kit exit [player]
         /// </summary>
         [Command("exit", "Remove all kits (exit lifecycle)", adminOnly: true)]
-        public void KitExitCommand(ChatContext ctx, FoundPlayer player = null)
+        public static void KitExitCommand(ICommandContext ctx, FoundPlayer player = null)
         {
             try
             {
                 var targetPlayer = player ?? new FoundPlayer(ctx.SenderUserEntity, ctx.SenderCharacterEntity, "You");
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
-                var config = kitConfigService.GetConfiguration();
-                var removedKits = 0;
-                var failedKits = 0;
-
                 ctx.Reply(Plugin.Log, $"[Kit] Starting lifecycle exit for {targetPlayer.CharacterName} - removing all kits...");
 
-                foreach (var profile in config.Profiles.Where(p => p.Enabled))
+                if (!EndGameKitCommandHelper.TryRemoveKit(system, targetPlayer.CharacterEntity, out var removeError))
                 {
-                    try
-                    {
-                        // Remove kit logic would go here
-                        // This would call the EndGameKitSystem to remove the kit and restore original gear
-                        if (profile.RestoreOnExit)
-                        {
-                            ctx.Reply(Plugin.Log, $"[Kit] ✓ Removed and restored original gear for {targetPlayer.CharacterName}: {profile.Name}");
-                        }
-                        else
-                        {
-                            ctx.Reply(Plugin.Log, $"[Kit] ✓ Removed kit from {targetPlayer.CharacterName}: {profile.Name}");
-                        }
-                        removedKits++;
-                    }
-                    catch (Exception ex)
-                    {
-                        ctx.Reply(Plugin.Log, $"[Kit] ✗ Failed to remove kit {profile.Name} from {targetPlayer.CharacterName}: {ex.Message}");
-                        failedKits++;
-                    }
+                    ctx.Reply(Plugin.Log, $"[Kit] ✗ Failed to remove kit from {targetPlayer.CharacterName}: {removeError}");
+                    return;
                 }
 
-                ctx.Reply(Plugin.Log, $"[Kit] Lifecycle exit complete for {targetPlayer.CharacterName}: {removedKits} kits removed, {failedKits} failed");
+                ctx.Reply(Plugin.Log, $"[Kit] ✓ Kit removed for {targetPlayer.CharacterName}");
             }
             catch (Exception ex)
             {
@@ -122,34 +115,38 @@ namespace VAuto.Commands.Core
         /// Usage: .kit apply <kitname> [player]
         /// </summary>
         [Command("apply", "Apply a specific kit by name", adminOnly: true)]
-        public void KitApplyCommand(ChatContext ctx, string kitName, FoundPlayer player = null)
+        public static void KitApplyCommand(ICommandContext ctx, string kitName, FoundPlayer player = null)
         {
             try
             {
                 var targetPlayer = player ?? new FoundPlayer(ctx.SenderUserEntity, ctx.SenderCharacterEntity, "You");
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
-                var config = kitConfigService.GetConfiguration();
-                var profile = config.Profiles.FirstOrDefault(p => 
-                    p.Name.Equals(kitName, StringComparison.OrdinalIgnoreCase) && p.Enabled);
+                var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
 
-                if (profile == null)
+                if (profile == null || !EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
                 {
                     ctx.Reply(Plugin.Log, $"[Kit] Error: Kit '{kitName}' not found or not enabled");
                     return;
                 }
 
-                ctx.Reply(Plugin.Log, $"[Kit] Applying kit '{profile.Name}' to {targetPlayer.CharacterName}");
-                ctx.Reply(Plugin.Log, $"[Kit] Description: {profile.Description}");
+                var profileName = EndGameKitCommandHelper.GetString(profile, "Name", kitName);
+                var description = EndGameKitCommandHelper.GetString(profile, "Description", string.Empty);
+                ctx.Reply(Plugin.Log, $"[Kit] Applying kit '{profileName}' to {targetPlayer.CharacterName}");
+                if (!string.IsNullOrWhiteSpace(description))
+                    ctx.Reply(Plugin.Log, $"[Kit] Description: {description}");
                 
-                // Apply kit logic would go here
-                ctx.Reply(Plugin.Log, $"[Kit] ✓ Successfully applied kit '{profile.Name}' to {targetPlayer.CharacterName}");
+                if (!EndGameKitCommandHelper.TryApplyKit(system, targetPlayer.CharacterEntity, kitName, out var applyError))
+                {
+                    ctx.Reply(Plugin.Log, $"[Kit] Error applying kit '{kitName}': {applyError}");
+                    return;
+                }
+
+                ctx.Reply(Plugin.Log, $"[Kit] ✓ Successfully applied kit '{profileName}' to {targetPlayer.CharacterName}");
             }
             catch (Exception ex)
             {
@@ -158,27 +155,140 @@ namespace VAuto.Commands.Core
         }
 
         /// <summary>
+        /// Apply the Brute kit and set blood quality (zone-only).
+        /// Usage: .kit brute [quality]
+        /// </summary>
+        [Command("brute", "Apply Brute kit and set blood quality (zone-only)", adminOnly: false)]
+        public static void KitBruteCommand(ICommandContext ctx, int quality = 100)
+        {
+            var character = ctx.SenderCharacterEntity;
+            if (character == Entity.Null)
+            {
+                ctx.Reply(Plugin.Log, "[Kit] Error: Could not resolve your character.");
+                return;
+            }
+
+            if (!IsInArenaZone(character))
+            {
+                ctx.Reply(Plugin.Log, "[Kit] This command is only available inside the arena zone.");
+                return;
+            }
+
+            if (!TryApplyKitByName(character, "Brute", out var kitError) &&
+                !TryApplyKitByName(character, "Brute_Ready", out kitError))
+            {
+                ctx.Reply(Plugin.Log, $"[Kit] Failed to apply kit: {kitError}");
+                return;
+            }
+
+            TrySetBloodQuality(character, quality);
+            ctx.Reply(Plugin.Log, $"[Kit] Brute kit applied. Blood quality set to {Math.Clamp(quality, 0, 100)}.");
+        }
+
+        private static void TrySetBloodQuality(Entity character, int quality)
+        {
+            try
+            {
+                var em = VRCore.EntityManager;
+                if (!em.HasComponent<Blood>(character))
+                    return;
+
+                var blood = em.GetComponentData<Blood>(character);
+                blood.Quality = (float)Math.Clamp(quality, 0, 100);
+                em.SetComponentData(character, blood);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private static bool IsInArenaZone(Entity character)
+        {
+            try
+            {
+                // Cache reflection data
+                if (_arenaPlayerServiceType == null)
+                {
+                    _arenaPlayerServiceType = Type.GetType("VAuto.Arena.Services.ArenaPlayerService, VAutoArena", throwOnError: false);
+                    if (_arenaPlayerServiceType == null)
+                        return false;
+
+                    _tryGetCharacterPositionMethod = _arenaPlayerServiceType.GetMethod("TryGetCharacterPosition", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    _isInZoneMethod = _arenaPlayerServiceType.GetMethod("IsInZone", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    _arenaCenterProperty = _arenaPlayerServiceType.GetProperty("ArenaCenter", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    _arenaRadiusProperty = _arenaPlayerServiceType.GetProperty("ArenaRadius", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                }
+
+                if (_tryGetCharacterPositionMethod == null || _isInZoneMethod == null || _arenaCenterProperty == null || _arenaRadiusProperty == null)
+                    return false;
+
+                object[] args = new object[] { character, default(float3) };
+                var ok = (bool)_tryGetCharacterPositionMethod.Invoke(null, args);
+                if (!ok)
+                    return false;
+
+                var pos = (float3)args[1];
+                var center = (float3)_arenaCenterProperty.GetValue(null);
+                var radius = (float)_arenaRadiusProperty.GetValue(null);
+
+                return (bool)_isInZoneMethod.Invoke(null, new object[] { pos, center, radius });
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool TryApplyKitByName(Entity character, string kitName, out string error)
+        {
+            error = string.Empty;
+            try
+            {
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out error))
+                    return false;
+
+                return EndGameKitCommandHelper.TryApplyKit(system, character, kitName, out error);
+            }
+            catch (Exception ex)
+            {
+                error = ex.InnerException?.Message ?? ex.Message;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// List all available kits.
         /// Usage: .kit list
         /// </summary>
         [Command("list", "List all available kits", adminOnly: true)]
-        public void KitListCommand(ChatContext ctx)
+        public static void KitListCommand(ICommandContext ctx)
         {
             try
             {
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
-                var config = kitConfigService.GetConfiguration();
-                var enabledKits = config.Profiles.Where(p => p.Enabled).ToList();
-                var disabledKits = config.Profiles.Where(p => !p.Enabled).ToList();
+                var kitNames = EndGameKitCommandHelper.GetKitProfileNames(system);
+                var enabledKits = new System.Collections.Generic.List<string>();
+                var disabledKits = new System.Collections.Generic.List<string>();
 
-                ctx.Reply(Plugin.Log, $"[Kit] Available Kits ({config.Profiles.Count} total):");
+                foreach (var kitName in kitNames)
+                {
+                    var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
+                    if (profile == null)
+                        continue;
+
+                    if (EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
+                        enabledKits.Add(kitName);
+                    else
+                        disabledKits.Add(kitName);
+                }
+
+                ctx.Reply(Plugin.Log, $"[Kit] Available Kits ({kitNames.Count} total):");
                 ctx.Reply(Plugin.Log, "");
 
                 if (enabledKits.Count > 0)
@@ -186,10 +296,18 @@ namespace VAuto.Commands.Core
                     ctx.Reply(Plugin.Log, "§2Enabled Kits:");
                     foreach (var kit in enabledKits)
                     {
-                        var autoApply = kit.AutoApplyOnZoneEntry ? "§aAuto§r" : "§cManual§r";
-                        var zones = kit.AutoApplyZones.Count > 0 ? string.Join(", ", kit.AutoApplyZones) : "None";
-                        ctx.Reply(Plugin.Log, $"  • {kit.Name} - {kit.Description}");
-                        ctx.Reply(Plugin.Log, $"    Status: {autoApply} | Zones: {zones} | Min GS: {kit.MinimumGearScore}");
+                        var profile = EndGameKitCommandHelper.GetKitProfile(system, kit);
+                        if (profile == null)
+                            continue;
+
+                        var autoApplyOnZoneEntry = EndGameKitCommandHelper.GetBool(profile, "AutoApplyOnZoneEntry", false);
+                        var autoApply = autoApplyOnZoneEntry ? "§aAuto§r" : "§cManual§r";
+                        var zones = EndGameKitCommandHelper.GetStringList(profile, "AutoApplyZones");
+                        var zonesText = zones.Count > 0 ? string.Join(", ", zones) : "None";
+                        var description = EndGameKitCommandHelper.GetString(profile, "Description", string.Empty);
+                        var minGs = EndGameKitCommandHelper.GetInt(profile, "MinimumGearScore", 0);
+                        ctx.Reply(Plugin.Log, $"  • {kit} - {description}");
+                        ctx.Reply(Plugin.Log, $"    Status: {autoApply} | Zones: {zonesText} | Min GS: {minGs}");
                     }
                 }
 
@@ -199,7 +317,11 @@ namespace VAuto.Commands.Core
                     ctx.Reply(Plugin.Log, "§8Disabled Kits:");
                     foreach (var kit in disabledKits)
                     {
-                        ctx.Reply(Plugin.Log, $"  • {kit.Name} - {kit.Description}");
+                        var profile = EndGameKitCommandHelper.GetKitProfile(system, kit);
+                        var description = profile != null
+                            ? EndGameKitCommandHelper.GetString(profile, "Description", string.Empty)
+                            : string.Empty;
+                        ctx.Reply(Plugin.Log, $"  • {kit} - {description}");
                     }
                 }
             }
@@ -214,16 +336,14 @@ namespace VAuto.Commands.Core
         /// Usage: .kit teleport <zonename> [player]
         /// </summary>
         [Command("teleport", "Teleport to a zone and apply appropriate kits", adminOnly: true)]
-        public void KitTeleportCommand(ChatContext ctx, string zoneName, FoundPlayer player = null)
+        public static void KitTeleportCommand(ICommandContext ctx, string zoneName, FoundPlayer player = null)
         {
             try
             {
                 var targetPlayer = player ?? new FoundPlayer(ctx.SenderUserEntity, ctx.SenderCharacterEntity, "You");
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
@@ -251,33 +371,13 @@ namespace VAuto.Commands.Core
                 }
 
                 // Apply auto-apply kits for this zone
-                var config = kitConfigService.GetConfiguration();
-                var autoApplyKits = config.Profiles.Where(p => 
-                    p.Enabled && 
-                    p.AutoApplyOnZoneEntry && 
-                    p.AutoApplyZones.Contains(zoneName, StringComparison.OrdinalIgnoreCase)
-                ).ToList();
+                if (!EndGameKitCommandHelper.TryApplyKitForZone(system, targetPlayer.UserEntity, targetPlayer.CharacterEntity, zoneName, out var applyError))
+                {
+                    ctx.Reply(Plugin.Log, $"[Kit] No auto-apply kits configured for zone '{zoneName}' or failed to apply: {applyError}");
+                    return;
+                }
 
-                if (autoApplyKits.Count > 0)
-                {
-                    ctx.Reply(Plugin.Log, $"[Kit] Auto-applying {autoApplyKits.Count} kits for zone '{zoneName}' to {targetPlayer.CharacterName}:");
-                    foreach (var kit in autoApplyKits)
-                    {
-                        try
-                        {
-                            // Apply kit logic would go here
-                            ctx.Reply(Plugin.Log, $"[Kit] ✓ Applied: {kit.Name} to {targetPlayer.CharacterName}");
-                        }
-                        catch (Exception ex)
-                        {
-                            ctx.Reply(Plugin.Log, $"[Kit] ✗ Failed to apply {kit.Name} to {targetPlayer.CharacterName}: {ex.Message}");
-                        }
-                    }
-                }
-                else
-                {
-                    ctx.Reply(Plugin.Log, $"[Kit] No auto-apply kits configured for zone '{zoneName}'");
-                }
+                ctx.Reply(Plugin.Log, $"[Kit] ✓ Auto-applied kit for zone '{zoneName}' to {targetPlayer.CharacterName}");
             }
             catch (Exception ex)
             {
@@ -290,24 +390,29 @@ namespace VAuto.Commands.Core
         /// Usage: .kit zones
         /// </summary>
         [Command("zones", "List available zones for teleportation", adminOnly: true)]
-        public void KitZonesCommand(ChatContext ctx)
+        public static void KitZonesCommand(ICommandContext ctx)
         {
             try
             {
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
-                var config = kitConfigService.GetConfiguration();
-                var allZones = config.Profiles
-                    .Where(p => p.Enabled && p.AutoApplyZones.Count > 0)
-                    .SelectMany(p => p.AutoApplyZones)
-                    .Distinct()
-                    .ToList();
+                var kitNames = EndGameKitCommandHelper.GetKitProfileNames(system);
+                var allZones = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var kitName in kitNames)
+                {
+                    var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
+                    if (profile == null || !EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
+                        continue;
+
+                    var zones = EndGameKitCommandHelper.GetStringList(profile, "AutoApplyZones");
+                    foreach (var zone in zones)
+                        allZones.Add(zone);
+                }
 
                 if (allZones.Count == 0)
                 {
@@ -315,17 +420,25 @@ namespace VAuto.Commands.Core
                     return;
                 }
 
-                ctx.Reply(Plugin.Log, $"[Kit] Available Zones ({allZones.Count}):");
-                
-                foreach (var zone in allZones)
-                {
-                    var kits = config.Profiles.Where(p => 
-                        p.Enabled && 
-                        p.AutoApplyOnZoneEntry && 
-                        p.AutoApplyZones.Contains(zone, StringComparison.OrdinalIgnoreCase)
-                    ).ToList();
+                var zonesList = allZones.ToList();
+                ctx.Reply(Plugin.Log, $"[Kit] Available Zones ({zonesList.Count}):");
 
-                    ctx.Reply(Plugin.Log, $"  • {zone} - {kits.Count} auto-apply kit(s): {string.Join(", ", kits.Select(k => k.Name))}");
+                foreach (var zone in zonesList)
+                {
+                    var kits = new System.Collections.Generic.List<string>();
+                    foreach (var kitName in kitNames)
+                    {
+                        var profile = EndGameKitCommandHelper.GetKitProfile(system, kitName);
+                        if (profile == null || !EndGameKitCommandHelper.GetBool(profile, "Enabled", true))
+                            continue;
+
+                        var autoApply = EndGameKitCommandHelper.GetBool(profile, "AutoApplyOnZoneEntry", false);
+                        var zones = EndGameKitCommandHelper.GetStringList(profile, "AutoApplyZones");
+                        if (autoApply && zones.Any(z => z.Equals(zone, StringComparison.OrdinalIgnoreCase)))
+                            kits.Add(kitName);
+                    }
+
+                    ctx.Reply(Plugin.Log, $"  • {zone} - {kits.Count} auto-apply kit(s): {string.Join(", ", kits)}");
                 }
             }
             catch (Exception ex)
@@ -339,19 +452,22 @@ namespace VAuto.Commands.Core
         /// Usage: .kit reload
         /// </summary>
         [Command("reload", "Reload kit configuration", adminOnly: true)]
-        public void KitReloadCommand(ChatContext ctx)
+        public static void KitReloadCommand(ICommandContext ctx)
         {
             try
             {
-                var kitConfigService = VRCore.ServiceContainer.GetService<EndGameKitConfigService>();
-                
-                if (kitConfigService == null)
+                if (!EndGameKitCommandHelper.TryGetSystem(out var system, out var error))
                 {
-                    ctx.Reply(Plugin.Log, "[Kit] Error: EndGameKitConfigService not available");
+                    ctx.Reply(Plugin.Log, $"[Kit] Error: {error}");
                     return;
                 }
 
-                kitConfigService.ReloadConfiguration();
+                if (!EndGameKitCommandHelper.TryLoadConfiguration(system, out var loadError))
+                {
+                    ctx.Reply(Plugin.Log, $"[Kit] Error reloading configuration: {loadError}");
+                    return;
+                }
+
                 ctx.Reply(Plugin.Log, "[Kit] ✓ Configuration reloaded successfully");
             }
             catch (Exception ex)
@@ -382,3 +498,4 @@ namespace VAuto.Commands.Core
         #endregion
     }
 }
+

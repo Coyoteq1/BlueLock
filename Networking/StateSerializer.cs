@@ -97,12 +97,12 @@ namespace VAuto.Core.Networking
     {
         public override PrefabGUID Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TryGetInt32(out int value))
-                return new PrefabGUID(value);
+            if (reader.TryGetInt64(out long value))
+                return new PrefabGUID((int)value);
 
             var str = reader.GetString();
             if (int.TryParse(str, out int guidValue))
-                return new PrefabGUID(guidValue);
+                return new PrefabGUID((int)guidValue);
 
             return default;
         }

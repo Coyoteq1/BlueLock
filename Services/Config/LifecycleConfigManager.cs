@@ -107,7 +107,7 @@ namespace VAuto.Core.Services
                     var b = em.AddBuffer<ZoneSpellbookElement>(e);
                     foreach (var id in z.Automation.Spellbook.ZoneAbilities)
                     {
-                        b.Add(new ZoneSpellbookElement { AbilityGroupGuid = new PrefabGUID(id), GrantType = GrantType.AbilityGroup });
+                        b.Add(new ZoneSpellbookElement { AbilityGroupGuid = new PrefabGUID((int)id), GrantType = GrantType.AbilityGroup });
                     }
                 }
             }
@@ -154,5 +154,5 @@ namespace VAuto.Core.Services
     public class KitModel { public string Profile { get; set; } = string.Empty; }
     public class RepairModel { public bool OnEntry { get; set; } public bool OnExit { get; set; } public int Threshold { get; set; } }
     public class VBloodModel { public bool Enabled { get; set; } }
-    public class SpellbookModel { public bool Enabled { get; set; } public int[] ZoneAbilities { get; set; } = Array.Empty<int>(); }
+    public class SpellbookModel { public bool Enabled { get; set; } public long[] ZoneAbilities { get; set; } = Array.Empty<long>(); }
 }

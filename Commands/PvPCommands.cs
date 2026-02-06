@@ -1,4 +1,4 @@
-using VampireCommandFramework;
+﻿using VampireCommandFramework;
 using ProjectM;
 using Unity.Entities;
 
@@ -8,9 +8,10 @@ namespace VAuto.Commands.Core
     public class PvPCommands
     {
         [Command("enable", "Enable PvP", adminOnly: true)]
-        public void EnablePvPCommand(ChatContext ctx)
+        public void EnablePvPCommand(ICommandContext ctx)
         {
             ctx.Reply(Plugin.Log, "[PvP] PvP command system - placeholder");
         }
     }
 }
+
