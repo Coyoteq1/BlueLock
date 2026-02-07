@@ -1,18 +1,20 @@
 using System;
 using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using VampireCommandFramework;
-using VAuto.Core.Services;
-using VAutoTraps;
+using VAutoZone;
+using VAuto.Zone.Services;
 
-namespace VAutoTraps
+namespace VAutoZone
 {
     [BepInPlugin(MyPluginInfo.GUID, MyPluginInfo.NAME, MyPluginInfo.VERSION)]
     [BepInDependency("gg.coyote.VAutomationCore", "1.0.0")]
+    [BepInDependency("gg.coyote.VAutomationLifecycle", "1.0.0")]
     [BepInDependency("gg.deca.VampireCommandFramework", "0.10.4")]
     [BepInProcess("VRisingServer.exe")]
     public class Plugin : BasePlugin
@@ -28,22 +30,17 @@ namespace VAutoTraps
         {
             try
             {
-                _configFile = new ConfigFile(Path.Combine(Paths.ConfigPath, "VAuto.Traps.cfg"), true);
-                _configEnabled = _configFile.Bind("General", "Enabled", true, "Enable or disable VAuto Traps plugin.");
+                _configFile = new ConfigFile(Path.Combine(Paths.ConfigPath, "VAuto.Zone.cfg"), true);
+                _configEnabled = _configFile.Bind("General", "Enabled", true, "Enable or disable VAuto Zone plugin.");
                 if (_configEnabled != null && !_configEnabled.Value)
                 {
-                    Log.LogInfo("[VAutoTraps] Disabled via config.");
+                    Log.LogInfo("[VAutoZone] Disabled via config.");
                     return;
                 }
 
                 Log.LogInfo($"[{MyPluginInfo.NAME}] Loading v{MyPluginInfo.VERSION}...");
 
-                TrapSpawnRules.Initialize();
-                ContainerTrapService.Initialize();
-                ChestSpawnService.Initialize();
-                TrapZoneService.Initialize();
-
-                CommandRegistry.RegisterAll();
+                CommandRegistry.RegisterAll(Assembly.GetExecutingAssembly());
 
                 Log.LogInfo($"[{MyPluginInfo.NAME}] Loaded.");
             }
@@ -58,13 +55,14 @@ namespace VAutoTraps
             try
             {
                 _harmony?.UnpatchSelf();
+                Log.LogInfo("[VAutoZone] Unloaded.");
+                return true;
             }
             catch (Exception ex)
             {
                 Log.LogError(ex);
+                return false;
             }
-
-            return true;
         }
     }
 }

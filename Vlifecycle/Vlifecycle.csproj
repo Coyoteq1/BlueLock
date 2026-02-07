@@ -1,4 +1,3 @@
-<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -16,59 +15,22 @@
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\\VAutomationCore\\VAutomationCore.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="Unity.Entities">
       <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Entities.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="Unity.Collections">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Collections.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="Unity.Mathematics">
       <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Mathematics.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="Unity.Transforms">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Transforms.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Unity.Physics">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Physics.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <!-- Unity.LowLevel removed - not available in V Rising server -->
-    <!-- <Reference Include="Unity.LowLevel"> -->
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\unity-libs\UnityEngine.CoreModule.dll</HintPath>
+    <Reference Include="Unity.Collections">
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Collections.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="ProjectM">
-      <HintPath>..\\VAutomationCore\\libs\\ProjectM.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="ProjectM.Gameplay.Systems">
-      <HintPath>..\\VAutomationCore\\libs\\ProjectM.Gameplay.Systems.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="ProjectM.Gameplay.Scripting">
-      <HintPath>..\\VAutomationCore\\libs\\ProjectM.Gameplay.Scripting.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="ProjectM.Shared">
-      <HintPath>..\\VAutomationCore\\libs\\ProjectM.Shared.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="ProjectM.GeneratedNetCode">
-      <HintPath>..\\VAutomationCore\\libs\\ProjectM.GeneratedNetCode.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="VRising.GameData">
-      <HintPath>..\\VAutomationCore\\libs\\VRising.GameData.dll</HintPath>
+      <HintPath>..\VAutomationCore\libs\ProjectM.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

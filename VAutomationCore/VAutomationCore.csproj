@@ -75,27 +75,35 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="Stunlock.Core">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Stunlock.Core.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\unity-libs\Stunlock.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Models\\ArenaBuilds\\**\\*.cs" />
-    <Compile Include="Models\\*.cs" />
-    <Compile Include="Helpers\\*.cs" />
-    <Compile Include="Extensions\\*.cs" />
-    <Compile Include="Chat\\ChatService.cs" />
+    <Compile Include="..\Models\ArenaBuilds\**\*.cs" />
+    <Compile Include="..\Models\*.cs" />
+    <Compile Include="..\Helpers\*.cs" />
+    <Compile Remove="..\Helpers\ECSServiceManager.cs" />
+    <Compile Include="..\Extensions\*.cs" />
+    <Compile Include="Chat\ChatService.cs" />
     <Compile Include="Core_VRCore.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="PrefabGuidConverter.cs" />
     <Compile Include="IService.cs" />
-    <Compile Include="Configuration\\PluginManifest.cs" />
-    <Compile Include="Configuration\\PluginGuidRegistry.cs" />
-    <Compile Include="Json\\PrefabGuidJsonConverter.cs" />
-    <Compile Include="Json\\VAutoJsonOptions.cs" />
-    <Compile Include="..\\MyPluginInfo.cs" Link="MyPluginInfo.cs" />
-    <Compile Include="..\\Commands\\**\\*.cs" />
+    <Compile Include="Configuration\PluginManifest.cs" />
+    <Compile Include="Json\PrefabGuidJsonConverter.cs" />
+    <Compile Include="Json\VAutoJsonOptions.cs" />
+    <Compile Include="MyPluginInfo.cs" />
+    <Compile Include="..\Networking\*.cs" />
+    <Compile Remove="..\Networking\WireService.cs" />
+    <Compile Remove="..\Extensions\*.cs" />
+    <Compile Remove="..\Helpers\*.cs" />
+    <Compile Remove="..\Networking\*.cs" />
+    <Compile Include="..\Commands\**\*.cs" />
+    <Compile Remove="..\Commands\LifecycleCommands.cs" />
+    <Compile Remove="..\Commands\PlayerCommands.cs" />
+    <Compile Remove="..\Commands\ZoneCommands.cs" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ namespace VAuto.Core
         private static EntityManager _em;
         private static ProjectM.Scripting.ServerGameManager _serverGameManager;
         private static bool _initialized;
-        private static ManualLogSource Log => Plugin.Log;
+        public static ManualLogSource Log => Plugin.Log;
 
         public static World ServerWorld
         {

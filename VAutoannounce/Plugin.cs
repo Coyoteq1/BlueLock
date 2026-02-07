@@ -6,20 +6,18 @@ using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using VampireCommandFramework;
-using VAuto.Core.Services;
 using VAuto;
 
 namespace VAuto
 {
-    [BepInPlugin(MyPluginInfo.Announcement.Guid, MyPluginInfo.Announcement.Name, MyPluginInfo.Announcement.Version)]
-    [BepInDependency(MyPluginInfo.Core.Guid)]
-    [BepInDependency("gg.deca.VampireCommandFramework")]
+    [BepInPlugin(MyPluginInfo.GUID, MyPluginInfo.NAME, MyPluginInfo.VERSION)]
+    [BepInDependency("gg.coyote.VAutomationCore", "1.0.0")]
+    [BepInDependency("gg.deca.VampireCommandFramework", "0.10.4")]
     [BepInProcess("VRisingServer.exe")]
     public class Plugin : BasePlugin
     {
-        private static readonly ManualLogSource _staticLog = BepInEx.Logging.Logger.CreateLogSource(MyPluginInfo.Announcement.Name);
+        private static readonly ManualLogSource _staticLog = BepInEx.Logging.Logger.CreateLogSource(MyPluginInfo.NAME);
         public new static ManualLogSource Log => _staticLog;
-        public static ManualLogSource Logger => _staticLog;
         private Harmony? _harmony;
         private static ConfigFile? _configFile;
         private static ConfigEntry<bool>? _configEnabled;
@@ -36,21 +34,11 @@ namespace VAuto
                     return;
                 }
 
-                var manifest = MyPluginInfo.Announcement.Manifest;
-                Log.LogInfo($"[{manifest.Name}] Loading v{manifest.Version}...");
-
-                if (manifest.EnableHarmony && _harmony == null)
-                {
-                    _harmony = new Harmony(manifest.HarmonyId);
-                    _harmony.PatchAll(typeof(Plugin).Assembly);
-                    Log.LogInfo($"[{manifest.Name}] Harmony patches applied.");
-                }
-
-                AnnouncementService.Initialize();
+                Log.LogInfo($"[{MyPluginInfo.NAME}] Loading v{MyPluginInfo.VERSION}...");
 
                 CommandRegistry.RegisterAll();
 
-                Log.LogInfo($"[{manifest.Name}] Loaded.");
+                Log.LogInfo($"[{MyPluginInfo.NAME}] Loaded.");
             }
             catch (Exception ex)
             {
@@ -63,13 +51,14 @@ namespace VAuto
             try
             {
                 _harmony?.UnpatchSelf();
+                Log.LogInfo("[VAutoannounce] Unloaded.");
+                return true;
             }
             catch (Exception ex)
             {
                 Log.LogError(ex);
+                return false;
             }
-
-            return true;
         }
     }
 }

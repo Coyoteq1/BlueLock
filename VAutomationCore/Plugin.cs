@@ -6,17 +6,17 @@ using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using VampireCommandFramework;
-using VAuto;
-
+using VAutomationCore;
+using VAuto.Core;
 namespace VAutomationCore
 {
-    [BepInPlugin(MyPluginInfo.Core.Guid, MyPluginInfo.Core.Name, MyPluginInfo.Core.Version)]
-    [BepInDependency("gg.deca.VampireCommandFramework")]
+    [BepInPlugin(MyPluginInfo.GUID, MyPluginInfo.NAME, MyPluginInfo.VERSION)]
+    [BepInDependency("gg.deca.VampireCommandFramework", "0.10.4")]
     [BepInProcess("VRisingServer.exe")]
     public class Plugin : BasePlugin
     {
         private static ManualLogSource _log;
-        public new static ManualLogSource Log => _log ??= BepInEx.Logging.Logger.CreateLogSource(MyPluginInfo.Core.Name);
+        public new static ManualLogSource Log => _log ??= BepInEx.Logging.Logger.CreateLogSource(MyPluginInfo.NAME);
         private Harmony _harmony;
         private static ConfigFile _configFile;
         private static ConfigEntry<bool> _configEnabled;
@@ -33,17 +33,9 @@ namespace VAutomationCore
                     return;
                 }
 
-                var manifest = MyPluginInfo.Core.Manifest;
-                Log.LogInfo($"[{manifest.Name}] Loading v{manifest.Version}...");
+                Log.LogInfo($"[{MyPluginInfo.NAME}] Loading {MyPluginInfo.VERSION}...");
 
-                if (manifest.EnableHarmony)
-                {
-                    _harmony ??= new Harmony(manifest.HarmonyId);
-                    _harmony.PatchAll(typeof(Plugin).Assembly);
-                    Log.LogInfo($"[{manifest.Name}] Harmony patches applied.");
-                }
-
-                Log.LogInfo($"[{manifest.Name}] Loaded core shared library.");
+                Log.LogInfo($"[{MyPluginInfo.NAME}] Loaded core shared library.");
             }
             catch (Exception ex)
             {

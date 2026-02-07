@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Unity.Mathematics;
 using VAuto.Extensions;
+using VAutoTraps;
 
 namespace VAuto.Core.Services
 {

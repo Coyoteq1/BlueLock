@@ -8,7 +8,8 @@ namespace VAuto.Core.Configuration
         Arena,
         Lifecycle,
         Announcement,
-        Traps
+        Traps,
+        Zone
     }
 
     public sealed class PluginManifest

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
+using VAutoTraps;
 
 namespace VAuto.Core.Services
 {

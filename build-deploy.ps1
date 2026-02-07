@@ -17,10 +17,10 @@ if (-not (Test-Path $ServerPluginsDir)) {
 
 $Projects = @(
     "VAutomationCore",
-    "VAutoArena",
     "Vlifecycle",
     "VAutoTraps",
-    "VAutoannounce"
+    "VAutoannounce",
+    "VAutoZone"
 )
 
 foreach ($project in $Projects) {
@@ -36,7 +36,7 @@ foreach ($project in $Projects) {
         Write-Warning "Missing build output for $project; expected $DllPath"
     }
 
-    $ConfigDirs = @("config", "Configuration", "Json")
+    $ConfigDirs = @("config", "Configuration", "Json", "Models")
     foreach ($configDirName in $ConfigDirs) {
         $SourceDir = Join-Path $ProjectDir $configDirName
         if (-not (Test-Path $SourceDir)) {
