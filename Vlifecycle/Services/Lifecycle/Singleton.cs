@@ -1,5 +1,5 @@
 using System;
-
+// must reference to ZUI before implementing 
 namespace VAuto.Core.Patterns
 {
     /// <summary>
