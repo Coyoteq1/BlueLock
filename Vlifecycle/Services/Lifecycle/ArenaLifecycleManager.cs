@@ -11,8 +11,8 @@ using VAuto.Core.Patterns;
 namespace VAuto.Core.Lifecycle
 {
     /// <summary>
-    /// Arena Lifecycle Manager - Handles lifecycle events for arena zones
-    /// This class is loaded by VAutoZone via reflection
+    /// Arena Lifecycle Manager - Handles lifecycle events for arena zones 
+    /// This class is loaded by VAutoZone, intending to make it handle all future events triggering 
     /// </summary>
     public class ArenaLifecycleManager : Singleton<ArenaLifecycleManager>
     {
