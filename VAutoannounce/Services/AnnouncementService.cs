@@ -1,3 +1,5 @@
+using VAuto.Announcement;
+
 namespace VAuto.Core.Services
 {
     /// <summary>

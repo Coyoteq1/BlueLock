@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "checkIntervalMs": 100,
+  "positionChangeThreshold": 1.0,
+  "mappings": {
+    "arena_main": {
+      "onEnter": [ "storeInventory", "storeBuffs" ],
+      "onExit": [ "restoreInventory", "restoreBuffs" ],
+      "useGlobalDefaults": true
+    },
+    "arena_pvp_1": {
+      "onEnter": [ "storeInventory", "storeBuffs", "storeEquipment" ],
+      "onExit": [ "restoreInventory", "restoreBuffs", "restoreEquipment" ],
+      "useGlobalDefaults": true
+    },
+    "*": {
+      "onEnter": [],
+      "onExit": [],
+      "useGlobalDefaults": true
+    }
+  }
+}

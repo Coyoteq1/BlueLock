@@ -1,68 +1,69 @@
-using System;
-using System.IO;
-using System.Reflection;
 using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
 using VampireCommandFramework;
-using VAutoZone;
+using ProjectM;
+using ProjectM.Network;
+using System;
 using VAuto.Zone.Services;
 
-namespace VAutoZone
+namespace VAuto.Zone
 {
-    [BepInPlugin(MyPluginInfo.GUID, MyPluginInfo.NAME, MyPluginInfo.VERSION)]
+    [BepInPlugin("gg.coyote.VAutomationZone", "VAutoZone", "1.0.0")]
     [BepInDependency("gg.coyote.VAutomationCore", "1.0.0")]
-    [BepInDependency("gg.coyote.VAutomationLifecycle", "1.0.0")]
     [BepInDependency("gg.deca.VampireCommandFramework", "0.10.4")]
+    [BepInDependency("gg.coyote.lifecycle", "1.0.0")]
     [BepInProcess("VRisingServer.exe")]
     public class Plugin : BasePlugin
     {
-        private static readonly ManualLogSource _staticLog = BepInEx.Logging.Logger.CreateLogSource(MyPluginInfo.NAME);
-        public new static ManualLogSource Log => _staticLog;
+        #region Logging
+        private static readonly ManualLogSource _staticLog = BepInEx.Logging.Logger.CreateLogSource("VAutoZone");
         public static ManualLogSource Logger => _staticLog;
-        private Harmony? _harmony;
-        private static ConfigFile? _configFile;
-        private static ConfigEntry<bool>? _configEnabled;
+        #endregion
+
+        public static Plugin Instance { get; private set; }
+        
+        private Harmony _harmony;
+        
+        public Plugin()
+        {
+            Instance = this;
+        }
 
         public override void Load()
         {
-            try
-            {
-                _configFile = new ConfigFile(Path.Combine(Paths.ConfigPath, "VAuto.Zone.cfg"), true);
-                _configEnabled = _configFile.Bind("General", "Enabled", true, "Enable or disable VAuto Zone plugin.");
-                if (_configEnabled != null && !_configEnabled.Value)
-                {
-                    Log.LogInfo("[VAutoZone] Disabled via config.");
-                    return;
-                }
-
-                Log.LogInfo($"[{MyPluginInfo.NAME}] Loading v{MyPluginInfo.VERSION}...");
-
-                CommandRegistry.RegisterAll(Assembly.GetExecutingAssembly());
-
-                Log.LogInfo($"[{MyPluginInfo.NAME}] Loaded.");
-            }
-            catch (Exception ex)
-            {
-                Log.LogError(ex);
-            }
+            _harmony = new Harmony("gg.coyote.VAutomationZone");
+            _harmony.PatchAll(typeof(Patches));
+            
+            // Register commands
+            CommandRegistry.RegisterAll();
+            
+            Logger.LogInfo("VAutoZone loaded!");
         }
 
-        public override bool Unload()
+        public void Start()
         {
             try
             {
-                _harmony?.UnpatchSelf();
-                Log.LogInfo("[VAutoZone] Unloaded.");
-                return true;
+                ArenaTerritory.InitializeArenaGrid();
             }
             catch (Exception ex)
             {
-                Log.LogError(ex);
-                return false;
+                Logger.LogWarning($"Territory init: {ex.Message}");
             }
         }
+
+        public void OnDestroy()
+        {
+            _harmony?.UnpatchSelf();
+        }
+    }
+
+    public static class Patches
+    {
     }
 }

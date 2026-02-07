@@ -13,6 +13,7 @@ namespace VAutomationCore
     [BepInPlugin(MyPluginInfo.GUID, MyPluginInfo.NAME, MyPluginInfo.VERSION)]
     [BepInDependency("gg.deca.VampireCommandFramework", "0.10.4")]
     [BepInProcess("VRisingServer.exe")]
+    [BepInProcess("VRising.exe")]
     public class Plugin : BasePlugin
     {
         private static ManualLogSource _log;
@@ -36,6 +37,9 @@ namespace VAutomationCore
                 Log.LogInfo($"[{MyPluginInfo.NAME}] Loading {MyPluginInfo.VERSION}...");
 
                 Log.LogInfo($"[{MyPluginInfo.NAME}] Loaded core shared library.");
+
+                // Initialize Harmony for patching
+                _harmony = new Harmony(MyPluginInfo.GUID);
             }
             catch (Exception ex)
             {

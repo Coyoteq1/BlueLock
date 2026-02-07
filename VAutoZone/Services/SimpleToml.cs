@@ -42,39 +42,44 @@ namespace VAuto.Zone.Services
         }
 
         public static string SerializeTerritory(
+            string zoneId,
             float[] center,
             float radius,
-            int gridIndex,
             int regionType,
             float blockSize,
             string glowPrefab,
             float glowSpacingMeters,
+            float glowCornerRadius,
+            bool spawnGlowInCorners,
             bool enableGlowBorder)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("# VAutoArena territory config (TOML)");
+            sb.AppendLine("# VAutoZone territory config (TOML)");
             sb.AppendLine();
             sb.AppendLine("[metadata]");
-            sb.AppendLine("name = \"VAutoArena Territory\"");
-            sb.AppendLine("version = \"1.0.0\"");
-            sb.AppendLine("updatedAt = \"2026-02-06\"");
+            sb.AppendLine("name = \"VAutoZone Territory\"");
+            sb.AppendLine("version = \"2.0.0\"");
+            sb.AppendLine("updatedAt = \"2026-02-07\"");
             sb.AppendLine();
             sb.AppendLine("[core]");
+            sb.AppendLine("id = " + Quote(zoneId));
             sb.AppendLine("center = [" + Float(center[0]) + ", " + Float(center[1]) + ", " + Float(center[2]) + "]");
             sb.AppendLine("radius = " + Float(radius));
-            sb.AppendLine("gridIndex = " + gridIndex.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("regionType = " + regionType.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("blockSize = " + Float(blockSize));
             if (!string.IsNullOrWhiteSpace(glowPrefab))
                 sb.AppendLine("glowPrefab = " + Quote(glowPrefab));
             if (glowSpacingMeters > 0)
                 sb.AppendLine("glowSpacing = " + Float(glowSpacingMeters));
+            if (glowCornerRadius > 0)
+                sb.AppendLine("glowCornerRadius = " + Float(glowCornerRadius));
             sb.AppendLine();
             sb.AppendLine("[dependencies]");
             sb.AppendLine("requiresVcf = true");
             sb.AppendLine();
             sb.AppendLine("[optionalFeatures]");
             sb.AppendLine("enableGlowBorder = " + (enableGlowBorder ? "true" : "false"));
+            sb.AppendLine("spawnGlowInCorners = " + (spawnGlowInCorners ? "true" : "false"));
             return sb.ToString();
         }
 

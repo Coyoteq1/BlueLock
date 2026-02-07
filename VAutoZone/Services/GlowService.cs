@@ -8,20 +8,34 @@ using ProjectM;
 using Stunlock.Core;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Transforms;
 using VAuto.Core;
+using VAutoZone;
 
 namespace VAuto.Zone.Services
 {
     /// <summary>
     /// Service for managing glow buff choices with named presets.
+    /// Provides fallback to carpet prefabs when glow spawning fails.
     /// </summary>
     public class GlowService
     {
-        private static readonly string ConfigPath = Path.Combine(BepInEx.Paths.ConfigPath, "VAuto.Zone");
-        private static readonly string GlowChoicesPath = Path.Combine(ConfigPath, "glowChoices.txt");
+        private static readonly string GlowChoicesFileName = "glowChoices.txt";
+
+        // Carpet prefabs for manual border spawning (fallback when glow prefabs fail)
+        private static readonly Dictionary<string, PrefabGUID> CarpetPrefabs = new Dictionary<string, PrefabGUID>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "BlackCarpetsBuildMenuGroup01", new PrefabGUID(-298064854) },
+            { "BlackCarpetsBuildMenuGroup02", new PrefabGUID(1878965767) },
+            { "BlueCarpetsBuildMenuGroup01", new PrefabGUID(362468619) },
+            { "BlueCarpetsBuildMenuGroup02", new PrefabGUID(0) } // TODO: Add GUID
+        };
 
         private readonly Dictionary<string, PrefabGUID> _glowChoices = new Dictionary<string, PrefabGUID>(StringComparer.InvariantCultureIgnoreCase);
         private readonly Dictionary<PrefabGUID, string> _prefabToGlowName = new Dictionary<PrefabGUID, string>();
+
+        private string ConfigPath => ArenaTerritory.GetPreferredConfigPath();
+        private string GlowChoicesPath => Path.Combine(ConfigPath, GlowChoicesFileName);
 
         public GlowService()
         {
@@ -71,6 +85,14 @@ namespace VAuto.Zone.Services
                 return;
             }
 
+            // Guard: Check VRCore initialization before accessing PrefabCollection
+            if (!IsVRCoreInitialized())
+            {
+                // VRCore not ready, use defaults only
+                BuildPrefabToGlowName();
+                return;
+            }
+
             _glowChoices.Clear();
             InitializeDefaults();
 
@@ -92,6 +114,20 @@ namespace VAuto.Zone.Services
             }
 
             BuildPrefabToGlowName();
+        }
+
+        private static bool IsVRCoreInitialized()
+        {
+            try
+            {
+                return VRCore.PrefabCollection != null && 
+                       VRCore.EntityManager != null &&
+                       VRCore.ServerWorld != null;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void BuildPrefabToGlowName()
@@ -140,6 +176,89 @@ namespace VAuto.Zone.Services
         public string GetGlowName(PrefabGUID guid)
         {
             return _prefabToGlowName.TryGetValue(guid, out var name) ? name : null;
+        }
+
+        /// <summary>
+        /// Gets a carpet prefab for manual border spawning as fallback.
+        /// </summary>
+        public PrefabGUID GetCarpetPrefab(string name)
+        {
+            if (CarpetPrefabs.TryGetValue(name, out var prefab) && !prefab.IsEmpty())
+            {
+                return prefab;
+            }
+            // Return first available carpet
+            foreach (var carpet in CarpetPrefabs)
+            {
+                if (!carpet.Value.IsEmpty())
+                {
+                    return carpet.Value;
+                }
+            }
+            return default;
+        }
+
+        /// <summary>
+        /// Lists available carpet prefabs for border spawning.
+        /// </summary>
+        public IEnumerable<(string name, PrefabGUID prefab)> ListCarpetChoices()
+        {
+            foreach (var entry in CarpetPrefabs)
+            {
+                if (!entry.Value.IsEmpty())
+                {
+                    yield return (entry.Key, entry.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tries to spawn a glow prefab, falling back to carpet if glow fails.
+        /// Returns the prefab that was spawned.
+        /// </summary>
+        public bool TrySpawnWithFallback(PrefabGUID glowPrefab, PrefabGUID carpetPrefab, float3 position, out PrefabGUID spawnedPrefab, out string error)
+        {
+            error = string.Empty;
+            spawnedPrefab = default;
+
+            // Try glow prefab first
+            if (!glowPrefab.IsEmpty() && VRCore.PrefabCollection._PrefabGuidToEntityMap.TryGetValue(glowPrefab, out var glowEntity))
+            {
+                try
+                {
+                    var instance = VRCore.EntityManager.Instantiate(glowEntity);
+                    VRCore.EntityManager.SetComponentData(instance, LocalTransform.FromPosition(position));
+                    spawnedPrefab = glowPrefab;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    BepInEx.Logging.Logger.CreateLogSource("VAutoZone").LogWarning($"[GlowService] Glow prefab spawn failed: {ex.Message}, trying carpet fallback");
+                }
+            }
+
+            // Fallback to carpet prefab
+            if (!carpetPrefab.IsEmpty() && VRCore.PrefabCollection._PrefabGuidToEntityMap.TryGetValue(carpetPrefab, out var carpetEntity))
+            {
+                try
+                {
+                    var instance = VRCore.EntityManager.Instantiate(carpetEntity);
+                    var transform = LocalTransform.FromPosition(position);
+                    // Rotate to lay flat (adjust rotation as needed)
+                    transform.Rotation = quaternion.Euler(0, 0, 0);
+                    VRCore.EntityManager.SetComponentData(instance, transform);
+                    spawnedPrefab = carpetPrefab;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    error = $"Failed to spawn carpet fallback: {ex.Message}";
+                    return false;
+                }
+            }
+
+            error = "No valid glow or carpet prefab found";
+            return false;
         }
     }
 }

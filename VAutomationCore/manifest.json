@@ -1,0 +1,11 @@
+{
+    "name": "VAutomationCore",
+    "version_number": "1.0.0",
+    "website_url": "https://github.com/Coyoteq1/Vauto-Private-Mods",
+    "description": "Core library for Vauto mods providing shared utilities, ECS helpers, and configuration management.",
+    "dependencies": [
+        "BepInEx-BepInExPack_VRising-5.4.2105",
+        "denikson-BepInExPack_IL2CPP-6.0.0-be.733",
+        "deca-VampireCommandFramework-0.10.4"
+    ]
+}

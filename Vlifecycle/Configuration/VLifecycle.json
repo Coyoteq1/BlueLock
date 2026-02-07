@@ -1,0 +1,43 @@
+{
+  "lifecycle": {
+    "enabled": true,
+    "arena": {
+      "saveInventory": true,
+      "restoreInventory": true,
+      "saveBuffs": true,
+      "restoreBuffs": true,
+      "clearArenaBuffsOnExit": true,
+      "resetAbilityCooldowns": true,
+      "resetCooldownsOnExit": true
+    },
+    "playerState": {
+      "saveEquipment": true,
+      "saveBlood": true,
+      "saveSpells": true,
+      "saveHealth": true,
+      "restoreHealth": true
+    },
+    "respawn": {
+      "forceArenaRespawn": false,
+      "teleportToArenaSpawn": true,
+      "clearTemporaryDebuffs": true,
+      "respawnTeleportDelayMs": 1000
+    },
+    "transitions": {
+      "enterDelayMs": 0,
+      "exitDelayMs": 0,
+      "lockMovementDuringTransition": false,
+      "showTransitionMessages": true
+    },
+    "safety": {
+      "restoreOnError": true,
+      "blockEntryOnSaveFailure": true,
+      "verboseLogging": false
+    },
+    "integration": {
+      "zoneTriggersLifecycle": true,
+      "allowTrapOverrides": true,
+      "sendLifecycleEvents": true
+    }
+  }
+}

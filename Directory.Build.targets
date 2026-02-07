@@ -17,17 +17,18 @@
     <MakeDir Directories="$(PluginOutDir)" />
     <MakeDir Directories="$(ConfigDir)" />
 
-    <!-- Copy binaries -->
+    <!-- Copy only the main plugin DLL -->
     <ItemGroup>
-      <BuiltDlls Include="$(TargetDir)*.dll" />
+      <BuiltPluginDll Include="$(TargetPath)" />
       <BuiltPdbs Include="$(TargetDir)*.pdb" Condition="'$(Configuration)'=='Debug'" />
       <BuiltConfigs Include="$(TargetDir)*.json;$(TargetDir)*.toml" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(BuiltDlls)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(BuiltPluginDll)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
     <Copy SourceFiles="@(BuiltPdbs)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
     <Copy SourceFiles="@(BuiltConfigs)" DestinationFolder="$(ConfigDir)" SkipUnchangedFiles="false" />
 
+    <!-- Copy config files from project directories -->
     <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\config')">
       <PluginConfigFiles Include="$(MSBuildProjectDirectory)\config\**\*.*" />
     </ItemGroup>
@@ -39,6 +40,18 @@
     </ItemGroup>
     <Copy SourceFiles="@(PluginConfigFiles)" DestinationFolder="$(ConfigDir)" SkipUnchangedFiles="false" />
     <Copy SourceFiles="@(PluginConfigFiles)" DestinationFolder="$(VAutoServerConfigDir)" SkipUnchangedFiles="false" Condition="'$(VAutoServerConfigDir)'!=''" />
+
+    <!-- Copy Thunderstore manifest and README -->
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\manifest.json')">
+      <ThunderstoreFiles Include="$(MSBuildProjectDirectory)\manifest.json" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\README.md')">
+      <ThunderstoreFiles Include="$(MSBuildProjectDirectory)\README.md" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\CHANGELOG.md')">
+      <ThunderstoreFiles Include="$(MSBuildProjectDirectory)\CHANGELOG.md" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ThunderstoreFiles)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
   </Target>
 
   <Target Name="VAuto_CopyCoreToBepInEx"
@@ -55,18 +68,30 @@
     <MakeDir Directories="$(PluginOutDir)" />
 
     <ItemGroup>
-      <BuiltDllsCore Include="$(TargetDir)*.dll" />
+      <BuiltCoreDll Include="$(TargetPath)" />
       <BuiltPdbsCore Include="$(TargetDir)*.pdb" Condition="'$(Configuration)'=='Debug'" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(BuiltDllsCore)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(BuiltCoreDll)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
     <Copy SourceFiles="@(BuiltPdbsCore)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
+
+    <!-- Copy Thunderstore manifest and README -->
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\manifest.json')">
+      <ThunderstoreFiles Include="$(MSBuildProjectDirectory)\manifest.json" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\README.md')">
+      <ThunderstoreFiles Include="$(MSBuildProjectDirectory)\README.md" />
+    </ItemGroup>
+    <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\CHANGELOG.md')">
+      <ThunderstoreFiles Include="$(MSBuildProjectDirectory)\CHANGELOG.md" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ThunderstoreFiles)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="false" />
 
     <PropertyGroup>
       <CorePluginBaseDir Condition="'$(VAutoCoreDeployAsPluginBase)'=='true'">$(PluginsDir)</CorePluginBaseDir>
     </PropertyGroup>
 
-    <Copy SourceFiles="@(BuiltDllsCore)"
+    <Copy SourceFiles="@(BuiltCoreDll)"
           DestinationFolder="$(CorePluginBaseDir)"
           SkipUnchangedFiles="false"
           Condition="'$(VAutoCoreDeployAsPluginBase)'=='true'" />

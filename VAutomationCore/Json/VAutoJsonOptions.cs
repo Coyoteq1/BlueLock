@@ -1,30 +1,30 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace VAuto.Core.Json
+namespace VAutomation.Core.Json
 {
     /// <summary>
-    /// Shared JsonSerializerOptions for configs and snapshot-like payloads.
-    /// Keep this in VAutomationCore so all plugin projects can reuse it.
+    /// Standard JSON serialization options for VAuto framework.
     /// </summary>
     public static class VAutoJsonOptions
     {
-        public static JsonSerializerOptions CreateDefault()
+        public static JsonSerializerOptions Default { get; } = new JsonSerializerOptions
         {
-            var options = new JsonSerializerOptions
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            IgnoreReadOnlyProperties = false,
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip
+        };
+
+        public static JsonSerializerOptions WithConverters(params JsonConverter[] converters)
+        {
+            var options = new JsonSerializerOptions(Default);
+            foreach (var converter in converters)
             {
-                PropertyNameCaseInsensitive = true,
-                AllowTrailingCommas = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
-
-            options.Converters.Add(new PrefabGuidJsonConverter());
-
+                options.Converters.Add(converter);
+            }
             return options;
         }
     }
 }
-

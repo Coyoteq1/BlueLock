@@ -170,8 +170,6 @@ namespace VAuto.Zone.Services
         {
             if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity)) return false;
 
-            var glow = em.Instantiate(prefabEntity);
-            
             // Get marker position
             float3 position = float3.zero;
             if (em.HasComponent<LocalTransform>(marker))
@@ -183,21 +181,26 @@ namespace VAuto.Zone.Services
                 position = em.GetComponentData<Translation>(marker).Value;
             }
 
-            // Set glow position
+            var glow = em.Instantiate(prefabEntity);
+
+            // Position glow slightly above ground (0.3m) for carpet attachment effect
+            float3 glowPosition = new float3(position.x, position.y + 0.3f, position.z);
+
+            // Set LocalTransform if available
             if (em.HasComponent<LocalTransform>(glow))
             {
                 var t = em.GetComponentData<LocalTransform>(glow);
-                t.Position = position;
+                t.Position = glowPosition;
                 em.SetComponentData(glow, t);
             }
             else if (em.HasComponent<Translation>(glow))
             {
                 var t = em.GetComponentData<Translation>(glow);
-                t.Value = position;
+                t.Value = glowPosition;
                 em.SetComponentData(glow, t);
             }
 
-            // Attach glow to marker entity using LinkedEntityGroup
+            // Link to marker using LinkedEntityGroup
             if (em.HasComponent<LinkedEntityGroup>(marker))
             {
                 var linkBuffer = em.GetBuffer<LinkedEntityGroup>(marker);

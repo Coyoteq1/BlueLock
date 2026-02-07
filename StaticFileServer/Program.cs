@@ -2,14 +2,27 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 class Program
 {
     private static HttpListener _listener = new HttpListener();
+    private static CancellationTokenSource _cts = new CancellationTokenSource();
 
     static async Task Main(string[] args)
     {
+        // Set up signal handling for graceful shutdown
+        Console.CancelKeyPress += (sender, e) => {
+            e.Cancel = true; // Prevent immediate termination
+            _cts.Cancel();
+            Console.WriteLine("Shutdown signal received...");
+        };
+
+        AppDomain.CurrentDomain.ProcessExit += (sender, e) => {
+            _cts.Cancel();
+        };
+
         // Resolve the Docs path
         string docsPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Docs");
         
@@ -38,12 +51,19 @@ class Program
 
         Console.WriteLine($"Static File Server running at http://localhost:8000/");
         Console.WriteLine($"Serving files from: {servingPath}");
-        Console.WriteLine("Press Ctrl+C to stop...");
+        Console.WriteLine("Press Ctrl+C to stop gracefully...");
 
-        while (true)
+        try
         {
-            var context = await _listener.GetContextAsync();
-            _ = Task.Run(() => HandleRequest(context, servingPath));
+            await RunServerAsync(servingPath, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Server shutdown initiated...");
+        }
+        finally
+        {
+            await ShutdownServerAsync();
         }
     }
 
@@ -110,6 +130,62 @@ class Program
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private static async Task RunServerAsync(string servingPath, CancellationToken cancellationToken)
+    {
+        var activeRequests = new List<Task>();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                // Wait for a request with timeout to allow cancellation checking
+                var getContextTask = _listener.GetContextAsync();
+                var completedTask = await Task.WhenAny(getContextTask, Task.Delay(1000, cancellationToken));
+
+                if (completedTask == getContextTask)
+                {
+                    var context = await getContextTask;
+                    
+                    // Handle request asynchronously
+                    var requestTask = Task.Run(() => HandleRequest(context, servingPath), cancellationToken);
+                    activeRequests.Add(requestTask);
+                    
+                    // Clean up completed requests
+                    activeRequests.RemoveAll(task => task.IsCompleted);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Server error: {ex.Message}");
+            }
+        }
+
+        // Wait for active requests to complete (with timeout)
+        if (activeRequests.Count > 0)
+        {
+            Console.WriteLine($"Waiting for {activeRequests.Count} active requests to complete...");
+            await Task.WhenAny(Task.WhenAll(activeRequests), Task.Delay(5000, CancellationToken.None));
+        }
+    }
+
+    private static async Task ShutdownServerAsync()
+    {
+        try
+        {
+            _listener.Stop();
+            _listener.Close();
+            Console.WriteLine("Server shut down gracefully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during shutdown: {ex.Message}");
         }
     }
 }

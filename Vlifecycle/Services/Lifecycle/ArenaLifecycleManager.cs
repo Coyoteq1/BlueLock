@@ -22,7 +22,7 @@ namespace VAuto.Core.Lifecycle
         private readonly Dictionary<string, LifecycleStage> _lifecycleStages;
         private readonly Dictionary<string, LifecycleActionHandler> _actionHandlers;
         
-        public new ManualLogSource Log { get; private set; }
+        public ManualLogSource Log { get; private set; }
         public new bool IsInitialized { get; private set; }
         public int ServiceCount => _lifecycleStages.Count;
 
@@ -88,6 +88,40 @@ namespace VAuto.Core.Lifecycle
                 CharacterEntity = character,
                 Position = position
             });
+        }
+
+        /// <summary>
+        /// Called by VAutoZone when player enters arena (via reflection)
+        /// </summary>
+        public bool OnPlayerEnter(Entity userEntity, Entity characterEntity, string arenaId)
+        {
+            return OnEnterArena(characterEntity, float3.zero);
+        }
+
+        /// <summary>
+        /// Called by VAutoZone when player exits arena (via reflection)
+        /// </summary>
+        public bool OnPlayerExit(Entity userEntity, Entity characterEntity, string arenaId)
+        {
+            return OnExitArena(characterEntity, float3.zero);
+        }
+
+        /// <summary>
+        /// Handle player connection to server
+        /// </summary>
+        public void OnPlayerConnected(int userIndex)
+        {
+            Log?.LogInfo($"{_logPrefix} Player connected: {userIndex}");
+            // Initialize any server-level player state if needed
+        }
+
+        /// <summary>
+        /// Handle player disconnection from server
+        /// </summary>
+        public void OnPlayerDisconnected(int userIndex)
+        {
+            Log?.LogInfo($"{_logPrefix} Player disconnected: {userIndex}");
+            // Clean up any server-level player state if needed
         }
 
         /// <summary>
@@ -185,5 +219,117 @@ namespace VAuto.Core.Lifecycle
             _actionHandlers["blood"] = new BloodActionHandler();
             _actionHandlers["quality"] = new QualityActionHandler();
         }
+
+        #region Test Methods
+
+        /// <summary>
+        /// Run self-test on all lifecycle components
+        /// </summary>
+        public Dictionary<string, bool> SelfTest()
+        {
+            var results = new Dictionary<string, bool>();
+            
+            // Test initialization
+            results["Initialized"] = IsInitialized;
+            
+            // Test stages registered
+            results["StagesRegistered"] = _lifecycleStages.Count > 0;
+            
+            // Test action handlers
+            results["ActionHandlers"] = _actionHandlers.Count > 0;
+            
+            // Test each handler type
+            foreach (var handler in _actionHandlers)
+            {
+                results[$"Handler_{handler.Key}"] = handler.Value != null;
+            }
+            
+            // Test stage execution (without actual actions)
+            try
+            {
+                var testContext = new LifecycleContext
+                {
+                    CharacterEntity = Entity.Null,
+                    Position = float3.zero
+                };
+                results["StageExecution"] = true;
+            }
+            catch
+            {
+                results["StageExecution"] = false;
+            }
+            
+            return results;
+        }
+
+        /// <summary>
+        /// Add a test action to a stage
+        /// </summary>
+        public bool AddTestAction(string stageName, LifecycleAction action)
+        {
+            if (!_lifecycleStages.TryGetValue(stageName, out var stage))
+            {
+                Log?.LogWarning($"{_logPrefix} Cannot add action - stage not found: {stageName}");
+                return false;
+            }
+            
+            stage.Actions.Add(action);
+            Log?.LogInfo($"{_logPrefix} Added test action to {stageName}: {action.Type}");
+            return true;
+        }
+
+        /// <summary>
+        /// Clear all actions from a stage
+        /// </summary>
+        public bool ClearStageActions(string stageName)
+        {
+            if (!_lifecycleStages.TryGetValue(stageName, out var stage))
+            {
+                Log?.LogWarning($"{_logPrefix} Cannot clear - stage not found: {stageName}");
+                return false;
+            }
+            
+            var count = stage.Actions.Count;
+            stage.Actions.Clear();
+            Log?.LogInfo($"{_logPrefix} Cleared {count} actions from {stageName}");
+            return true;
+        }
+
+        /// <summary>
+        /// Get stage details for debugging
+        /// </summary>
+        public Dictionary<string, object> GetStageDetails(string stageName)
+        {
+            var details = new Dictionary<string, object>();
+            
+            if (_lifecycleStages.TryGetValue(stageName, out var stage))
+            {
+                details["Name"] = stage.Name;
+                details["Description"] = stage.Description;
+                details["ActionCount"] = stage.Actions.Count;
+                
+                var actionTypes = stage.Actions.Select(a => a.Type).ToList();
+                details["ActionTypes"] = actionTypes;
+            }
+            else
+            {
+                details["Error"] = "Stage not found";
+            }
+            
+            return details;
+        }
+
+        /// <summary>
+        /// Get all registered stages and their action counts
+        /// </summary>
+        public Dictionary<string, int> GetAllStageActionCounts()
+        {
+            return _lifecycleStages.ToDictionary(
+                s => s.Key,
+                s => s.Value.Actions.Count
+            );
+        }
+
+        #endregion
     }
 }

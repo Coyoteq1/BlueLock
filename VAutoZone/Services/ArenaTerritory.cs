@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Text.Json;
 using Unity.Mathematics;
 using VAutoZone;
+using VAuto.Zone.Models;
+using UnityEngine.Tilemaps;
 
 namespace VAuto.Zone.Services
 {
@@ -14,17 +16,23 @@ namespace VAuto.Zone.Services
         private const string TerritoryTomlFile = "arena_territory.toml";
         private const string DefaultGlowPrefab = "AB_Chaos_Barrier_AbilityGroup";
 
-        public static float3 ArenaGridCenter = new float3(-1000, 0, 500);
+        // Zone radius constraints
+        public const float MinZoneRadius = 3f;
+        public const float MaxZoneRadius = 150f;
+
+        // Zone ID - replaces gridIndex for consistency with other zones
+        public static string ZoneId { get; private set; } = "arena_main";
+        
+        public static float3 ArenaGridCenter = new float3(-1000, 0, -500);
         public static float ArenaGridRadius = 300f;
-        public static int ArenaGridIndex = 500;
         public static int ArenaRegionType = 5;
         public static float BlockSize = 10f;
 
-        public static bool EnableGlowBorder { get; private set; } = true;
-        public static string GlowPrefab { get; private set; } = DefaultGlowPrefab;
-        public static float GlowSpacingMeters { get; private set; } = 3f;
-        public static float GlowCornerRadius { get; private set; } = 2f;
-        public static bool SpawnGlowInCorners { get; private set; } = true;
+        public static bool EnableGlowBorder { get; set; } = true;
+        public static string GlowPrefab { get; set; } = DefaultGlowPrefab;
+        public static float GlowSpacingMeters { get; set; } = 3f;
+        public static float GlowCornerRadius { get; set; } = 2f;
+        public static bool SpawnGlowInCorners { get; set; } = true;
 
         private static readonly HashSet<int2> ArenaBlocks = new HashSet<int2>();
         private static bool IsInitialized = false;
@@ -53,7 +61,7 @@ namespace VAuto.Zone.Services
             }
 
             IsInitialized = true;
-            Plugin.Logger?.LogInfo($"Arena territory initialized with {ArenaBlocks.Count} blocks at grid index {ArenaGridIndex}");
+            VAuto.Zone.Plugin.Logger?.LogInfo($"Arena territory '{ZoneId}' initialized with {ArenaBlocks.Count} blocks");
         }
 
         public static void Reload()
@@ -75,9 +83,21 @@ namespace VAuto.Zone.Services
             return IsInArenaTerritory(position) ? ArenaRegionType : 0;
         }
 
+        public static string GetArenaZoneId(float3 position)
+        {
+            return IsInArenaTerritory(position) ? ZoneId : string.Empty;
+        }
+
+        /// <summary>
+        /// Gets the grid index for a position within the arena territory.
+        /// Returns -1 if position is outside the arena.
+        /// </summary>
         public static int GetArenaGridIndex(float3 position)
         {
-            return IsInArenaTerritory(position) ? ArenaGridIndex : -1;
+            if (!IsInArenaTerritory(position)) return -1;
+            var blockCoord = ConvertPosToBlockCoord(position);
+            var centerBlock = ConvertPosToBlockCoord(ArenaGridCenter);
+            return blockCoord.x - centerBlock.x + (blockCoord.y - centerBlock.y) * (int)(ArenaGridRadius * 2 / BlockSize);
         }
 
         public static List<int2> GetArenaBlocks()
@@ -115,7 +135,6 @@ namespace VAuto.Zone.Services
             
             if (!SpawnGlowInCorners) return corners;
             
-            // Find corner blocks (blocks with only 2 neighbors)
             foreach (var block in ArenaBlocks)
             {
                 if (!IsBorderBlock(block)) continue;
@@ -128,11 +147,31 @@ namespace VAuto.Zone.Services
             return corners;
         }
 
+        /// <summary>
+        /// Converts this territory to a GlowZoneEntry for consistency with other zones.
+        /// </summary>
+        public static GlowZoneEntry ToGlowZoneEntry()
+        {
+            EnsureInit();
+            return new GlowZoneEntry
+            {
+                Id = ZoneId,
+                Enabled = EnableGlowBorder,
+                Center = ArenaGridCenter,
+                Radius = ArenaGridRadius,
+                BorderSpacing = GlowSpacingMeters,
+                CornerOffset = GlowCornerRadius,
+                SpawnEmptyMarkers = SpawnGlowInCorners,
+                GlowPrefabs = new List<string> { GlowPrefab },
+                Rotation = new GlowRotationConfig { Enabled = false },
+                MapIcon = new MapIconConfig { Enabled = true, PrefabName = "ZoneIcon_Arena" }
+            };
+        }
+
         private static bool IsCornerBlock(int2 block)
         {
             if (!ArenaBlocks.Contains(block)) return false;
             
-            // Count neighboring blocks
             int neighborCount = 0;
             var neighbors = new[]
             {
@@ -147,7 +186,6 @@ namespace VAuto.Zone.Services
                 if (ArenaBlocks.Contains(n)) neighborCount++;
             }
             
-            // Corner blocks have exactly 2 neighbors (forming a corner)
             return neighborCount == 2;
         }
 
@@ -190,22 +228,23 @@ namespace VAuto.Zone.Services
 
         private static void ResetDefaults()
         {
+            ZoneId = "arena_main";
             ArenaGridCenter = new float3(-1000, 0, 500);
             ArenaGridRadius = 300f;
-            ArenaGridIndex = 500;
             ArenaRegionType = 5;
             BlockSize = 10f;
 
             EnableGlowBorder = true;
             GlowPrefab = DefaultGlowPrefab;
             GlowSpacingMeters = 3f;
+            GlowCornerRadius = 2f;
+            SpawnGlowInCorners = true;
         }
 
         private static void LoadConfigIfPresent()
         {
             var (tomlPath, jsonPath) = GetConfigPaths();
 
-            // TOML is strict default; if only JSON exists, migrate to TOML once.
             if (File.Exists(tomlPath))
             {
                 TryLoadToml(tomlPath);
@@ -219,15 +258,6 @@ namespace VAuto.Zone.Services
                     TryMigrateJsonToToml(jsonPath, tomlPath);
                 }
                 return;
-            }
-
-            try
-            {
-                // leave defaults
-            }
-            catch
-            {
-                // leave defaults
             }
         }
 
@@ -248,7 +278,6 @@ namespace VAuto.Zone.Services
             if (File.Exists(fallbackToml) || File.Exists(fallbackJson))
                 return (fallbackToml, fallbackJson);
 
-            // If no config exists anywhere, default to the BepInEx config path (preferred writable location).
             return (tomlPath, jsonPath);
         }
 
@@ -261,6 +290,9 @@ namespace VAuto.Zone.Services
                 var core = GetCoreTable(parsed);
                 var optional = GetOptionalFeaturesTable(parsed);
 
+                if (core.TryGetValue("id", out var idObj) && idObj is string id && !string.IsNullOrWhiteSpace(id))
+                    ZoneId = id;
+
                 if (core.TryGetValue("center", out var centerObj) && centerObj is object[] cArr && cArr.Length == 3)
                 {
                     ArenaGridCenter = new float3(ToFloat(cArr[0]), ToFloat(cArr[1]), ToFloat(cArr[2]));
@@ -268,8 +300,6 @@ namespace VAuto.Zone.Services
 
                 if (core.TryGetValue("radius", out var radiusObj))
                     ArenaGridRadius = ToFloat(radiusObj);
-                if (core.TryGetValue("gridIndex", out var gridObj))
-                    ArenaGridIndex = ToInt(gridObj);
                 if (core.TryGetValue("regionType", out var regionObj))
                     ArenaRegionType = ToInt(regionObj);
                 if (core.TryGetValue("blockSize", out var blockObj))
@@ -282,6 +312,10 @@ namespace VAuto.Zone.Services
 
                 if (optional.TryGetValue("enableGlowBorder", out var enableObj))
                     EnableGlowBorder = ToBool(enableObj);
+                if (optional.TryGetValue("glowCornerRadius", out var cornerRadiusObj))
+                    GlowCornerRadius = ToFloat(cornerRadiusObj);
+                if (optional.TryGetValue("spawnGlowInCorners", out var cornersObj))
+                    SpawnGlowInCorners = ToBool(cornersObj);
             }
             catch
             {
@@ -297,11 +331,12 @@ namespace VAuto.Zone.Services
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
+                if (root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
+                    ZoneId = idEl.GetString() ?? "arena_main";
+
                 if (TryReadFloat3(root, "center", out var center)) ArenaGridCenter = center;
                 if (root.TryGetProperty("radius", out var radiusEl) && radiusEl.ValueKind == JsonValueKind.Number)
                     ArenaGridRadius = radiusEl.GetSingle();
-                if (root.TryGetProperty("gridIndex", out var gridEl) && gridEl.ValueKind == JsonValueKind.Number)
-                    ArenaGridIndex = gridEl.GetInt32();
                 if (root.TryGetProperty("regionType", out var regionEl) && regionEl.ValueKind == JsonValueKind.Number)
                     ArenaRegionType = regionEl.GetInt32();
                 if (root.TryGetProperty("blockSize", out var blockEl) && blockEl.ValueKind == JsonValueKind.Number)
@@ -311,10 +346,12 @@ namespace VAuto.Zone.Services
                     GlowPrefab = glowPrefabEl.GetString() ?? DefaultGlowPrefab;
                 if (root.TryGetProperty("glowSpacing", out var glowSpacingEl) && glowSpacingEl.ValueKind == JsonValueKind.Number)
                     GlowSpacingMeters = glowSpacingEl.GetSingle();
-                if (root.TryGetProperty("enableGlowBorder", out var glowEnabledEl) && glowEnabledEl.ValueKind == JsonValueKind.True)
-                    EnableGlowBorder = true;
-                else if (root.TryGetProperty("enableGlowBorder", out glowEnabledEl) && glowEnabledEl.ValueKind == JsonValueKind.False)
-                    EnableGlowBorder = false;
+                if (root.TryGetProperty("glowCornerRadius", out var cornerEl) && cornerEl.ValueKind == JsonValueKind.Number)
+                    GlowCornerRadius = cornerEl.GetSingle();
+                if (root.TryGetProperty("spawnGlowInCorners", out var cornersEl))
+                    SpawnGlowInCorners = cornersEl.ValueKind == JsonValueKind.True;
+                if (root.TryGetProperty("enableGlowBorder", out var glowEnabledEl))
+                    EnableGlowBorder = glowEnabledEl.ValueKind == JsonValueKind.True;
 
                 return true;
             }
@@ -335,13 +372,15 @@ namespace VAuto.Zone.Services
 
                 var center = new[] { ArenaGridCenter.x, ArenaGridCenter.y, ArenaGridCenter.z };
                 var toml = SimpleToml.SerializeTerritory(
+                    ZoneId,
                     center,
                     ArenaGridRadius,
-                    ArenaGridIndex,
                     ArenaRegionType,
                     BlockSize,
                     GlowPrefab,
                     GlowSpacingMeters,
+                    GlowCornerRadius,
+                    SpawnGlowInCorners,
                     EnableGlowBorder);
                 File.WriteAllText(tomlPath, toml);
             }
@@ -462,15 +501,21 @@ namespace VAuto.Zone.Services
                 var parsed = SimpleToml.Parse(toml);
                 var core = GetCoreTable(parsed);
 
+                if (!core.TryGetValue("id", out var idObj) || idObj is not string)
+                {
+                    error = "Missing or invalid core.id.";
+                    return false;
+                }
+
                 if (!TryReadFloat3(core, "center", out _))
                 {
                     error = "Missing core.center [x,y,z].";
                     return false;
                 }
 
-                if (!core.TryGetValue("radius", out var rObj) || ToFloat(rObj) <= 0)
+                if (!core.TryGetValue("radius", out var rObj) || ToFloat(rObj) < MinZoneRadius || ToFloat(rObj) > MaxZoneRadius)
                 {
-                    error = "Invalid core.radius.";
+                    error = $"Invalid radius. Must be between {MinZoneRadius} and {MaxZoneRadius}.";
                     return false;
                 }
 
@@ -510,9 +555,15 @@ namespace VAuto.Zone.Services
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
+                if (!root.TryGetProperty("id", out var idEl) || idEl.ValueKind != JsonValueKind.String)
+                {
+                    error = "Missing or invalid id.";
+                    return false;
+                }
+
                 if (!TryReadFloat3(root, "center", out _)) { error = "Missing center [x,y,z]."; return false; }
-                if (!root.TryGetProperty("radius", out var r) || r.ValueKind != JsonValueKind.Number || r.GetSingle() <= 0)
-                { error = "Invalid radius."; return false; }
+                if (!root.TryGetProperty("radius", out var r) || r.ValueKind != JsonValueKind.Number || r.GetSingle() < MinZoneRadius || r.GetSingle() > MaxZoneRadius)
+                { error = $"Invalid radius. Must be between {MinZoneRadius} and {MaxZoneRadius}."; return false; }
                 if (root.TryGetProperty("blockSize", out var b) && (b.ValueKind != JsonValueKind.Number || b.GetSingle() <= 0))
                 { error = "Invalid blockSize."; return false; }
 

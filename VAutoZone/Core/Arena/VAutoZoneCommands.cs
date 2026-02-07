@@ -17,7 +17,7 @@ namespace VAuto.Zone.Commands
     /// Zone management commands for VAutoZone.
     /// Provides commands for managing arena zones, glow borders, and player tracking.
     /// </summary>
-    [CommandGroup("zone", "z", "Zone management commands")]
+    [CommandGroup("zone", "z")]
     public static class VAutoZoneCommands
     {
         /// <summary>
@@ -169,7 +169,7 @@ namespace VAuto.Zone.Commands
         /// Reload arena configuration.
         /// </summary>
         [Command("reload", shortHand: "r", description: "Reload arena configuration", adminOnly: true)]
-        public static void ZoneReload(ChatCommandContextContext ctx)
+        public static void ZoneReload(ChatCommandContext ctx)
         {
             try
             {
@@ -185,10 +185,39 @@ namespace VAuto.Zone.Commands
         }
 
         /// <summary>
+        /// Show arena configuration details.
+        /// </summary>
+        [Command("config", shortHand: "c", description: "Show arena configuration", adminOnly: true)]
+        public static void ZoneConfig(ChatCommandContext ctx)
+        {
+            try
+            {
+                var message = $"<color=#FFD700>[Arena Configuration]</color>\n" +
+                              $"Zone ID: {ArenaTerritory.ZoneId}\n" +
+                              $"Center: ({ArenaTerritory.ArenaGridCenter.x:F0}, {ArenaTerritory.ArenaGridCenter.y:F0}, {ArenaTerritory.ArenaGridCenter.z:F0})\n" +
+                              $"Radius: {ArenaTerritory.ArenaGridRadius}m\n" +
+                              $"Block Size: {ArenaTerritory.BlockSize}m\n" +
+                              $"Region Type: {ArenaTerritory.ArenaRegionType}\n" +
+                              $"Glow Border: {(ArenaTerritory.EnableGlowBorder ? "Enabled" : "Disabled")}\n" +
+                              $"Glow Prefab: {ArenaTerritory.GlowPrefab}\n" +
+                              $"Glow Spacing: {ArenaTerritory.GlowSpacingMeters}m\n" +
+                              $"Corner Radius: {ArenaTerritory.GlowCornerRadius}m\n" +
+                              $"Spawn Corners: {(ArenaTerritory.SpawnGlowInCorners ? "Yes" : "No")}";
+                
+                ctx.Reply(message);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"ZoneConfig error: {ex.Message}");
+                ctx.Reply("<color=#FF0000>Error retrieving configuration.</color>");
+            }
+        }
+
+        /// <summary>
         /// Get list of available glow prefabs.
         /// </summary>
-        [Command(name: "glowlist", shortName: "gl", adminOnly: true)]
-        public static void ZoneGlowListCommand(ChatContext ctx)
+        [Command("glowlist", shortHand: "gl", description: "List available glow prefabs", adminOnly: true)]
+        public static void ZoneGlowList(ChatCommandContext ctx)
         {
             try
             {
@@ -201,7 +230,7 @@ namespace VAuto.Zone.Commands
                     return;
                 }
                 
-                var message = $"<color=#FFD700>=== Available Glow Prefabs ({choices.Count}) ===</color>\n";
+                var message = $"<color=#FFD700>[Glow Prefabs ({choices.Count})]</color>\n";
                 foreach (var (name, prefab) in choices.Take(10))
                 {
                     message += $"{name}: {prefab.GuidHash}\n";
@@ -224,8 +253,8 @@ namespace VAuto.Zone.Commands
         /// <summary>
         /// Set the glow prefab for arena borders.
         /// </summary>
-        [Command(name: "glowpref", shortName: "gp", adminOnly: true)]
-        public static void ZoneGlowPrefabCommand(ChatContext ctx, string prefabName)
+        [Command("glowpref", shortHand: "gp", description: "Set glow prefab by name", adminOnly: true)]
+        public static void ZoneGlowPrefab(ChatCommandContext ctx, string prefabName)
         {
             try
             {
@@ -234,7 +263,7 @@ namespace VAuto.Zone.Commands
                 
                 if (prefab.IsEmpty())
                 {
-                    ctx.Reply($"<color=#FF0000>Unknown glow prefab: {prefabName}. Use 'zone glowlist' to see available options.</color>");
+                    ctx.Reply($"<color=#FF0000>Unknown glow prefab: {prefabName}. Use '.zone glowlist' to see options.</color>");
                     return;
                 }
                 
@@ -252,8 +281,8 @@ namespace VAuto.Zone.Commands
         /// <summary>
         /// Set glow border spacing in meters.
         /// </summary>
-        [Command(name: "spacing", shortName: "sp", adminOnly: true)]
-        public static void ZoneSpacingCommand(ChatContext ctx, float spacing)
+        [Command("spacing", shortHand: "sp", description: "Set glow spacing in meters", adminOnly: true)]
+        public static void ZoneSpacing(ChatCommandContext ctx, float spacing)
         {
             try
             {
@@ -277,8 +306,8 @@ namespace VAuto.Zone.Commands
         /// <summary>
         /// Toggle corner glow spawning.
         /// </summary>
-        [Command(name: "corners", shortName: "co", adminOnly: true)]
-        public static void ZoneCornersCommand(ChatContext ctx, bool? enable = null)
+        [Command("corners", shortHand: "co", description: "Toggle corner glow spawning", adminOnly: true)]
+        public static void ZoneCorners(ChatCommandContext ctx, bool? enable = null)
         {
             try
             {
@@ -294,25 +323,49 @@ namespace VAuto.Zone.Commands
             }
         }
 
-        /// <summary>
-        /// Get help for zone commands.
-        /// </summary>
-        [Command(name: "help", shortName: "h", adminOnly: false)]
-        public static void ZoneHelpCommand(ChatContext ctx)
-        {
-            var message = @"<color=#FFD700>=== Zone Commands ===</color>
-<color=#00FFFF>/zone status (s)</color> - Show current zone status
-<color=#00FFFF>/zone border (b)</color> - Show border info or toggle
-<color=#00FFFF>/zone glow (g) [action]</color> - Manage glow borders (spawn/clear/count)
-<color=#00FFFF>/zone reload (r)</color> - Reload configuration [Admin]
-<color=#00FFFF>/zone config (c)</color> - Show arena configuration [Admin]
-<color=#00FFFF>/zone glowlist (gl)</color> - List available glow prefabs [Admin]
-<color=#00FFFF>/zone glowpref (gp) [name]</color> - Set glow prefab [Admin]
-<color=#00FFFF>/zone spacing (sp) [meters]</color> - Set glow spacing [Admin]
-<color=#00FFFF>/zone corners (co) [on|off]</color> - Toggle corner glows [Admin]
-<color=#00FFFF>/zone help (h)</color> - Show this help";
+        #region Helper Methods
 
-            ctx.Reply(message);
+        private static bool TryGetPlayerPosition(ChatCommandContext ctx, out float3 position)
+        {
+            position = float3.zero;
+            try
+            {
+                var serverWorld = VRCore.ServerWorld;
+                if (serverWorld == null)
+                {
+                    Plugin.Logger.LogWarning("[Zone] Server world not available");
+                    return false;
+                }
+
+                var entityManager = serverWorld.EntityManager;
+                var characterEntity = ctx.Event?.SenderCharacterEntity ?? Entity.Null;
+                if (characterEntity == Entity.Null || !entityManager.Exists(characterEntity))
+                {
+                    Plugin.Logger.LogWarning("[Zone] Sender character entity not found");
+                    return false;
+                }
+
+                if (entityManager.HasComponent<LocalTransform>(characterEntity))
+                {
+                    position = entityManager.GetComponentData<LocalTransform>(characterEntity).Position;
+                    return true;
+                }
+
+                if (entityManager.HasComponent<Translation>(characterEntity))
+                {
+                    position = entityManager.GetComponentData<Translation>(characterEntity).Value;
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[Zone] GetPlayerPosition failed: {ex.Message}");
+                return false;
+            }
         }
+
+        #endregion
     }
 }

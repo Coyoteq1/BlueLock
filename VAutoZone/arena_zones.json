@@ -1,7 +1,24 @@
 ﻿{
     "zones":  [
-
-              ],
+        {
+            "id": "arena_main",
+            "name": "Main Arena",
+            "territoryId": "arena_main",
+            "enabled": true,
+            "minPlayers": 1,
+            "maxPlayers": 20,
+            "allowedPlayerStates": ["Alive"],
+            "blockEntryIfFull": false,
+            "inventoryHandling": "StoreOnEnter",
+            "buffHandling": "StoreOnEnter",
+            "pvpEnabled": true,
+            "autoCleanGlow": true,
+            "onEnterActions": [],
+            "onExitActions": [],
+            "enterMessage": "Entering Main Arena!",
+            "exitMessage": "Leaving Main Arena"
+        }
+    ],
     "default_settings":  {
                              "enabled":  true,
                              "max_players":  20,

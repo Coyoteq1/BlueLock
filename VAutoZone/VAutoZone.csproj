@@ -11,18 +11,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.733" IncludeAssets="compile" />
     <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.4" />
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\VAutomationCore\VAutomationCore.csproj" />
+    <ProjectReference Include="..\Vlifecycle\Vlifecycle.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="BepInEx.Unity.IL2CPP">
-      <HintPath>..\VAutomationCore\libs\BepInEx.Unity.IL2CPP.dll</HintPath>
+      <HintPath>..\VAutomationCore\libs\BepInEx.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Entities">
