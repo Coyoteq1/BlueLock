@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Unity.Entities;
-
+///Must include other lifecycles on other mods 
 namespace VAuto.Core.Lifecycle
 {
     /// <summary>

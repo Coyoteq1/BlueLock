@@ -36,7 +36,7 @@ namespace VLifecycle.Services.Lifecycle
 
         /// <summary>
         /// Placeholder for player connection events.
-        /// TODO: Implement actual connection event handling when V Rising API is available.
+        /// TODO: Implement actual connection event handling, is player connectivity patch 
         /// Common classes to check: ServerBootstrap, UserManager, ServerGameManager, GameServer
         /// Common methods: OnUserConnected, OnUserDisconnected, OnPlayerJoined, OnPlayerLeft
         /// </summary>
