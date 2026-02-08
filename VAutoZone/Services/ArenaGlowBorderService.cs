@@ -27,7 +27,7 @@ namespace VAuto.Zone.Services
             {
                 return config.DefaultPrefab;
             }
-            return DefaultPrefabName;
+            return "Chaos";
         }
 
         public static int GetBorderPointCount(float spacing)
@@ -129,29 +129,43 @@ namespace VAuto.Zone.Services
             var prefabGuid = new PrefabGUID(0);
             if (!string.IsNullOrWhiteSpace(prefabName))
             {
-                if (!TryResolvePrefabGuidFromConfig(prefabName, out var fromConfig))
+                var glowService = new GlowService();
+                var prefab = glowService.GetGlowPrefab(prefabName);
+                if (!prefab.IsEmpty())
                 {
-                    if (!TryResolvePrefabGuid(prefabName, out prefabGuid))
+                    prefabGuid = prefab;
+                }
+                else if (int.TryParse(prefabName, out var intGuid))
+                {
+                    prefabGuid = new PrefabGUID(intGuid);
+                    if (!VRCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(prefabGuid))
                     {
                         error = $"Prefab not found: {prefabName}";
                         return false;
                     }
                 }
-                else
+                else if (long.TryParse(prefabName, out var longGuid))
                 {
-                    prefabGuid = fromConfig;
+                    prefabGuid = new PrefabGUID((int)longGuid);
+                    if (!VRCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(prefabGuid))
+                    {
+                        error = $"Prefab not found: {prefabName}";
+                        return false;
+                    }
+                }
+                else if (!TryResolvePrefabGuidFromConfig(prefabName, out prefabGuid))
+                {
+                    error = $"Prefab not found: {prefabName}";
+                    return false;
                 }
             }
             else
             {
-                prefabName = DefaultPrefabName;
-            }
-
-            if (prefabGuid.IsEmpty())
-            {
-                if (!TryResolvePrefabGuid(prefabName, out prefabGuid))
+                var glowService = new GlowService();
+                prefabGuid = glowService.GetGlowPrefab("Chaos");
+                if (prefabGuid.IsEmpty())
                 {
-                    error = $"Prefab not resolved: {prefabName}";
+                    error = "Default glow prefab not found";
                     return false;
                 }
             }

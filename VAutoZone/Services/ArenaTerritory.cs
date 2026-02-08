@@ -21,12 +21,12 @@ namespace VAuto.Zone.Services
         public const float MaxZoneRadius = 150f;
 
         // Zone ID - replaces gridIndex for consistency with other zones
-        public static string ZoneId { get; private set; } = "arena_main";
+        public static string ZoneId { get; private set; } = "0";
         
-        public static float3 ArenaGridCenter = new float3(-1000, 0, -500);
-        public static float ArenaGridRadius = 300f;
+        public static float3 ArenaGridCenter = new float3(-1000, 5, -500);
+        public static float ArenaGridRadius = 50f;
         public static int ArenaRegionType = 5;
-        public static float BlockSize = 10f;
+        public static float BlockSize = 1f;
 
         public static bool EnableGlowBorder { get; set; } = true;
         public static string GlowPrefab { get; set; } = DefaultGlowPrefab;
@@ -228,8 +228,8 @@ namespace VAuto.Zone.Services
 
         private static void ResetDefaults()
         {
-            ZoneId = "arena_main";
-            ArenaGridCenter = new float3(-1000, 0, 500);
+            ZoneId = "0";
+            ArenaGridCenter = new float3(-1000, 5, -500);
             ArenaGridRadius = 300f;
             ArenaRegionType = 5;
             BlockSize = 10f;
@@ -332,7 +332,7 @@ namespace VAuto.Zone.Services
                 var root = doc.RootElement;
 
                 if (root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
-                    ZoneId = idEl.GetString() ?? "arena_main";
+                    ZoneId = idEl.GetString() ?? "0";
 
                 if (TryReadFloat3(root, "center", out var center)) ArenaGridCenter = center;
                 if (root.TryGetProperty("radius", out var radiusEl) && radiusEl.ValueKind == JsonValueKind.Number)

@@ -115,8 +115,15 @@ namespace VAuto.Zone.Services
                     marker = em.CreateEntity(ComponentType.ReadWrite<LocalTransform>());
                     em.SetComponentData(marker, LocalTransform.FromPositionRotationScale(p, quaternion.identity, 1f));
                     runtime.Markers.Add(marker);
+
+                    // Attach glow directly onto marker entity
+                    SpawnGlow(em, p, runtime, marker);
                 }
-                SpawnGlow(em, p, runtime);
+                else
+                {
+                    // No marker requested → free‑floating glow
+                    SpawnGlow(em, p, runtime);
+                }
             }
 
             _zones[entry.Id] = runtime;
@@ -141,30 +148,96 @@ namespace VAuto.Zone.Services
 
             foreach (var pos in positions)
             {
-                SpawnGlow(em, pos, zr);
+                // If markers exist, attach to them; otherwise spawn free-floating
+                var index = positions.IndexOf(pos);
+                if (zr.Markers.Count > index)
+                {
+                    SpawnGlow(em, pos, zr, zr.Markers[index]);
+                }
+                else
+                {
+                    SpawnGlow(em, pos, zr);
+                }
             }
         }
 
-        private static void SpawnGlow(EntityManager em, float3 position, ZoneRuntime runtime)
+        // Spawns or attaches a glow effect for a given position/marker
+        private static void SpawnGlow(EntityManager em, float3 position, ZoneRuntime runtime, Entity? attachTo = null)
         {
             if (runtime.ResolvedPrefabs.Length == 0) return;
-            var prefabGuid = runtime.ResolvedPrefabs[runtime.ActivePrefabIndex % runtime.ResolvedPrefabs.Length];
-            if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity)) return;
 
-            var e = em.Instantiate(prefabEntity);
-            if (em.HasComponent<LocalTransform>(e))
+            var prefabGuid = runtime.ResolvedPrefabs[runtime.ActivePrefabIndex % runtime.ResolvedPrefabs.Length];
+
+            // If attachTo provided, try attaching instead of free spawn
+            if (attachTo.HasValue)
             {
-                var t = em.GetComponentData<LocalTransform>(e);
+                AttachGlowToEntity(em, attachTo.Value, prefabGuid, float3.zero);
+                return;
+            }
+
+            // --- Standard free‑floating glow fallback ---
+            if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity))
+            {
+                Plugin.Log.LogWarning($"[GlowZone] Prefab {prefabGuid.GuidHash} not found; creating placeholder glow entity.");
+                var fallback = em.CreateEntity(ComponentType.ReadWrite<LocalTransform>());
+                em.SetComponentData(fallback, LocalTransform.FromPositionRotationScale(position, quaternion.identity, 1f));
+                runtime.Glows.Add(fallback);
+                return;
+            }
+
+            var glowEntity = em.Instantiate(prefabEntity);
+
+            // Ensure position is set
+            if (em.HasComponent<LocalTransform>(glowEntity))
+            {
+                var t = em.GetComponentData<LocalTransform>(glowEntity);
                 t.Position = position;
-                em.SetComponentData(e, t);
+                em.SetComponentData(glowEntity, t);
             }
-            else if (em.HasComponent<Translation>(e))
+            else if (em.HasComponent<Translation>(glowEntity))
             {
-                var t = em.GetComponentData<Translation>(e);
+                var t = em.GetComponentData<Translation>(glowEntity);
                 t.Value = position;
-                em.SetComponentData(e, t);
+                em.SetComponentData(glowEntity, t);
             }
-            runtime.Glows.Add(e);
+
+            runtime.Glows.Add(glowEntity);
+        }
+
+        // Helper: attaches existing prefab as child of target entity
+        private static void AttachGlowToEntity(EntityManager em, Entity target, PrefabGUID prefabGuid, float3 localOffset)
+        {
+            if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity))
+            {
+                Plugin.Log.LogWarning($"[GlowZone] Prefab {prefabGuid.GuidHash} not resolved; cannot attach.");
+                return;
+            }
+
+            var glowEntity = em.Instantiate(prefabEntity);
+
+            // Offset relative to parent
+            if (em.HasComponent<LocalTransform>(glowEntity))
+            {
+                var t = em.GetComponentData<LocalTransform>(glowEntity);
+                t.Position = localOffset;
+                em.SetComponentData(glowEntity, t);
+            }
+
+            // Establish parent/child relationship
+            em.AddComponentData(glowEntity, new Parent { Value = target });
+            em.AddComponent<LocalToParent>(glowEntity);
+
+            // Optional custom tag for later cleanup
+            if (!em.HasComponent<ZoneGlowTag>(glowEntity))
+                em.AddComponentData(glowEntity, new ZoneGlowTag { ParentZone = target });
+
+            Plugin.Log.LogInfo($"[GlowZone] Attached glow prefab {prefabGuid.GuidHash} → parent entity {target.Index}");
+        }
+
+        // Optional tag for tracking glow entities
+        public struct ZoneGlowTag
+        {
+            public Entity ParentZone;
         }
 
         private static DateTime ComputeNextRotation(GlowZoneEntry entry)
@@ -244,100 +317,47 @@ namespace VAuto.Zone.Services
         {
             var names = entry.GlowPrefabs != null && entry.GlowPrefabs.Count > 0
                 ? entry.GlowPrefabs
-                : new List<string> { _config.DefaultGlowPrefab ?? "AB_Chaos_Barrier_AbilityGroup" };
+                : new List<string> { _config.DefaultGlowPrefab ?? "Chaos" };
 
             var resolved = new List<PrefabGUID>();
+            var glowService = new GlowService();
+            
             foreach (var name in names)
             {
-                if (TryResolvePrefabGuidFromConfig(name, out var g) || TryResolvePrefabGuid(name, out g))
+                var prefab = glowService.GetGlowPrefab(name);
+                if (!prefab.IsEmpty())
                 {
-                    resolved.Add(g);
+                    resolved.Add(prefab);
                 }
-            }
-            return resolved.ToArray();
-        }
-
-        private static bool TryResolvePrefabGuid(string prefabName, out PrefabGUID guid)
-        {
-            guid = default;
-            try
-            {
-                var system = VRCore.ServerWorld?.GetExistingSystemManaged<PrefabCollectionSystem>();
-                if (system == null)
-                    return false;
-
-                var type = system.GetType();
-                var members = type.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                foreach (var member in members)
+                else if (int.TryParse(name, out var intGuid))
                 {
-                    object value = member switch
+                    var guid = new PrefabGUID(intGuid);
+                    if (VRCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(guid))
                     {
-                        FieldInfo f => f.GetValue(system),
-                        PropertyInfo p => p.GetValue(system),
-                        _ => null
-                    };
-
-                    if (value == null) continue;
-
-                    if (TryGetGuidFromDictionary(value, prefabName, out guid))
-                        return true;
+                        resolved.Add(guid);
+                    }
                 }
-            }
-            catch
-            {
-                return false;
-            }
-
-            // Try parse long
-            if (long.TryParse(prefabName, out var longGuid))
-            {
-                guid = new PrefabGUID((int)longGuid);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryGetGuidFromDictionary(object value, string prefabName, out PrefabGUID guid)
-        {
-            guid = default;
-            var valueType = value.GetType();
-            if (!valueType.IsGenericType) return false;
-
-            var genericArgs = valueType.GetGenericArguments();
-            if (genericArgs.Length != 2) return false;
-
-            if (genericArgs[0] != typeof(string)) return false;
-
-            if (value is System.Collections.IDictionary dict)
-            {
-                if (!dict.Contains(prefabName)) return false;
-
-                var dictValue = dict[prefabName];
-                if (dictValue is PrefabGUID pg)
+                else if (long.TryParse(name, out var longGuid))
                 {
-                    guid = pg;
-                    return true;
-                }
-
-                if (dictValue is int intGuid)
-                {
-                    guid = new PrefabGUID((int)intGuid);
-                    return true;
+                    var guid = new PrefabGUID((int)longGuid);
+                    if (VRCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(guid))
+                    {
+                        resolved.Add(guid);
+                    }
                 }
             }
-            return false;
-        }
-
-        private static bool TryResolvePrefabGuidFromConfig(string prefabName, out PrefabGUID guid)
-        {
-            guid = default;
-            if (_config?.DefaultGlowPrefab != null && prefabName == _config.DefaultGlowPrefab && int.TryParse(prefabName, out var g))
+            
+            // Fallback to Chaos if no valid prefabs found
+            if (resolved.Count == 0)
             {
-                guid = new PrefabGUID((int)(long)g);
-                return true;
+                var fallbackPrefab = glowService.GetGlowPrefab("Chaos");
+                if (!fallbackPrefab.IsEmpty())
+                {
+                    resolved.Add(fallbackPrefab);
+                }
             }
-            return false;
+            
+            return resolved.ToArray();
         }
 
         private static bool TryGetPrefabEntity(PrefabGUID guid, out Entity prefabEntity)

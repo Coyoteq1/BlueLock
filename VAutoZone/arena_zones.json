@@ -1,9 +1,9 @@
 ﻿{
     "zones":  [
         {
-            "id": "arena_main",
+            "id": "0",
             "name": "Main Arena",
-            "territoryId": "arena_main",
+            "territoryId": "0",
             "enabled": true,
             "minPlayers": 1,
             "maxPlayers": 20,
@@ -25,4 +25,3 @@
                              "auto_cleanup":  true
                          }
 }
-

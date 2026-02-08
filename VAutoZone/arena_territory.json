@@ -1,10 +1,10 @@
 ﻿{
-    "id": "arena_main",
-    "center": [-1000, 0, -500],
+    "id": "0",
+    "center": [-1000, 5, -500],
     "radius": 75,
     "regionType": "Circle",
     "blockSize": 1,
-    "glowPrefab": "AB_Chaos_Barrier_AbilityGroup",
+    "glowPrefab": "Chaos",
     "glowSpacing": 1,
     "glowCornerRadius": 1,
     "spawnGlowInCorners": true,

@@ -105,7 +105,7 @@ Vlifecycle/
 - Equipment restoration
 - Inventory state tracking
 
-### UI Integration
+### ZUI Integration
 
 - Spellbook menu support
 - Input blocking during transitions

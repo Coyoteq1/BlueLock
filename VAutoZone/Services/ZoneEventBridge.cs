@@ -18,9 +18,33 @@ using ProjectM.Network;
 namespace VAuto.Zone
 {
     /// <summary>
-    /// Bridge service that monitors player positions and triggers lifecycle events
-    /// when players enter/exit arena zones.
-    /// Uses the ArenaTerritory system for zone detection.
+    /// Zone Event Bridge - Connects VAutoZone position monitoring to Vlifecycle stage execution.
+    /// 
+    /// Architecture:
+    /// 1. Monitor player positions via ECS query
+    /// 2. Detect zone transitions (enter, exit, reconnection, respawn)
+    /// 3. read_file zone configuration to determine which stages should fire
+    /// 4. Pass stage names to Vlifecycle's ArenaLifecycleManager
+    /// 5. Vlifecycle owns actual action execution and behavior enforcement
+    /// 
+    /// Three-Stage Lifecycle Pattern:
+    /// - onEnter: One-time effects when crossing INTO a zone
+    ///   * Store inventory state, apply zone buffs, send messages, set markers
+    ///   
+    /// - isInZone: Repeated effects while player remains INSIDE zone
+    ///   * Reassert buff enforcement, reapply blood type, validate config
+    ///   * This stage must be IDEMPOTENT
+    ///   
+    /// - onExit: One-time effects when crossing OUT of zone
+    ///   * Restore inventory, remove zone buffs, cleanup markers, send farewell
+    /// 
+    /// Handle Reconnection/Respawn Scenarios:
+    /// - Player reconnects inside zone → fire onEnter + isInZone
+    /// - Player respawns inside zone → fire isInZone (assume state was lost)
+    /// 
+    /// V Rising's Eventually Consistent ECS:
+    /// - Systems may invalidate state (buffs expire, items unstored)
+    /// - Mods must reassert intent periodically (isInZone)
     /// </summary>
     public class ZoneEventBridge : IDisposable
     {
@@ -31,54 +55,33 @@ namespace VAuto.Zone
         private readonly EntityQuery _playerQuery;
         private readonly Dictionary<ulong, PlayerZoneState> _playerStates = new();
         private readonly ZoneLifecycleConfig _config;
-        private readonly GlobalLifecycleDefaults _defaults;
         
         private System.Timers.Timer _checkTimer;
         private bool _isRunning;
         private bool _disposed;
-
-        /// <summary>
-        /// Tracks the last known zone for each player
-        /// </summary>
-        private class PlayerZoneState
-        {
-            public ulong SteamId { get; set; }
-            public string LastZoneId { get; set; } = string.Empty;
-            public float3 LastPosition { get; set; }
-            public DateTime LastUpdate { get; set; }
-        }
 
         public ZoneEventBridge(ManualLogSource log, EntityManager entityManager)
         {
             _log = log;
             _entityManager = entityManager;
             
-            // Create player query for position updates (User + LocalTransform + PlayerCharacter)
             _playerQuery = _entityManager.CreateEntityQuery(
                 ComponentType.ReadOnly<PlayerCharacter>(),
                 ComponentType.ReadOnly<LocalTransform>()
             );
 
-            // Load configuration
             _config = LoadConfig();
-            _defaults = LoadDefaults();
             
-            _log.LogInfo($"{_logPrefix} Initialized with {_config.Mappings.Count} zone mappings");
+            _log.LogInfo($"{_logPrefix} Initialized with isInZone interval: {_config.IsInZoneIntervalSeconds}s");
         }
 
-        /// <summary>
-        /// Start monitoring player positions
-        /// </summary>
         public void Start()
         {
             if (_isRunning) return;
             
             _isRunning = true;
-            
-            // Initial scan
             ScanAllPlayers();
             
-            // Setup timer for periodic checks
             var intervalMs = Math.Max(50, _config.CheckIntervalMs);
             _checkTimer = new System.Timers.Timer(intervalMs);
             _checkTimer.Elapsed += OnCheckTimerElapsed;
@@ -87,9 +90,6 @@ namespace VAuto.Zone
             _log.LogInfo($"{_logPrefix} Started monitoring ({intervalMs}ms interval)");
         }
 
-        /// <summary>
-        /// Stop monitoring
-        /// </summary>
         public void Stop()
         {
             if (!_isRunning) return;
@@ -102,9 +102,6 @@ namespace VAuto.Zone
             _log.LogInfo($"{_logPrefix} Stopped");
         }
 
-        /// <summary>
-        /// Force check for a specific player
-        /// </summary>
         public void CheckPlayer(ulong steamId, float3 position)
         {
             if (_disposed || !_isRunning) return;
@@ -113,38 +110,91 @@ namespace VAuto.Zone
             
             if (!_playerStates.TryGetValue(steamId, out var state))
             {
-                // New player tracking
                 state = new PlayerZoneState { SteamId = steamId };
                 _playerStates[steamId] = state;
+                _log.LogDebug($"{_logPrefix} New player tracking: {steamId}");
             }
 
-            var hasChanged = state.LastZoneId != currentZoneId;
-            var isFirstCheck = string.IsNullOrEmpty(state.LastZoneId);
-
-            if (isFirstCheck || hasChanged)
+            DetectAndProcessTransition(state, currentZoneId, position);
+            UpdatePosition(state, position);
+            
+            if (!string.IsNullOrEmpty(currentZoneId))
             {
-                var previousZone = state.LastZoneId;
-                state.LastZoneId = currentZoneId;
-                state.LastPosition = position;
-                state.LastUpdate = DateTime.UtcNow;
+                CheckIsInZone(state, currentZoneId, position);
+            }
+        }
 
-                if (hasChanged && !isFirstCheck)
+        private void DetectAndProcessTransition(PlayerZoneState state, string newZoneId, float3 position)
+        {
+            var prevZone = state.CurrentZoneId;
+            var exitedZone = !string.IsNullOrEmpty(prevZone) && prevZone != newZoneId;
+            var enteredZone = string.IsNullOrEmpty(prevZone) && !string.IsNullOrEmpty(newZoneId);
+            var changedZone = !string.IsNullOrEmpty(prevZone) && !string.IsNullOrEmpty(newZoneId) && prevZone != newZoneId;
+            var reconnection = !state.WasInZone && !string.IsNullOrEmpty(newZoneId) && string.IsNullOrEmpty(prevZone);
+
+            // Get character entity for lifecycle calls
+            var characterEntity = FindCharacterEntity(state.SteamId);
+
+            // Update PreviousZone before processing
+            if (exitedZone || changedZone)
+            {
+                // Use ArenaLifecycleManager for exit
+                if (characterEntity != Entity.Null)
                 {
-                    // Player transitioned between zones
-                    OnZoneTransition(steamId, previousZone, currentZoneId, position);
-                }
-                else if (isFirstCheck && !string.IsNullOrEmpty(currentZoneId))
-                {
-                    // Player started inside a zone
-                    OnZoneEnter(steamId, currentZoneId, position);
+                    ArenaLifecycleManager.Instance.OnPlayerExit(characterEntity, characterEntity, prevZone);
                 }
             }
+
+            if (enteredZone || changedZone || reconnection)
+            {
+                // Use ArenaLifecycleManager for enter
+                if (characterEntity != Entity.Null)
+                {
+                    ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, newZoneId);
+                }
+
+                state.LastIsInZoneTrigger = Time.unscaledTime;
+            }
+
+            // Update tracking state
+            state.PreviousZoneId = prevZone;
+            state.CurrentZoneId = newZoneId ?? "";
+            state.WasInZone = !string.IsNullOrEmpty(newZoneId);
+            state.LastZoneEnterTime = (enteredZone || reconnection) ? Time.unscaledTime : state.LastZoneEnterTime;
+        }
+
+        private void CheckIsInZone(PlayerZoneState state, string zoneId, float3 position)
+        {
+            if (!state.WasInZone) return;
+
+            var now = Time.unscaledTime;
+            var elapsed = state.LastIsInZoneTrigger == 0f
+                ? float.MaxValue
+                : now - state.LastIsInZoneTrigger;
+
+            if (elapsed >= _config.IsInZoneIntervalSeconds)
+            {
+                var characterEntity = FindCharacterEntity(state.SteamId);
+                if (characterEntity != Entity.Null)
+                {
+                    _log.LogDebug($"{_logPrefix} Triggering isInZone for {state.SteamId} in zone {zoneId}");
+                    ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, zoneId);
+                }
+                state.LastIsInZoneTrigger = now;
+            }
+        }
+
+        private void UpdatePosition(PlayerZoneState state, float3 position)
+        {
+            state.LastPositionX = position.x;
+            state.LastPositionY = position.y;
+            state.LastPositionZ = position.z;
+            state.LastUpdate = Time.unscaledTime;
         }
 
         private void OnCheckTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (_disposed || !_isRunning) return;
-            
             ScanAllPlayers();
         }
 
@@ -178,143 +228,78 @@ namespace VAuto.Zone
             }
         }
 
-        private void OnZoneTransition(ulong steamId, string previousZone, string currentZone, float3 position)
-        {
-            if (!string.IsNullOrEmpty(previousZone))
-            {
-                OnZoneExit(steamId, previousZone, position);
-            }
-            
-            if (!string.IsNullOrEmpty(currentZone))
-            {
-                OnZoneEnter(steamId, currentZone, position);
-            }
-        }
-
-        private void OnZoneEnter(ulong steamId, string zoneId, float3 position)
-        {
-            _log.LogInfo($"{_logPrefix} Player {steamId} entered zone '{zoneId}'");
-            
-            // Trigger lifecycle events
-            TriggerLifecycleActions(steamId, zoneId, true, position);
-        }
-
-        private void OnZoneExit(ulong steamId, string zoneId, float3 position)
-        {
-            _log.LogInfo($"{_logPrefix} Player {steamId} exited zone '{zoneId}'");
-            
-            // Trigger lifecycle events
-            TriggerLifecycleActions(steamId, zoneId, false, position);
-        }
-
-        private void TriggerLifecycleActions(ulong steamId, string zoneId, bool isEnter, float3 position)
+        private void TriggerLifecycleStage(string stageName, ulong steamId, string zoneId, float3 position)
         {
             if (!_config.Enabled)
             {
-                _log.LogDebug($"{_logPrefix} Zone-lifecycle wiring disabled");
+                _log.LogDebug($"{_logPrefix} Zone-lifecycle wiring disabled, skipping stage: {stageName}");
                 return;
             }
 
-            // Get lifecycle manager if available
-            var lifecycleManager = GetLifecycleManager();
-            if (lifecycleManager == null)
+            var characterEntity = FindCharacterEntity(steamId);
+            if (characterEntity == Entity.Null)
             {
-                _log.LogWarning($"{_logPrefix} Lifecycle manager not available");
+                _log.LogWarning($"{_logPrefix} Could not find character entity for player {steamId}");
                 return;
             }
 
-            // Get actions for this zone
-            var actions = GetActionsForZone(zoneId, isEnter);
-            if (actions.Count == 0)
+            // Route to ArenaLifecycleManager based on stage type
+            if (stageName.Contains("onEnter") || stageName.Contains("isInZone"))
             {
-                _log.LogDebug($"{_logPrefix} No actions configured for zone '{zoneId}' ({ (isEnter ? "enter" : "exit") })");
-                return;
+                ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, zoneId);
+            }
+            else if (stageName.Contains("onExit"))
+            {
+                ArenaLifecycleManager.Instance.OnPlayerExit(characterEntity, characterEntity, zoneId);
             }
 
-            _log.LogInfo($"{_logPrefix} Triggering {actions.Count} actions for {steamId} in zone '{zoneId}'");
+            _log.LogInfo($"{_logPrefix} Triggered stage '{stageName}' for player {steamId} in zone '{zoneId}'");
+        }
 
-            // Execute each action
-            foreach (var actionName in actions)
+        /// <summary>
+        /// Find character entity for a Steam ID.
+        /// Uses EntityManager.HasComponent and EntityManager.Exists for safety.
+        /// </summary>
+        private Entity FindCharacterEntity(ulong steamId)
+        {
+            try
             {
+                var entities = _playerQuery.ToEntityArray(Allocator.Temp);
                 try
                 {
-                    ExecuteLifecycleAction(lifecycleManager, steamId, actionName, isEnter);
+                    foreach (var entity in entities)
+                    {
+                        if (entity == Entity.Null) continue;
+                        if (!_entityManager.HasComponent<User>(entity)) continue;
+                        if (!_entityManager.Exists(entity)) continue;
+
+                        var user = _entityManager.GetComponentData<User>(entity);
+                        if (user.PlatformId == steamId)
+                        {
+                            return entity;
+                        }
+                    }
                 }
-                catch (Exception ex)
+                finally
                 {
-                    _log.LogWarning($"{_logPrefix} Failed to execute action '{actionName}': {ex.Message}");
+                    entities.Dispose();
                 }
             }
-        }
-
-        private List<string> GetActionsForZone(string zoneId, bool isEnter)
-        {
-            if (_config.Mappings.TryGetValue(zoneId, out var mapping))
+            catch (Exception ex)
             {
-                return isEnter ? mapping.OnEnter : mapping.OnExit;
+                _log.LogWarning($"{_logPrefix} Failed to find character entity: {ex.Message}");
             }
-
-            // Check for wildcard mapping
-            if (_config.Mappings.TryGetValue("*", out var wildcard))
-            {
-                return isEnter ? wildcard.OnEnter : wildcard.OnExit;
-            }
-
-            // Return defaults if configured
-            return isEnter ? _defaults.DefaultEnterActions : _defaults.DefaultExitActions;
-        }
-
-        private void ExecuteLifecycleAction(ArenaLifecycleManager lifecycleManager, ulong steamId, string actionName, bool isEnter)
-        {
-            var stageName = isEnter ? "onEnterArenaZone" : "onExitArenaZone";
-            
-            // Check if we have actions configured for this stage
-            var stageActions = lifecycleManager.GetStageDetails(stageName);
-            if (stageActions.TryGetValue("ActionCount", out var count) && (int)count > 0)
-            {
-                _log.LogDebug($"{_logPrefix} Using pre-configured stage '{stageName}'");
-                lifecycleManager.TriggerLifecycleStage(stageName, new LifecycleContext
-                {
-                    CharacterEntity = Entity.Null,
-                    Position = float3.zero
-                });
-            }
-            else
-            {
-                _log.LogDebug($"{_logPrefix} Stage '{stageName}' has no actions configured");
-            }
+            return Entity.Null;
         }
 
         private string GetZoneId(float3 position)
         {
-            // Use ArenaTerritory to check if position is in arena
             if (ArenaTerritory.IsInArenaTerritory(position))
             {
                 return ArenaTerritory.ZoneId;
             }
             
             return string.Empty;
-        }
-
-        private ArenaLifecycleManager GetLifecycleManager()
-        {
-            try
-            {
-                // Try to get ArenaLifecycleManager via reflection (loaded by Vlifecycle)
-                var type = Type.GetType("VAuto.Core.Lifecycle.ArenaLifecycleManager, Vlifecycle");
-                if (type != null)
-                {
-                    var instanceProp = type.GetProperty("Instance", 
-                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-                    return instanceProp?.GetValue(null) as ArenaLifecycleManager;
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning($"{_logPrefix} Failed to get lifecycle manager: {ex.Message}");
-            }
-            
-            return null;
         }
 
         private ZoneLifecycleConfig LoadConfig()
@@ -341,52 +326,26 @@ namespace VAuto.Zone
             return new ZoneLifecycleConfig();
         }
 
-        private GlobalLifecycleDefaults LoadDefaults()
-        {
-            try
-            {
-                var configPath = GetConfigFilePath("VAuto.LifecycleDefaults.json");
-                if (File.Exists(configPath))
-                {
-                    var json = File.ReadAllText(configPath);
-                    return JsonSerializer.Deserialize<GlobalLifecycleDefaults>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    }) ?? new GlobalLifecycleDefaults();
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning($"{_logPrefix} Failed to load defaults: {ex.Message}");
-            }
-            
-            return new GlobalLifecycleDefaults();
-        }
-
         private string GetConfigFilePath(string fileName)
         {
-            // Check multiple locations
-            var locations = new[]
+            var configDir = Path.Combine(BepInEx.Paths.ConfigPath, "VAuto");
+            var primaryPath = Path.Combine(configDir, fileName);
+            
+            if (File.Exists(primaryPath))
             {
-                Path.Combine(BepInEx.Paths.ConfigPath, "VAuto", fileName),
-                Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "", "config", "VAuto", fileName),
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", "VAuto", fileName)
-            };
-
-            foreach (var path in locations)
-            {
-                if (File.Exists(path))
-                {
-                    return path;
-                }
+                return primaryPath;
             }
-
-            return locations[0];
+            
+            var pluginDir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "", "config", "VAuto");
+            var pluginPath = Path.Combine(pluginDir, fileName);
+            if (File.Exists(pluginPath))
+            {
+                return pluginPath;
+            }
+            
+            return primaryPath;
         }
 
-        /// <summary>
-        /// Get current tracking statistics
-        /// </summary>
         public Dictionary<string, object> GetStats()
         {
             var stats = new Dictionary<string, object>
@@ -395,13 +354,13 @@ namespace VAuto.Zone
                 ["TrackedPlayers"] = _playerStates.Count,
                 ["Enabled"] = _config.Enabled,
                 ["CheckIntervalMs"] = _config.CheckIntervalMs,
-                ["ZoneMappings"] = _config.Mappings.Count
+                ["IsInZoneIntervalSeconds"] = _config.IsInZoneIntervalSeconds,
+                ["ZoneMappingsCount"] = _config.Mappings.Count
             };
 
-            // Count players in each zone
             var zoneCounts = _playerStates.Values
-                .Where(s => !string.IsNullOrEmpty(s.LastZoneId))
-                .GroupBy(s => s.LastZoneId)
+                .Where(s => !string.IsNullOrEmpty(s.CurrentZoneId))
+                .GroupBy(s => s.CurrentZoneId)
                 .ToDictionary(g => g.Key, g => g.Count());
             
             stats["PlayersInZones"] = zoneCounts;
@@ -415,6 +374,23 @@ namespace VAuto.Zone
             _disposed = true;
             
             Stop();
+            
+            // Fire exit stages for all players in zones before shutting down
+            foreach (var state in _playerStates.Values.ToList())
+            {
+                if (!string.IsNullOrEmpty(state.CurrentZoneId))
+                {
+                    var position = new float3(state.LastPositionX, state.LastPositionY, state.LastPositionZ);
+                    var stages = _config.GetStagesForZone(state.CurrentZoneId, out _);
+                    var exitStageName = stages.BuildStageName(state.CurrentZoneId, "onExit");
+                    
+                    if (!string.IsNullOrEmpty(exitStageName))
+                    {
+                        TriggerLifecycleStage(exitStageName, state.SteamId, state.CurrentZoneId, position);
+                    }
+                }
+            }
+            
             _playerStates.Clear();
         }
     }

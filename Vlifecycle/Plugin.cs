@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using BepInEx;
 using BepInEx.Configuration;
@@ -122,7 +123,8 @@ namespace VLifecycle
                 var harmony = new Harmony("gg.coyote.Vlifecycle.ZUI");
                 harmony.PatchAll(typeof(Services.Lifecycle.InputSystemUpdatePatch));
 
-                // Commands auto-register via VampireCommandFramework convention
+                // Commands auto-register via Vampire Command Framework
+                CommandRegistry.RegisterAll(Assembly.GetExecutingAssembly());
 
                 // Start hot-reload monitoring if enabled
                 if (HotReloadEnabled?.Value == true)
