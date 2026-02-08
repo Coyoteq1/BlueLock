@@ -9,12 +9,17 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 using VAutomationCore.Configuration;
 using VAuto.Core.Lifecycle;
 using VAuto.Zone.Services;
 using ProjectM;
 using ProjectM.Network;
-
+using ProjectM.Shared;
+using ProjectM.Gameplay.Systems;
+using ProjectM.Debugging;
+using ProjectM.Scripting;
+using Stunlock.Core;
 namespace VAuto.Zone
 {
     /// <summary>
@@ -132,8 +137,9 @@ namespace VAuto.Zone
             var changedZone = !string.IsNullOrEmpty(prevZone) && !string.IsNullOrEmpty(newZoneId) && prevZone != newZoneId;
             var reconnection = !state.WasInZone && !string.IsNullOrEmpty(newZoneId) && string.IsNullOrEmpty(prevZone);
 
-            // Get character entity for lifecycle calls
+            // Get character entity and user entity for lifecycle calls
             var characterEntity = FindCharacterEntity(state.SteamId);
+            var userEntity = FindUserEntityFromCharacter(characterEntity);
 
             // Update PreviousZone before processing
             if (exitedZone || changedZone)
@@ -141,7 +147,12 @@ namespace VAuto.Zone
                 // Use ArenaLifecycleManager for exit
                 if (characterEntity != Entity.Null)
                 {
-                    ArenaLifecycleManager.Instance.OnPlayerExit(characterEntity, characterEntity, prevZone);
+                    _log.LogDebug($"{_logPrefix} [DEBUG] OnPlayerExit - characterEntity: {characterEntity}, userEntity: {userEntity}");
+                    ArenaLifecycleManager.Instance.OnPlayerExit(userEntity, characterEntity, prevZone, position);
+                }
+                else
+                {
+                    _log.LogWarning($"{_logPrefix} [DEBUG] OnPlayerExit skipped - characterEntity is Null");
                 }
             }
 
@@ -150,35 +161,38 @@ namespace VAuto.Zone
                 // Use ArenaLifecycleManager for enter
                 if (characterEntity != Entity.Null)
                 {
-                    ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, newZoneId);
+                    _log.LogDebug($"{_logPrefix} [DEBUG] OnPlayerEnter - characterEntity: {characterEntity}, userEntity: {userEntity}");
+                    ArenaLifecycleManager.Instance.OnPlayerEnter(userEntity, characterEntity, newZoneId, position);
                 }
 
-                state.LastIsInZoneTrigger = Time.unscaledTime;
+                state.LastIsInZoneTrigger = DateTime.UtcNow;
             }
 
             // Update tracking state
             state.PreviousZoneId = prevZone;
             state.CurrentZoneId = newZoneId ?? "";
             state.WasInZone = !string.IsNullOrEmpty(newZoneId);
-            state.LastZoneEnterTime = (enteredZone || reconnection) ? Time.unscaledTime : state.LastZoneEnterTime;
+            state.LastZoneEnterTime = (enteredZone || reconnection) ? DateTime.UtcNow : state.LastZoneEnterTime;
         }
 
         private void CheckIsInZone(PlayerZoneState state, string zoneId, float3 position)
         {
             if (!state.WasInZone) return;
 
-            var now = Time.unscaledTime;
-            var elapsed = state.LastIsInZoneTrigger == 0f
+            var now = DateTime.UtcNow;
+            var elapsed = state.LastIsInZoneTrigger == default(DateTime)
                 ? float.MaxValue
-                : now - state.LastIsInZoneTrigger;
+                : (float)(now - state.LastIsInZoneTrigger).TotalSeconds;
 
             if (elapsed >= _config.IsInZoneIntervalSeconds)
             {
                 var characterEntity = FindCharacterEntity(state.SteamId);
                 if (characterEntity != Entity.Null)
                 {
+                    var userEntity = FindUserEntityFromCharacter(characterEntity);
+                    _log.LogDebug($"{_logPrefix} [DEBUG] CheckIsInZone - characterEntity: {characterEntity}, userEntity: {userEntity}");
                     _log.LogDebug($"{_logPrefix} Triggering isInZone for {state.SteamId} in zone {zoneId}");
-                    ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, zoneId);
+                    ArenaLifecycleManager.Instance.OnPlayerEnter(userEntity, characterEntity, zoneId, position);
                 }
                 state.LastIsInZoneTrigger = now;
             }
@@ -189,7 +203,7 @@ namespace VAuto.Zone
             state.LastPositionX = position.x;
             state.LastPositionY = position.y;
             state.LastPositionZ = position.z;
-            state.LastUpdate = Time.unscaledTime;
+            state.LastUpdate = DateTime.UtcNow;
         }
 
         private void OnCheckTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -246,11 +260,11 @@ namespace VAuto.Zone
             // Route to ArenaLifecycleManager based on stage type
             if (stageName.Contains("onEnter") || stageName.Contains("isInZone"))
             {
-                ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, zoneId);
+                ArenaLifecycleManager.Instance.OnPlayerEnter(characterEntity, characterEntity, zoneId, position);
             }
             else if (stageName.Contains("onExit"))
             {
-                ArenaLifecycleManager.Instance.OnPlayerExit(characterEntity, characterEntity, zoneId);
+                ArenaLifecycleManager.Instance.OnPlayerExit(characterEntity, characterEntity, zoneId, position);
             }
 
             _log.LogInfo($"{_logPrefix} Triggered stage '{stageName}' for player {steamId} in zone '{zoneId}'");
@@ -270,13 +284,22 @@ namespace VAuto.Zone
                     foreach (var entity in entities)
                     {
                         if (entity == Entity.Null) continue;
-                        if (!_entityManager.HasComponent<User>(entity)) continue;
                         if (!_entityManager.Exists(entity)) continue;
-
-                        var user = _entityManager.GetComponentData<User>(entity);
-                        if (user.PlatformId == steamId)
+                        
+                        // Get the UserEntity from PlayerCharacter
+                        if (_entityManager.HasComponent<PlayerCharacter>(entity))
                         {
-                            return entity;
+                            var pc = _entityManager.GetComponentData<PlayerCharacter>(entity);
+                            var userEntity = pc.UserEntity;
+                            
+                            if (userEntity != Entity.Null && _entityManager.HasComponent<User>(userEntity))
+                            {
+                                var user = _entityManager.GetComponentData<User>(userEntity);
+                                if (user.PlatformId == steamId)
+                                {
+                                    return entity; // Return character entity
+                                }
+                            }
                         }
                     }
                 }
@@ -289,6 +312,38 @@ namespace VAuto.Zone
             {
                 _log.LogWarning($"{_logPrefix} Failed to find character entity: {ex.Message}");
             }
+            return Entity.Null;
+        }
+
+        /// <summary>
+        /// Get user entity from character entity using PlayerCharacter.UserEntity.
+        /// Uses EntityManager.Exists for safety.
+        /// </summary>
+        private Entity FindUserEntityFromCharacter(Entity characterEntity)
+        {
+            if (characterEntity == Entity.Null || !_entityManager.Exists(characterEntity))
+            {
+                return Entity.Null;
+            }
+
+            try
+            {
+                if (_entityManager.HasComponent<PlayerCharacter>(characterEntity))
+                {
+                    var pc = _entityManager.GetComponentData<PlayerCharacter>(characterEntity);
+                    var userEntity = pc.UserEntity;
+                    
+                    if (userEntity != Entity.Null && _entityManager.Exists(userEntity))
+                    {
+                        return userEntity;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning($"{_logPrefix} Failed to get user entity from character: {ex.Message}");
+            }
+            
             return Entity.Null;
         }
 
@@ -307,23 +362,35 @@ namespace VAuto.Zone
             try
             {
                 var configPath = GetConfigFilePath("VAuto.ZoneLifecycle.json");
+                _log.LogInfo($"{_logPrefix} [DEBUG] Loading config from: {configPath}");
+                
                 if (File.Exists(configPath))
                 {
                     var json = File.ReadAllText(configPath);
+                    _log.LogInfo($"{_logPrefix} [DEBUG] JSON content length: {json.Length} chars");
+                    
                     var config = JsonSerializer.Deserialize<ZoneLifecycleConfig>(json, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });
+                    
+                    _log.LogInfo($"{_logPrefix} [DEBUG] Config loaded - Enabled: {config?.Enabled}, CheckIntervalMs: {config?.CheckIntervalMs}, Mappings: {config?.Mappings?.Count}");
                     _log.LogInfo($"{_logPrefix} Loaded config from {configPath}");
                     return config ?? new ZoneLifecycleConfig();
+                }
+                else
+                {
+                    _log.LogWarning($"{_logPrefix} [DEBUG] Config file not found at {configPath}");
                 }
             }
             catch (Exception ex)
             {
-                _log.LogWarning($"{_logPrefix} Failed to load config: {ex.Message}");
+                _log.LogWarning($"{_logPrefix} Failed to load config: {ex.Message}\n{ex.StackTrace}");
             }
             
-            return new ZoneLifecycleConfig();
+            var defaultConfig = new ZoneLifecycleConfig();
+            _log.LogInfo($"{_logPrefix} [DEBUG] Using default config - IsInZoneIntervalSeconds: {defaultConfig.IsInZoneIntervalSeconds}");
+            return defaultConfig;
         }
 
         private string GetConfigFilePath(string fileName)

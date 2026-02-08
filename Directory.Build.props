@@ -3,12 +3,5 @@
     <BaseIntermediateOutputPath>$(SolutionDir)_build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-
-    <!-- Auto-deploy built plugin outputs to your local VRising server install after build. -->
-    <VAutoAutoDeploy Condition="'$(VAutoAutoDeploy)' == ''">true</VAutoAutoDeploy>
-    <VAutoAutoDeployConfigs Condition="'$(VAutoAutoDeployConfigs)' == ''">true</VAutoAutoDeployConfigs>
-    <VAutoServerPluginsDir Condition="'$(VAutoServerPluginsDir)' == ''">C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\plugins</VAutoServerPluginsDir>
-    <VAutoServerConfigDir Condition="'$(VAutoServerConfigDir)' == ''">C:\Program Files (x86)\Steam\VRising_Server\BepInEx\config</VAutoServerConfigDir>
-    <VAutoCoreDeployAsPluginBase Condition="'$(VAutoCoreDeployAsPluginBase)' == ''">true</VAutoCoreDeployAsPluginBase>
   </PropertyGroup>
 </Project>

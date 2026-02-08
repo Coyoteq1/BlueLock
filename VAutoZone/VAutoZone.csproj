@@ -26,19 +26,23 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Entities">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Entities.dll</HintPath>
+      <HintPath>..\VAutomationCore\libs\Unity.Entities.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Collections">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Collections.dll</HintPath>
+      <HintPath>..\VAutomationCore\libs\Unity.Collections.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Mathematics">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Mathematics.dll</HintPath>
+      <HintPath>..\VAutomationCore\libs\Unity.Mathematics.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Transforms">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Transforms.dll</HintPath>
+      <HintPath>..\VAutomationCore\libs\Unity.Transforms.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\VAutomationCore\libs\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="ProjectM">

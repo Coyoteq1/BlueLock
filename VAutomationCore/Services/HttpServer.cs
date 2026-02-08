@@ -1,18 +1,25 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
+using Unity.Entities;
+using Unity.Collections;
+using ProjectM;
+using ProjectM.Network;
+using VAuto.Core.Services.DTOs;
+using VAuto.Zone.Services;
 
 namespace VAuto.Core.Services
 {
     /// <summary>
     /// HTTP API Server for V Rising Admin GUI integration.
     /// Provides REST endpoints for managing zones, traps, chests, and configurations.
+    /// API Version: v1
     /// </summary>
     public class HttpServer : IDisposable
     {
@@ -23,9 +30,10 @@ namespace VAuto.Core.Services
         private readonly Dictionary<string, Func<HttpListenerContext, Task>> _routes;
         private string _apiKey = string.Empty;
         private readonly List<string> _eventLog = new();
+        private readonly object _eventLogLock = new object();
+        private WebSocketServer? _webSocketServer;
 
-        public event Action<string> OnRequest;
-        public event Action<string> OnEvent;
+        public event Action<string>? OnRequest;
 
         public HttpServer(string prefix = "http://localhost:8080/")
         {
@@ -33,67 +41,62 @@ namespace VAuto.Core.Services
             _listener = new HttpListener();
             _listener.Prefixes.Add(prefix);
             _cts = new CancellationTokenSource();
-            
-            // Register routes
+
             _routes = new Dictionary<string, Func<HttpListenerContext, Task>>(StringComparer.OrdinalIgnoreCase)
             {
-                // Status
-                ["GET /api/status"] = HandleStatusAsync,
-                ["GET /api/stats"] = HandleQuickStatsAsync,
-                
-                // Zones
-                ["GET /api/zones"] = HandleGetZonesAsync,
-                ["POST /api/zones/glow/spawn"] = HandleSpawnGlowsAsync,
-                ["POST /api/zones/glow/clear"] = HandleClearGlowsAsync,
-                ["PUT /api/zones/borders"] = HandleToggleBordersAsync,
-                ["PUT /api/zones/config"] = HandleUpdateZoneConfigAsync,
-                
-                // Traps
-                ["GET /api/traps"] = HandleGetTrapsAsync,
-                ["POST /api/traps/set"] = HandleSetTrapAsync,
-                ["POST /api/traps/remove"] = HandleRemoveTrapAsync,
-                ["POST /api/traps/arm"] = HandleArmTrapAsync,
-                ["POST /api/traps/trigger"] = HandleTriggerTrapAsync,
-                ["POST /api/traps/clear"] = HandleClearAllTrapsAsync,
-                ["GET /api/traps/zones"] = HandleGetTrapZonesAsync,
-                ["POST /api/traps/zones/create"] = HandleCreateTrapZoneAsync,
-                ["POST /api/traps/zones/delete"] = HandleDeleteTrapZoneAsync,
-                ["POST /api/traps/zones/arm"] = HandleArmTrapZoneAsync,
-                
-                // Chests
-                ["GET /api/chests"] = HandleGetChestsAsync,
-                ["POST /api/chests/spawn"] = HandleSpawnChestAsync,
-                ["POST /api/chests/remove"] = HandleRemoveChestAsync,
-                ["POST /api/chests/clear"] = HandleClearAllChestsAsync,
-                
-                // Streaks
-                ["GET /api/streaks"] = HandleGetStreaksAsync,
-                ["POST /api/streaks/reset"] = HandleResetStreakAsync,
-                
-                // Config
-                ["GET /api/config"] = HandleGetConfigAsync,
-                ["PUT /api/config"] = HandleUpdateConfigAsync,
-                ["POST /api/config/reload"] = HandleReloadConfigAsync,
-                
-                // Logs
-                ["GET /api/logs"] = HandleGetLogsAsync,
-                
-                // Player Tracking
-                ["GET /api/players"] = HandleGetPlayersAsync,
-                ["GET /api/players/update"] = HandlePlayerUpdateAsync,
+                ["GET /api/v1/status"] = HandleStatusAsync,
+                ["GET /api/v1/stats"] = HandleQuickStatsAsync,
+                ["GET /api/v1/zones"] = HandleGetZonesAsync,
+                ["GET /api/v1/zones/paginated"] = HandleGetZonesPaginatedAsync,
+                ["POST /api/v1/zones/glow/spawn"] = HandleSpawnGlowsAsync,
+                ["POST /api/v1/zones/glow/clear"] = HandleClearGlowsAsync,
+                ["PUT /api/v1/zones/borders"] = HandleToggleBordersAsync,
+                ["PUT /api/v1/zones/config"] = HandleUpdateZoneConfigAsync,
+                ["GET /api/v1/traps"] = HandleGetTrapsAsync,
+                ["GET /api/v1/traps/paginated"] = HandleGetTrapsPaginatedAsync,
+                ["POST /api/v1/traps/set"] = HandleSetTrapAsync,
+                ["POST /api/v1/traps/remove"] = HandleRemoveTrapAsync,
+                ["POST /api/v1/traps/arm"] = HandleArmTrapAsync,
+                ["POST /api/v1/traps/trigger"] = HandleTriggerTrapAsync,
+                ["POST /api/v1/traps/clear"] = HandleClearAllTrapsAsync,
+                ["GET /api/v1/traps/zones"] = HandleGetTrapZonesAsync,
+                ["POST /api/v1/traps/zones/create"] = HandleCreateTrapZoneAsync,
+                ["POST /api/v1/traps/zones/delete"] = HandleDeleteTrapZoneAsync,
+                ["POST /api/v1/traps/zones/arm"] = HandleArmTrapZoneAsync,
+                ["GET /api/v1/chests"] = HandleGetChestsAsync,
+                ["GET /api/v1/chests/paginated"] = HandleGetChestsPaginatedAsync,
+                ["POST /api/v1/chests/spawn"] = HandleSpawnChestAsync,
+                ["POST /api/v1/chests/remove"] = HandleRemoveChestAsync,
+                ["POST /api/v1/chests/clear"] = HandleClearAllChestsAsync,
+                ["GET /api/v1/streaks"] = HandleGetStreaksAsync,
+                ["POST /api/v1/streaks/reset"] = HandleResetStreakAsync,
+                ["GET /api/v1/config"] = HandleGetConfigAsync,
+                ["PUT /api/v1/config"] = HandleUpdateConfigAsync,
+                ["POST /api/v1/config/reload"] = HandleReloadConfigAsync,
+                ["GET /api/v1/logs"] = HandleGetLogsAsync,
+                ["GET /api/v1/players"] = HandleGetPlayersAsync,
+                ["GET /api/v1/players/paginated"] = HandleGetPlayersPaginatedAsync,
+                ["GET /api/v1/players/update"] = HandlePlayerUpdateAsync,
+                ["GET /api/status"] = HandleLegacyRedirectAsync,
+                ["GET /api/stats"] = HandleLegacyRedirectAsync,
+                ["GET /api/zones"] = HandleLegacyRedirectAsync,
+                ["GET /api/traps"] = HandleLegacyRedirectAsync,
+                ["GET /api/chests"] = HandleLegacyRedirectAsync,
+                ["GET /api/streaks"] = HandleLegacyRedirectAsync,
+                ["GET /api/config"] = HandleLegacyRedirectAsync,
+                ["GET /api/logs"] = HandleLegacyRedirectAsync,
+                ["GET /api/players"] = HandleLegacyRedirectAsync,
+                ["GET /api/players/update"] = HandleLegacyRedirectAsync,
             };
         }
 
-        public void SetApiKey(string apiKey)
-        {
-            _apiKey = apiKey ?? string.Empty;
-        }
+        public void SetWebSocketServer(WebSocketServer? wsServer) => _webSocketServer = wsServer;
+        public void SetApiKey(string apiKey) => _apiKey = apiKey ?? string.Empty;
 
         public async Task StartAsync()
         {
             _listener.Start();
-            Plugin.LogInstance.LogInfo($"HTTP API Server started on {_prefix}");
-            
+            Plugin.LogInstance.LogInfo($"[HttpServer] API v1 started on {_prefix}");
             while (!_cts.Token.IsCancellationRequested)
             {
                 try
@@ -101,14 +104,8 @@ namespace VAuto.Core.Services
                     var context = await _listener.GetContextAsync();
                     _ = Task.Run(() => HandleRequestAsync(context));
                 }
-                catch (HttpListenerException) when (_cts.Token.IsCancellationRequested)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Plugin.LogInstance.LogWarning($"HTTP Server error: {ex.Message}");
-                }
+                catch (HttpListenerException) when (_cts.Token.IsCancellationRequested) { break; }
+                catch (Exception ex) { Plugin.LogInstance.LogWarning($"[HttpServer] Error: {ex.Message}"); }
             }
         }
 
@@ -116,386 +113,236 @@ namespace VAuto.Core.Services
         {
             _cts.Cancel();
             _listener.Stop();
-            Plugin.LogInstance.LogInfo("HTTP API Server stopped");
+            Plugin.LogInstance.LogInfo("[HttpServer] stopped");
         }
 
         private async Task HandleRequestAsync(HttpListenerContext context)
         {
-            var request = context.Request;
             var response = context.Response;
-            
             try
             {
-                // CORS headers
                 response.AddHeader("Access-Control-Allow-Origin", "*");
                 response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
                 response.AddHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
-                
-                if (request.HttpMethod == "OPTIONS")
+
+                if (context.Request.HttpMethod == "OPTIONS")
                 {
                     response.StatusCode = 204;
                     response.Close();
                     return;
                 }
 
-                // API Key authentication
-                var requestApiKey = request.Headers["X-API-Key"];
+                var requestApiKey = context.Request.Headers["X-API-Key"];
                 if (!string.IsNullOrEmpty(_apiKey) && requestApiKey != _apiKey)
                 {
-                    await SendJsonAsync(response, 401, new { error = "Unauthorized", message = "Invalid API key" });
+                    await SendJsonAsync(response, 401, ApiResponse<object>.Error(ErrorResponse.Unauthorized("Invalid API key")));
                     return;
                 }
 
-                var method = request.HttpMethod;
-                var path = request.Url.AbsolutePath;
-                var routeKey = $"{method} {path}";
-                
-                OnRequest?.Invoke($"{method} {path}");
-                
+                var routeKey = $"{context.Request.HttpMethod} {context.Request.Url.AbsolutePath}";
+                OnRequest?.Invoke(routeKey);
+
                 if (_routes.TryGetValue(routeKey, out var handler))
-                {
                     await handler(context);
-                }
                 else
-                {
-                    await SendJsonAsync(response, 404, new { error = "Not Found", message = $"Route {routeKey} not found" });
-                }
+                    await SendJsonAsync(response, 404, ApiResponse<object>.Error(ErrorResponse.NotFound(routeKey)));
             }
             catch (Exception ex)
             {
-                Plugin.LogInstance.LogError($"HTTP request error: {ex.Message}");
-                await SendJsonAsync(response, 500, new { error = "Internal Server Error", message = ex.Message });
+                Plugin.LogInstance.LogError($"[HttpServer] Request error: {ex.Message}");
+                await SendJsonAsync(response, 500, ApiResponse<object>.Error(ErrorResponse.InternalError(ex.Message)));
             }
-            finally
-            {
-                response.Close();
-            }
+            finally { response.Close(); }
         }
-
-        #region Status Endpoints
-
-        private async Task HandleStatusAsync(HttpListenerContext context)
-        {
-            var status = new
-            {
-                online = true,
-                playerCount = 0, // Would need to query player system
-                maxPlayers = 50,
-                uptime = (int)(DateTime.UtcNow - Process.GetProcessStartTime()).TotalSeconds,
-                version = "1.0.0"
-            };
-            await SendJsonAsync(context.Response, 200, status);
-        }
-
-        private async Task HandleQuickStatsAsync(HttpListenerContext context)
-        {
-            var stats = new
-            {
-                activeZones = 0,
-                totalTraps = 0,
-                armedTraps = 0,
-                activeChests = 0,
-                activeStreaks = 0
-            };
-            await SendJsonAsync(context.Response, 200, stats);
-        }
-
-        #endregion
-
-        #region Zone Endpoints
-
-        private async Task HandleGetZonesAsync(HttpListenerContext context)
-        {
-            var zones = new[]
-            {
-                new
-                {
-                    id = "arena_main",
-                    name = "Main Arena",
-                    center = new { x = 0, y = 0, z = 0 },
-                    radius = 50,
-                    isActive = true,
-                    glowEnabled = true,
-                    glowPrefab = "Default",
-                    spacing = 5
-                }
-            };
-            await SendJsonAsync(context.Response, 200, zones);
-        }
-
-        private async Task HandleSpawnGlowsAsync(HttpListenerContext context)
-        {
-            // Call ArenaGlowBorderService.SpawnBorderGlows
-            LogEvent("Spawn glows requested");
-            await SendJsonAsync(context.Response, 200, new { success = true, message = "Glows spawned" });
-        }
-
-        private async Task HandleClearGlowsAsync(HttpListenerContext context)
-        {
-            // Call ArenaGlowBorderService.ClearAll
-            LogEvent("Clear glows requested");
-            await SendJsonAsync(context.Response, 200, new { success = true, message = "Glows cleared" });
-        }
-
-        private async Task HandleToggleBordersAsync(HttpListenerContext context)
-        {
-            var body = await ReadJsonAsync<dynamic>(context.Request);
-            bool enabled = body?.enabled ?? true;
-            // Set ArenaTerritory.EnableGlowBorder
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleUpdateZoneConfigAsync(HttpListenerContext context)
-        {
-            var body = await ReadJsonAsync<dynamic>(context.Request);
-            // Update zone configuration
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        #endregion
-
-        #region Trap Endpoints
-
-        private async Task HandleGetTrapsAsync(HttpListenerContext context)
-        {
-            var traps = Array.Empty<object>();
-            await SendJsonAsync(context.Response, 200, traps);
-        }
-
-        private async Task HandleSetTrapAsync(HttpListenerContext context)
-        {
-            var body = await ReadJsonAsync<dynamic>(context.Request);
-            LogEvent("Trap set requested");
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleRemoveTrapAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleArmTrapAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleTriggerTrapAsync(HttpListenerContext context)
-        {
-            LogEvent("Trap triggered");
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleClearAllTrapsAsync(HttpListenerContext context)
-        {
-            LogEvent("All traps cleared");
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        #endregion
-
-        #region Trap Zone Endpoints
-
-        private async Task HandleGetTrapZonesAsync(HttpListenerContext context)
-        {
-            var zones = Array.Empty<object>();
-            await SendJsonAsync(context.Response, 200, zones);
-        }
-
-        private async Task HandleCreateTrapZoneAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleDeleteTrapZoneAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleArmTrapZoneAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        #endregion
-
-        #region Chest Endpoints
-
-        private async Task HandleGetChestsAsync(HttpListenerContext context)
-        {
-            var chests = Array.Empty<object>();
-            await SendJsonAsync(context.Response, 200, chests);
-        }
-
-        private async Task HandleSpawnChestAsync(HttpListenerContext context)
-        {
-            LogEvent("Chest spawned");
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleRemoveChestAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleClearAllChestsAsync(HttpListenerContext context)
-        {
-            LogEvent("All chests cleared");
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        #endregion
-
-        #region Streak Endpoints
-
-        private async Task HandleGetStreaksAsync(HttpListenerContext context)
-        {
-            var streaks = Array.Empty<object>();
-            await SendJsonAsync(context.Response, 200, streaks);
-        }
-
-        private async Task HandleResetStreakAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        #endregion
-
-        #region Config Endpoints
-
-        private async Task HandleGetConfigAsync(HttpListenerContext context)
-        {
-            var config = new
-            {
-                zone = new { glowSpacing = 5, glowPrefab = "Default", cornerSpawns = true },
-                trap = new { killThreshold = 5, trapDamage = 50, trapDuration = 10 },
-                streak = new { announcementThreshold = 10, timeoutSeconds = 120, announcementsEnabled = true }
-            };
-            await SendJsonAsync(context.Response, 200, config);
-        }
-
-        private async Task HandleUpdateConfigAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        private async Task HandleReloadConfigAsync(HttpListenerContext context)
-        {
-            LogEvent("Config reloaded");
-            await SendJsonAsync(context.Response, 200, new { success = true });
-        }
-
-        #endregion
-
-        #region Log Endpoints
-
-        private async Task HandleGetLogsAsync(HttpListenerContext context)
-        {
-            await SendJsonAsync(context.Response, 200, _eventLog);
-        }
-
-        #endregion
-
-        #region Player Tracking Endpoints
-
-        private async Task HandleGetPlayersAsync(HttpListenerContext context)
-        {
-            // Return list of all online players with their positions
-            // This would integrate with the game's player system
-            var players = new[]
-            {
-                new
-                {
-                    id = "player_001",
-                    name = "VampireKing",
-                    x = 150.5,
-                    y = -75.3,
-                    hp = 1000,
-                    maxHp = 1000,
-                    guild = "NightWalkers",
-                    isOnline = true,
-                    lastSeen = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                },
-                new
-                {
-                    id = "player_002",
-                    name = "BloodHunter",
-                    x = -200.0,
-                    y = 100.0,
-                    hp = 750,
-                    maxHp = 1000,
-                    guild = "Solo",
-                    isOnline = true,
-                    lastSeen = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                }
-            };
-            await SendJsonAsync(context.Response, 200, players);
-        }
-
-        private async Task HandlePlayerUpdateAsync(HttpListenerContext context)
-        {
-            // WebSocket-style polling endpoint for real-time updates
-            // Returns only changed data since last poll
-            var updates = new
-            {
-                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                moved = new[]
-                {
-                    new
-                    {
-                        id = "player_001",
-                        x = 155.2,
-                        y = -72.1
-                    }
-                },
-                joined = Array.Empty<object>(),
-                left = Array.Empty<string>()
-            };
-            await SendJsonAsync(context.Response, 200, updates);
-        }
-
-        #endregion
 
         #region Helpers
 
-        private void LogEvent(string message)
+        private static (int offset, int limit) ParsePagination(string query)
         {
-            var entry = new
+            var offset = 0;
+            var limit = 50;
+            if (string.IsNullOrEmpty(query)) return (offset, limit);
+
+            try
             {
-                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                type = "system",
-                message
-            };
-            _eventLog.Add(entry.ToString());
-            if (_eventLog.Count > 1000) _eventLog.RemoveAt(0);
-            OnEvent?.Invoke(message);
+                var parsed = System.Web.HttpUtility.ParseQueryString(query);
+                if (int.TryParse(parsed["offset"], out var o)) offset = Math.Max(0, o);
+                if (int.TryParse(parsed["limit"], out var l)) limit = Math.Clamp(l, 1, 500);
+            }
+            catch { }
+            return (offset, limit);
         }
 
-        private async Task SendJsonAsync(HttpListenerResponse response, int statusCode, object data)
+        private static async Task SendJsonAsync<T>(HttpListenerResponse response, int statusCode, T data)
         {
             response.StatusCode = statusCode;
             response.ContentType = "application/json";
-            var json = JsonSerializer.Serialize(data);
+            var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             var buffer = Encoding.UTF8.GetBytes(json);
             await response.OutputStream.WriteAsync(buffer);
         }
 
-        private async Task<T> ReadJsonAsync<T>(HttpListenerRequest request)
+        private static async Task<T> ReadJsonAsync<T>(HttpListenerRequest request)
         {
             using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
             var json = await reader.ReadToEndAsync();
-            return JsonSerializer.Deserialize<T>(json) ?? default;
+            return JsonSerializer.Deserialize<T>(json) ?? default!;
+        }
+
+        private void LogEvent(string message)
+        {
+            var entry = new { timestamp = DateTime.UtcNow.ToString("o"), type = "system", message };
+            lock (_eventLogLock)
+            {
+                _eventLog.Add(entry.ToString());
+                if (_eventLog.Count > 1000) _eventLog.RemoveAt(0);
+            }
         }
 
         #endregion
 
+        #region Legacy
+        private Task HandleLegacyRedirectAsync(HttpListenerContext context)
+        {
+            var v1Path = context.Request.Url.AbsolutePath.Replace("/api/", "/api/v1/");
+            context.Response.AddHeader("X-Deprecated-Route", "true");
+            context.Response.AddHeader("X-Migration-Path", v1Path);
+            return SendJsonAsync(context.Response, 301, new { message = "Use v1", migration = v1Path });
+        }
+        #endregion
+
+        #region Status
+        private async Task HandleStatusAsync(HttpListenerContext context)
+        {
+            try
+            {
+                var status = new StatusDto
+                {
+                    Online = true,
+                    PlayerCount = 0,
+                    MaxPlayers = 50,
+                    Uptime = (long)(DateTime.UtcNow - Process.GetCurrentProcess().StartTime).TotalSeconds,
+                    Version = "1.0.0",
+                    ZonesActive = 0,
+                    Plugins = new[] { new PluginStatusDto { Name = "VAutoZone", Version = "1.0.0", Enabled = true, Status = "active" } }
+                };
+                await SendJsonAsync(context.Response, 200, ApiResponse<StatusDto>.Ok(status));
+            }
+            catch (Exception ex)
+            {
+                await SendJsonAsync(context.Response, 500, ApiResponse<object>.Error(ErrorResponse.InternalError(ex.Message)));
+            }
+        }
+
+        private async Task HandleQuickStatsAsync(HttpListenerContext context)
+        {
+            var stats = new QuickStatsDto { ActiveZones = 0, TotalTraps = 0, ArmedTraps = 0, ActiveChests = 0, ActiveStreaks = 0, Timestamp = DateTime.UtcNow.ToString("o") };
+            await SendJsonAsync(context.Response, 200, ApiResponse<QuickStatsDto>.Ok(stats));
+        }
+        #endregion
+
+        #region Zones
+        private async Task HandleGetZonesAsync(HttpListenerContext context)
+        {
+            var zones = new List<ZoneDto> { new ZoneDto { Id = "arena_main", Name = "Main Arena", Radius = 50, IsActive = true, Type = "arena" } };
+            await SendJsonAsync(context.Response, 200, ApiResponse<List<ZoneDto>>.Ok(zones));
+        }
+
+        private async Task HandleGetZonesPaginatedAsync(HttpListenerContext context)
+        {
+            var (offset, limit) = ParsePagination(context.Request.Url.Query);
+            var all = new List<ZoneDto> { new ZoneDto { Id = "arena_main", Name = "Main Arena", Radius = 50, IsActive = true, Type = "arena" } };
+            var paged = all.Skip(offset).Take(limit).ToArray();
+            await SendJsonAsync(context.Response, 200, PaginatedResponse<ZoneDto>.Create(paged, offset, limit, all.Count));
+        }
+
+        private async Task HandleSpawnGlowsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { message = "Glows spawned" }));
+        private async Task HandleClearGlowsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { message = "Glows cleared" }));
+        private async Task HandleToggleBordersAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleUpdateZoneConfigAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        #endregion
+
+        #region Traps
+        private async Task HandleGetTrapsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(Array.Empty<object>()));
+        private async Task HandleGetTrapsPaginatedAsync(HttpListenerContext context)
+        {
+            var (offset, limit) = ParsePagination(context.Request.Url.Query);
+            await SendJsonAsync(context.Response, 200, PaginatedResponse<object>.Create(Array.Empty<object>(), offset, limit, 0));
+        }
+        private async Task HandleSetTrapAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleRemoveTrapAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleArmTrapAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleTriggerTrapAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleClearAllTrapsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleGetTrapZonesAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(Array.Empty<object>()));
+        private async Task HandleCreateTrapZoneAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleDeleteTrapZoneAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleArmTrapZoneAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        #endregion
+
+        #region Chests
+        private async Task HandleGetChestsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(Array.Empty<object>()));
+        private async Task HandleGetChestsPaginatedAsync(HttpListenerContext context)
+        {
+            var (offset, limit) = ParsePagination(context.Request.Url.Query);
+            await SendJsonAsync(context.Response, 200, PaginatedResponse<object>.Create(Array.Empty<object>(), offset, limit, 0));
+        }
+        private async Task HandleSpawnChestAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleRemoveChestAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleClearAllChestsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        #endregion
+
+        #region Streaks
+        private async Task HandleGetStreaksAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(Array.Empty<object>()));
+        private async Task HandleResetStreakAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        #endregion
+
+        #region Config
+        private async Task HandleGetConfigAsync(HttpListenerContext context)
+        {
+            var config = new ConfigDto { Version = "1.0.0", LastModified = DateTime.UtcNow.ToString("o") };
+            await SendJsonAsync(context.Response, 200, ApiResponse<ConfigDto>.Ok(config));
+        }
+        private async Task HandleUpdateConfigAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        private async Task HandleReloadConfigAsync(HttpListenerContext context)
+        {
+            _webSocketServer?.NotifyConfigChanged("config");
+            await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(new { success = true }));
+        }
+        #endregion
+
+        #region Logs
+        private async Task HandleGetLogsAsync(HttpListenerContext context) => await SendJsonAsync(context.Response, 200, ApiResponse<List<string>>.Ok(_eventLog));
+        #endregion
+
+        #region Players
+        private async Task HandleGetPlayersAsync(HttpListenerContext context)
+        {
+            var players = new List<PlayerDto> { new PlayerDto { Id = "stub", Name = "NoPlayersOnline", IsOnline = false } };
+            await SendJsonAsync(context.Response, 200, ApiResponse<List<PlayerDto>>.Ok(players));
+        }
+
+        private async Task HandleGetPlayersPaginatedAsync(HttpListenerContext context)
+        {
+            var (offset, limit) = ParsePagination(context.Request.Url.Query);
+            var all = new List<PlayerDto> { new PlayerDto { Id = "stub", Name = "NoPlayersOnline", IsOnline = false } };
+            var paged = all.Skip(offset).Take(limit).ToArray();
+            await SendJsonAsync(context.Response, 200, PaginatedResponse<PlayerDto>.Create(paged, offset, limit, all.Count));
+        }
+
+        private async Task HandlePlayerUpdateAsync(HttpListenerContext context)
+        {
+            var update = new { timestamp = DateTime.UtcNow.ToString("o"), moved = Array.Empty<object>(), joined = Array.Empty<object>(), left = Array.Empty<string>() };
+            await SendJsonAsync(context.Response, 200, ApiResponse<object>.Ok(update));
+        }
+        #endregion
+
         public void Dispose()
         {
-            if (!_disposed)
-            {
-                Stop();
-                _cts.Dispose();
-                _disposed = true;
-            }
+            if (_disposed) return;
+            _disposed = true;
+            Stop();
+            _cts.Dispose();
         }
     }
 }

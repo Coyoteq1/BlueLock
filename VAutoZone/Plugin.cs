@@ -89,7 +89,7 @@ namespace VAuto.Zone
                 _configPath = Path.Combine(Paths.ConfigPath, "VAuto.ZoneLifecycle.json");
 
                 // Bind CFG configuration
- a                BindConfiguration();
+                BindConfiguration();
 
                 // Load JSON configuration
                 LoadJsonConfiguration();

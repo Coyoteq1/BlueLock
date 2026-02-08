@@ -50,6 +50,9 @@ namespace VLifecycle
         public static ConfigEntry<bool> PlayerSaveBlood;
         public static ConfigEntry<bool> PlayerSaveSpells;
         public static ConfigEntry<bool> PlayerSaveHealth;
+        public static ConfigEntry<bool> PlayerRestoreEquipment;
+        public static ConfigEntry<bool> PlayerRestoreBlood;
+        public static ConfigEntry<bool> PlayerRestoreSpells;
         public static ConfigEntry<bool> PlayerRestoreHealth;
         
 
@@ -162,6 +165,9 @@ namespace VLifecycle
             PlayerSaveBlood = configFile.Bind("PlayerState", "SaveBlood", true, "Save blood type & quality");
             PlayerSaveSpells = configFile.Bind("PlayerState", "SaveSpells", true, "Save spell loadout");
             PlayerSaveHealth = configFile.Bind("PlayerState", "SaveHealth", true, "Save player health state");
+            PlayerRestoreEquipment = configFile.Bind("PlayerState", "RestoreEquipment", true, "Restore equipped gear after arena exit");
+            PlayerRestoreBlood = configFile.Bind("PlayerState", "RestoreBlood", true, "Restore blood type & quality after arena exit");
+            PlayerRestoreSpells = configFile.Bind("PlayerState", "RestoreSpells", true, "Restore spell loadout after arena exit");
             PlayerRestoreHealth = configFile.Bind("PlayerState", "RestoreHealth", true, "Restore health after arena exit");
 
             // Respawn
@@ -281,6 +287,9 @@ namespace VLifecycle
         public static bool SaveBlood => PlayerSaveBlood?.Value ?? true;
         public static bool SaveSpells => PlayerSaveSpells?.Value ?? true;
         public static bool SaveHealth => PlayerSaveHealth?.Value ?? true;
+        public static bool RestoreEquipment => PlayerRestoreEquipment?.Value ?? true;
+        public static bool RestoreBlood => PlayerRestoreBlood?.Value ?? true;
+        public static bool RestoreSpells => PlayerRestoreSpells?.Value ?? true;
         public static bool RestoreHealth => PlayerRestoreHealth?.Value ?? true;
         public static bool ForceArenaRespawn => RespawnForceArenaRespawn?.Value ?? false;
         public static bool TeleportToSpawnOnRespawn => RespawnTeleportToSpawn?.Value ?? true;
@@ -320,21 +329,21 @@ namespace VLifecycle
     #region JSON Configuration Classes
     public class LifecycleJsonConfig
     {
-        public LifecycleConfigSection Lifecycle { get; set; } = new();
+        public LifecycleSection Lifecycle { get; set; } = new();
     }
 
-    public class LifecycleConfigSection
+    public class LifecycleSection
     {
         public bool Enabled { get; set; } = true;
-        public ArenaLifecycleConfig Arena { get; set; } = new();
-        public PlayerStateConfig PlayerState { get; set; } = new();
-        public RespawnConfig Respawn { get; set; } = new();
-        public TransitionsConfig Transitions { get; set; } = new();
-        public SafetyConfig Safety { get; set; } = new();
-        public IntegrationConfig Integration { get; set; } = new();
+        public ArenaSection Arena { get; set; } = new();
+        public PlayerStateSection PlayerState { get; set; } = new();
+        public RespawnSection Respawn { get; set; } = new();
+        public TransitionsSection Transitions { get; set; } = new();
+        public SafetySection Safety { get; set; } = new();
+        public IntegrationSection Integration { get; set; } = new();
     }
 
-    public class ArenaLifecycleConfig
+    public class ArenaSection
     {
         public bool SaveInventory { get; set; } = true;
         public bool RestoreInventory { get; set; } = true;
@@ -345,7 +354,7 @@ namespace VLifecycle
         public bool ResetCooldownsOnExit { get; set; } = false;
     }
 
-    public class PlayerStateConfig
+    public class PlayerStateSection
     {
         public bool SaveEquipment { get; set; } = true;
         public bool SaveBlood { get; set; } = true;
@@ -354,7 +363,7 @@ namespace VLifecycle
         public bool RestoreHealth { get; set; } = true;
     }
 
-    public class RespawnConfig
+    public class RespawnSection
     {
         public bool ForceArenaRespawn { get; set; } = false;
         public bool TeleportToArenaSpawn { get; set; } = true;
@@ -362,7 +371,7 @@ namespace VLifecycle
         public int RespawnTeleportDelayMs { get; set; } = 1000;
     }
 
-    public class TransitionsConfig
+    public class TransitionsSection
     {
         public int EnterDelayMs { get; set; } = 0;
         public int ExitDelayMs { get; set; } = 0;
@@ -370,14 +379,14 @@ namespace VLifecycle
         public bool ShowTransitionMessages { get; set; } = true;
     }
 
-    public class SafetyConfig
+    public class SafetySection
     {
         public bool RestoreOnError { get; set; } = true;
         public bool BlockEntryOnSaveFailure { get; set; } = true;
         public bool VerboseLogging { get; set; } = false;
     }
 
-    public class IntegrationConfig
+    public class IntegrationSection
     {
         public bool ZoneTriggersLifecycle { get; set; } = true;
         public bool AllowTrapOverrides { get; set; } = true;

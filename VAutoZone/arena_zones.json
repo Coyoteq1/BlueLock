@@ -2,13 +2,13 @@
     "zones":  [
         {
             "id": "0",
-            "name": "Main Arena",
+            "name": "Default",
             "territoryId": "0",
             "enabled": true,
-            "minPlayers": 1,
+            "minPlayers": 0 ,
             "maxPlayers": 20,
             "allowedPlayerStates": ["Alive"],
-            "blockEntryIfFull": false,
+            "blockEntryIfFull": true,
             "inventoryHandling": "StoreOnEnter",
             "buffHandling": "StoreOnEnter",
             "pvpEnabled": true,

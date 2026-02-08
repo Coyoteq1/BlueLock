@@ -4,9 +4,14 @@ using System.IO;
 using System.Reflection;
 using System.Text.Json;
 using Unity.Mathematics;
+using Unity.Transforms;
+using Unity.Entities;
+using ProjectM;
+using ProjectM.Network;
 using VAutoZone;
 using VAuto.Zone.Models;
 using UnityEngine.Tilemaps;
+using VAuto.Core;
 
 namespace VAuto.Zone.Services
 {
@@ -14,7 +19,7 @@ namespace VAuto.Zone.Services
     {
         private const string TerritoryJsonFile = "arena_territory.json";
         private const string TerritoryTomlFile = "arena_territory.toml";
-        private const string DefaultGlowPrefab = "AB_Chaos_Barrier_AbilityGroup";
+        private const string DefaultGlowPrefab = "Chaos";
 
         // Zone radius constraints
         public const float MinZoneRadius = 3f;
@@ -24,13 +29,14 @@ namespace VAuto.Zone.Services
         public static string ZoneId { get; private set; } = "0";
         
         public static float3 ArenaGridCenter = new float3(-1000, 5, -500);
-        public static float ArenaGridRadius = 50f;
-        public static int ArenaRegionType = 5;
+        public static float ArenaGridRadius = 30f;
+        private static int _arenaRegionType = 5;
+        public static int ArenaRegionType => _arenaRegionType;
         public static float BlockSize = 1f;
 
         public static bool EnableGlowBorder { get; set; } = true;
         public static string GlowPrefab { get; set; } = DefaultGlowPrefab;
-        public static float GlowSpacingMeters { get; set; } = 3f;
+        public static float GlowSpacingMeters { get; set; } = 1f;
         public static float GlowCornerRadius { get; set; } = 2f;
         public static bool SpawnGlowInCorners { get; set; } = true;
 
@@ -99,6 +105,156 @@ namespace VAuto.Zone.Services
             var centerBlock = ConvertPosToBlockCoord(ArenaGridCenter);
             return blockCoord.x - centerBlock.x + (blockCoord.y - centerBlock.y) * (int)(ArenaGridRadius * 2 / BlockSize);
         }
+
+        #region Lifecycle Methods
+
+        /// <summary>
+        /// Execute full lifecycle enter for a player - all steps in one call.
+        /// Triggers onEnterArenaZone stage with proper position tracking.
+        /// </summary>
+        public static void ExecuteLifecycleEnter(Entity userEntity, Entity characterEntity, float3 position)
+        {
+            try
+            {
+                Plugin.Logger.LogInfo($"[ArenaTerritory] Executing lifecycle enter for player at ({position.x:F0}, {position.y:F0}, {position.z:F0})");
+                
+                // Ensure glow zones are built
+                EnsureGlowZonesBuilt();
+                
+                // Trigger lifecycle via ArenaLifecycleManager
+                var lifecycleManager = GetLifecycleManager();
+                if (lifecycleManager != null)
+                {
+                    InvokeLifecycleMethod(lifecycleManager, "OnPlayerEnter", new object[] { userEntity, characterEntity, ZoneId, position });
+                }
+                else
+                {
+                    Plugin.Logger.LogWarning("[ArenaTerritory] Lifecycle manager not available");
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[ArenaTerritory] Lifecycle enter failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Execute full lifecycle exit for a player - all steps in one call.
+        /// Triggers onExitArenaZone stage with proper position tracking.
+        /// </summary>
+        public static void ExecuteLifecycleExit(Entity userEntity, Entity characterEntity, float3 position)
+        {
+            try
+            {
+                Plugin.Logger.LogInfo($"[ArenaTerritory] Executing lifecycle exit for player at ({position.x:F0}, {position.y:F0}, {position.z:F0})");
+                
+                // Trigger lifecycle via ArenaLifecycleManager
+                var lifecycleManager = GetLifecycleManager();
+                if (lifecycleManager != null)
+                {
+                    InvokeLifecycleMethod(lifecycleManager, "OnPlayerExit", new object[] { userEntity, characterEntity, ZoneId, position });
+                }
+                else
+                {
+                    Plugin.Logger.LogWarning("[ArenaTerritory] Lifecycle manager not available");
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[ArenaTerritory] Lifecycle exit failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Teleport a player to the arena center.
+        /// </summary>
+        public static void TeleportToArena(Entity characterEntity)
+        {
+            try
+            {
+                var em = VRCore.ServerWorld.EntityManager;
+                var position = ArenaGridCenter;
+                
+                if (em.HasComponent<LocalTransform>(characterEntity))
+                {
+                    var transform = em.GetComponentData<LocalTransform>(characterEntity);
+                    transform.Position = position;
+                    em.SetComponentData(characterEntity, transform);
+                    Plugin.Logger.LogInfo($"[ArenaTerritory] Teleported player to ({position.x:F0}, {position.y:F0}, {position.z:F0})");
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[ArenaTerritory] Teleport failed: {ex.Message}");
+            }
+        }
+
+        private static void EnsureGlowZonesBuilt()
+        {
+            try
+            {
+                ZoneGlowBorderService.BuildAll(rebuild: false);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[ArenaTerritory] Glow zones not loaded, using fallback: {ex.Message}");
+            }
+        }
+
+        private static object GetLifecycleManager()
+        {
+            try
+            {
+                // Try Vlifecycle assembly first (actual assembly name)
+                var type = Type.GetType("VAuto.Core.Lifecycle.ArenaLifecycleManager, Vlifecycle");
+                if (type != null)
+                {
+                    var prop = type.GetProperty("Instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    return prop?.GetValue(null);
+                }
+                
+                // Fallback: try loading from all available assemblies
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                foreach (var asm in assemblies)
+                {
+                    try
+                    {
+                        type = asm.GetType("VAuto.Core.Lifecycle.ArenaLifecycleManager");
+                        if (type != null)
+                        {
+                            var prop = type.GetProperty("Instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                            var instance = prop?.GetValue(null);
+                            if (instance != null)
+                            {
+                                Plugin.Logger.LogInfo($"[ArenaTerritory] Found ArenaLifecycleManager in assembly: {asm.GetName().Name}");
+                                return instance;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[ArenaTerritory] Could not find lifecycle manager: {ex.Message}");
+            }
+            return null;
+        }
+
+        private static void InvokeLifecycleMethod(object manager, string methodName, object[] args)
+        {
+            try
+            {
+                var method = manager.GetType().GetMethod(methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                method?.Invoke(manager, args);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError($"[ArenaTerritory] Failed to invoke {methodName}: {ex.Message}");
+            }
+        }
+
+        #endregion
 
         public static List<int2> GetArenaBlocks()
         {
@@ -231,7 +387,7 @@ namespace VAuto.Zone.Services
             ZoneId = "0";
             ArenaGridCenter = new float3(-1000, 5, -500);
             ArenaGridRadius = 300f;
-            ArenaRegionType = 5;
+            _arenaRegionType = 5;
             BlockSize = 10f;
 
             EnableGlowBorder = true;
@@ -301,7 +457,7 @@ namespace VAuto.Zone.Services
                 if (core.TryGetValue("radius", out var radiusObj))
                     ArenaGridRadius = ToFloat(radiusObj);
                 if (core.TryGetValue("regionType", out var regionObj))
-                    ArenaRegionType = ToInt(regionObj);
+                    _arenaRegionType = ToInt(regionObj);
                 if (core.TryGetValue("blockSize", out var blockObj))
                     BlockSize = ToFloat(blockObj);
 
@@ -338,7 +494,7 @@ namespace VAuto.Zone.Services
                 if (root.TryGetProperty("radius", out var radiusEl) && radiusEl.ValueKind == JsonValueKind.Number)
                     ArenaGridRadius = radiusEl.GetSingle();
                 if (root.TryGetProperty("regionType", out var regionEl) && regionEl.ValueKind == JsonValueKind.Number)
-                    ArenaRegionType = regionEl.GetInt32();
+                    _arenaRegionType = regionEl.GetInt32();
                 if (root.TryGetProperty("blockSize", out var blockEl) && blockEl.ValueKind == JsonValueKind.Number)
                     BlockSize = blockEl.GetSingle();
 

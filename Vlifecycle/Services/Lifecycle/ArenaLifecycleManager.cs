@@ -91,19 +91,21 @@ namespace VAuto.Core.Lifecycle
         }
 
         /// <summary>
-        /// Called by VAutoZone when player enters arena (via reflection)
+        /// Called by VAutoZone when player enters arena (via reflection) - preserves position
         /// </summary>
-        public bool OnPlayerEnter(Entity userEntity, Entity characterEntity, string arenaId)
+        public bool OnPlayerEnter(Entity userEntity, Entity characterEntity, string arenaId, float3 position)
         {
-            return OnEnterArena(characterEntity, float3.zero);
+            Log?.LogInfo($"{_logPrefix} Player entering arena {arenaId} at position ({position.x:F0}, {position.y:F0}, {position.z:F0})");
+            return OnEnterArena(characterEntity, position);
         }
 
         /// <summary>
-        /// Called by VAutoZone when player exits arena (via reflection)
+        /// Called by VAutoZone when player exits arena (via reflection) - preserves position
         /// </summary>
-        public bool OnPlayerExit(Entity userEntity, Entity characterEntity, string arenaId)
+        public bool OnPlayerExit(Entity userEntity, Entity characterEntity, string arenaId, float3 position)
         {
-            return OnExitArena(characterEntity, float3.zero);
+            Log?.LogInfo($"{_logPrefix} Player exiting arena {arenaId} from position ({position.x:F0}, {position.y:F0}, {position.z:F0})");
+            return OnExitArena(characterEntity, position);
         }
 
         /// <summary>
@@ -212,12 +214,16 @@ namespace VAuto.Core.Lifecycle
         {
             _actionHandlers["store"] = new StoreActionHandler();
             _actionHandlers["message"] = new MessageActionHandler();
-            _actionHandlers["command"] = new CommandActionHandler();
-            _actionHandlers["config"] = new ConfigActionHandler();
-            _actionHandlers["zone"] = new ZoneActionHandler();
-            _actionHandlers["prefix"] = new PrefixActionHandler();
-            _actionHandlers["blood"] = new BloodActionHandler();
-            _actionHandlers["quality"] = new QualityActionHandler();
+            
+            // State management handlers
+            _actionHandlers["save"] = new SavePlayerStateHandler();
+            _actionHandlers["restore"] = new RestorePlayerStateHandler();
+            _actionHandlers["buff"] = new ApplyBuffHandler();
+            _actionHandlers["clearbuffs"] = new ClearBuffsHandler();
+            _actionHandlers["removeunequip"] = new RemoveUnequipHandler();
+            _actionHandlers["resetcooldowns"] = new ResetCooldownsHandler();
+            _actionHandlers["teleport"] = new TeleportHandler();
+            _actionHandlers["gameplayevent"] = new CreateGameplayEventHandler();
         }
 
         #region Test Methods

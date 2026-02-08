@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using Unity.Entities;
+using Unity.Mathematics;
+
 ///Must include other lifecycles on other mods 
 namespace VAuto.Core.Lifecycle
 {
@@ -27,6 +29,14 @@ namespace VAuto.Core.Lifecycle
         public string Message { get; set; }
         public string ConfigId { get; set; }
         public string CommandId { get; set; }
+        public string BuffId { get; set; }
+        public string EventPrefab { get; set; }
+        public float3? Position { get; set; }
+        public bool ShouldClearBuffs { get; set; }
+        public bool ShouldResetCooldowns { get; set; }
+        public bool ShouldSaveState { get; set; }
+        public bool ShouldRestoreState { get; set; }
+        public bool ShouldTeleport { get; set; }
     }
 
     /// <summary>

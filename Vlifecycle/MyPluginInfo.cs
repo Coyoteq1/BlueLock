@@ -12,7 +12,7 @@ namespace VAuto
             public const string Name = "Vlifecycle";
             public const string Version = "1.0.0";
             public const bool EnableHarmony = true;
-            public const string HarmonyId = "gg.coyote.VAutomationlivecycle";
+            public const string HarmonyId = "gg.coyote.Lifecycle";
         }
     }
 }

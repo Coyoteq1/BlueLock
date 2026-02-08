@@ -20,6 +20,9 @@ namespace VAuto.Zone.Services
         private static readonly Dictionary<string, ZoneRuntime> _zones = new();
         private static GlowZonesConfig _config = new();
         private const string ConfigFileName = "glow_zones.json";
+        
+        // Real carpet prefab for glow fallback
+        private static readonly PrefabGUID CarpetPrefabGuid = new PrefabGUID(-298064854); // BlackCarpetsBuildMenuGroup01
 
         private class ZoneRuntime
         {
@@ -162,46 +165,167 @@ namespace VAuto.Zone.Services
         }
 
         // Spawns or attaches a glow effect for a given position/marker
+        // Falls back to carpet spawn + attach when glow prefabs fail
         private static void SpawnGlow(EntityManager em, float3 position, ZoneRuntime runtime, Entity? attachTo = null)
         {
             if (runtime.ResolvedPrefabs.Length == 0) return;
 
             var prefabGuid = runtime.ResolvedPrefabs[runtime.ActivePrefabIndex % runtime.ResolvedPrefabs.Length];
 
-            // If attachTo provided, try attaching instead of free spawn
-            if (attachTo.HasValue)
+            // If we have an attachTo entity (marker), try attaching glow to it first
+            if (attachTo != null && em.Exists(attachTo.Value))
             {
-                AttachGlowToEntity(em, attachTo.Value, prefabGuid, float3.zero);
+                if (TryAttachGlowToMarker(em, attachTo.Value, prefabGuid, runtime))
+                {
+                    Plugin.Logger.LogInfo($"[GlowZone] Attached glow to marker at ({position.x:F0}, {position.z:F0})");
+                    return;
+                }
+                // Attach failed, try direct spawn at position
+                if (TrySpawnGlowDirect(em, position, prefabGuid, runtime))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // No marker, try direct spawn first
+                if (TrySpawnGlowDirect(em, position, prefabGuid, runtime))
+                {
+                    return;
+                }
+            }
+
+            // Fallback: spawn carpet and attach glow to it
+            var carpetPrefab = GetCarpetPrefab();
+            if (!carpetPrefab.IsEmpty() && TrySpawnGlowOnCarpet(em, position, prefabGuid, carpetPrefab, runtime))
+            {
+                Plugin.Logger.LogInfo($"[GlowZone] Spawned glow on carpet fallback at ({position.x:F0}, {position.z:F0})");
                 return;
             }
 
-            // --- Standard free‑floating glow fallback ---
+            // Final fallback: create empty marker that will auto-spawn glow later
+            CreateEmptyMarker(em, position, runtime);
+            Plugin.Logger.LogWarning($"[GlowZone] Created empty marker at ({position.x:F0}, {position.z:F0}) - glow will auto-spawn when configured");
+        }
+
+        private static bool TrySpawnGlowDirect(EntityManager em, float3 position, PrefabGUID prefabGuid, ZoneRuntime runtime)
+        {
             if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity))
             {
-                Plugin.Log.LogWarning($"[GlowZone] Prefab {prefabGuid.GuidHash} not found; creating placeholder glow entity.");
-                var fallback = em.CreateEntity(ComponentType.ReadWrite<LocalTransform>());
-                em.SetComponentData(fallback, LocalTransform.FromPositionRotationScale(position, quaternion.identity, 1f));
-                runtime.Glows.Add(fallback);
-                return;
+                return false;
             }
 
-            var glowEntity = em.Instantiate(prefabEntity);
-
-            // Ensure position is set
-            if (em.HasComponent<LocalTransform>(glowEntity))
+            try
             {
-                var t = em.GetComponentData<LocalTransform>(glowEntity);
+                var glowEntity = em.Instantiate(prefabEntity);
+                SetEntityPosition(em, glowEntity, position);
+                runtime.Glows.Add(glowEntity);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[GlowZone] Direct glow spawn failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool TryAttachGlowToMarker(EntityManager em, Entity marker, PrefabGUID prefabGuid, ZoneRuntime runtime)
+        {
+            if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity))
+            {
+                return false;
+            }
+
+            try
+            {
+                var glowEntity = em.Instantiate(prefabEntity);
+                
+                // Set position to marker's position (or slight offset if needed)
+                if (em.HasComponent<LocalTransform>(marker))
+                {
+                    var markerPos = em.GetComponentData<LocalTransform>(marker).Position;
+                    SetEntityPosition(em, glowEntity, markerPos);
+                }
+                
+                // Parent glow to marker
+                em.AddComponentData(glowEntity, new Parent { Value = marker });
+                em.AddComponent<LocalToParent>(glowEntity);
+                
+                runtime.Glows.Add(glowEntity);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[GlowZone] Attach to marker failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool TrySpawnGlowOnCarpet(EntityManager em, float3 position, PrefabGUID glowGuid, PrefabGUID carpetGuid, ZoneRuntime runtime)
+        {
+            if (!TryGetPrefabEntity(carpetGuid, out var carpetEntity))
+            {
+                return false;
+            }
+
+            try
+            {
+                // Spawn carpet at position
+                var carpet = em.Instantiate(carpetEntity);
+                var carpetTransform = LocalTransform.FromPositionRotationScale(position, quaternion.identity, 1f);
+                em.SetComponentData(carpet, carpetTransform);
+                runtime.Markers.Add(carpet);
+
+                // Try to attach glow to carpet
+                if (TryGetPrefabEntity(glowGuid, out var glowEntity))
+                {
+                    var glow = em.Instantiate(glowEntity);
+                    SetEntityPosition(em, glow, float3.zero);
+                    
+                    // Parent glow to carpet
+                    em.AddComponentData(glow, new Parent { Value = carpet });
+                    em.AddComponent<LocalToParent>(glow);
+                    runtime.Glows.Add(glow);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[GlowZone] Carpet fallback failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void CreateEmptyMarker(EntityManager em, float3 position, ZoneRuntime runtime)
+        {
+            var marker = em.CreateEntity(ComponentType.ReadWrite<LocalTransform>());
+            em.SetComponentData(marker, LocalTransform.FromPosition(position));
+            runtime.Markers.Add(marker);
+        }
+
+        private static void SetEntityPosition(EntityManager em, Entity entity, float3 position)
+        {
+            if (em.HasComponent<LocalTransform>(entity))
+            {
+                var t = em.GetComponentData<LocalTransform>(entity);
                 t.Position = position;
-                em.SetComponentData(glowEntity, t);
+                em.SetComponentData(entity, t);
             }
-            else if (em.HasComponent<Translation>(glowEntity))
+            else if (em.HasComponent<Translation>(entity))
             {
-                var t = em.GetComponentData<Translation>(glowEntity);
+                var t = em.GetComponentData<Translation>(entity);
                 t.Value = position;
-                em.SetComponentData(glowEntity, t);
+                em.SetComponentData(entity, t);
             }
+        }
 
-            runtime.Glows.Add(glowEntity);
+        /// <summary>
+        /// Gets the carpet prefab GUID for fallback spawning.
+        /// </summary>
+        private static PrefabGUID GetCarpetPrefab()
+        {
+            return CarpetPrefabGuid;
         }
 
         // Helper: attaches existing prefab as child of target entity
@@ -209,7 +333,7 @@ namespace VAuto.Zone.Services
         {
             if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity))
             {
-                Plugin.Log.LogWarning($"[GlowZone] Prefab {prefabGuid.GuidHash} not resolved; cannot attach.");
+                Plugin.Logger.LogWarning($"[GlowZone] Prefab {prefabGuid.GuidHash} not resolved; cannot attach.");
                 return;
             }
 
@@ -231,7 +355,7 @@ namespace VAuto.Zone.Services
             if (!em.HasComponent<ZoneGlowTag>(glowEntity))
                 em.AddComponentData(glowEntity, new ZoneGlowTag { ParentZone = target });
 
-            Plugin.Log.LogInfo($"[GlowZone] Attached glow prefab {prefabGuid.GuidHash} → parent entity {target.Index}");
+            Plugin.Logger.LogInfo($"[GlowZone] Attached glow prefab {prefabGuid.GuidHash} → parent entity {target.Index}");
         }
 
         // Optional tag for tracking glow entities

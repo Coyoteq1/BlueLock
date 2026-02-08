@@ -96,6 +96,7 @@
     <Compile Include="Json\PrefabGuidJsonConverter.cs" />
     <Compile Include="Json\VAutoJsonOptions.cs" />
     <Compile Include="MyPluginInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs" />
     <Compile Include="..\Networking\*.cs" />
     <Compile Remove="..\Networking\WireService.cs" />
     <Compile Remove="..\Extensions\*.cs" />
@@ -103,5 +104,6 @@
     <Compile Remove="..\Networking\*.cs" />
     <Compile Remove="..\Commands\**\*.cs" />
   </ItemGroup>
+
 
 </Project>

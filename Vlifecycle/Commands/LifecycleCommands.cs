@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using ProjectM;
 using ProjectM.Network;
@@ -10,7 +9,13 @@ using Unity.Transforms;
 using VampireCommandFramework;
 using VAuto.Core.Lifecycle;
 using VAuto.Core;
+using VLifecycle.Services;
+using VAutomationCore;
 
+/// <summary>
+/// Lifecycle management commands for VLifecycle.
+/// Provides commands for managing arena state transitions.
+/// </summary>
 namespace VLifecycle.Commands
 {
     /// <summary>
@@ -24,7 +29,7 @@ namespace VLifecycle.Commands
         /// Display help for lifecycle commands.
         /// </summary>
         [Command("help", shortHand: "h", description: "Show lifecycle command help", adminOnly: false)]
-        public static void Help(ChatCommandContext ctx)
+        public static void Help(ChatCommandContext VAuto)
         {
             var message = @"<color=#FFD700>[Lifecycle Commands]</color>
 <color=#00FFFF>.lifecycle status (.lc s)</color> - Show current lifecycle status
@@ -33,21 +38,21 @@ namespace VLifecycle.Commands
 <color=#00FFFF>.lifecycle config (.lc c)</color> - Show lifecycle configuration [Admin]
 <color=#00FFFF>.lifecycle stages (.lc st)</color> - List lifecycle stages [Admin]
 <color=#00FFFF>.lifecycle trigger (.lc t) [stage]</color> - Trigger a stage [Admin]";
-            ctx.Reply(message);
+            VAuto.Reply(message);
         }
 
         /// <summary>
         /// Display current lifecycle status for the player.
         /// </summary>
         [Command("status", shortHand: "s", description: "Show current lifecycle status", adminOnly: false)]
-        public static void Status(ChatCommandContext ctx)
+        public static void Status(ChatCommandContext VAuto)
         {
             try
             {
-                var characterEntity = GetCharacterEntity(ctx);
+                var characterEntity = GetCharacterEntity(VAuto);
                 if (characterEntity == Entity.Null)
                 {
-                    ctx.Reply("<color=#FF0000>Error: Could not find your character.</color>");
+                    VAuto.Reply("<color=#FF0000>Error: Could not find your character.</color>");
                     return;
                 }
 
@@ -60,11 +65,11 @@ namespace VLifecycle.Commands
                               "Enabled: " + (Plugin.IsEnabled ? "<color=#00FF00>Yes</color>" : "<color=#FF0000>No</color>") + "\n" +
                               "Initialized: " + (ArenaLifecycleManager.Instance.IsInitialized ? "<color=#00FF00>Yes</color>" : "<color=#FF0000>No</color>");
 
-                ctx.Reply(message);
+                VAuto.Reply(message);
             }
             catch (Exception ex)
             {
-                ctx.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
+                VAuto.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
             }
         }
 
@@ -72,26 +77,26 @@ namespace VLifecycle.Commands
         /// Force enter an arena zone (admin).
         /// </summary>
         [Command("enter", shortHand: "e", description: "Force enter arena zone", adminOnly: true)]
-        public static void ForceEnter(ChatCommandContext ctx, string zoneId = "arena_main")
+        public static void ForceEnter(ChatCommandContext VAuto, string zoneId = "arena_main")
         {
             try
             {
-                var characterEntity = GetCharacterEntity(ctx);
+                var characterEntity = GetCharacterEntity(VAuto);
                 if (characterEntity == Entity.Null)
                 {
-                    ctx.Reply("<color=#FF0000>Error: Could not find character.</color>");
+                    VAuto.Reply("<color=#FF0000>Error: Could not find character.</color>");
                     return;
                 }
 
-                var userEntity = GetUserEntity(ctx, characterEntity);
+                var userEntity = GetUserEntity(VAuto, characterEntity);
                 var position = GetPosition(VRCore.ServerWorld.EntityManager, characterEntity);
                 
-                ArenaLifecycleManager.Instance.OnPlayerEnter(userEntity, characterEntity, zoneId);
-                ctx.Reply("<color=#00FF00>Entered arena zone: " + zoneId + "</color>");
+                ArenaLifecycleManager.Instance.OnPlayerEnter(userEntity, characterEntity, zoneId, position);
+                VAuto.Reply("<color=#00FF00>Entered arena zone: " + zoneId + "</color>");
             }
             catch (Exception ex)
             {
-                ctx.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
+                VAuto.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
             }
         }
 
@@ -99,25 +104,26 @@ namespace VLifecycle.Commands
         /// Force exit the current arena zone (admin).
         /// </summary>
         [Command("exit", shortHand: "x", description: "Force exit arena zone", adminOnly: true)]
-        public static void ForceExit(ChatCommandContext ctx)
+        public static void ForceExit(ChatCommandContext VAuto)
         {
             try
             {
-                var characterEntity = GetCharacterEntity(ctx);
+                var characterEntity = GetCharacterEntity(VAuto);
                 if (characterEntity == Entity.Null)
                 {
-                    ctx.Reply("<color=#FF0000>Error: Could not find character.</color>");
+                    VAuto.Reply("<color=#FF0000>Error: Could not find character.</color>");
                     return;
                 }
 
-                var userEntity = GetUserEntity(ctx, characterEntity);
+                var userEntity = GetUserEntity(VAuto, characterEntity);
+                var position = GetPosition(VRCore.ServerWorld.EntityManager, characterEntity);
                 
-                ArenaLifecycleManager.Instance.OnPlayerExit(userEntity, characterEntity, "none");
-                ctx.Reply("<color=#00FF00>Exited arena zone.</color>");
+                ArenaLifecycleManager.Instance.OnPlayerExit(userEntity, characterEntity, "none", position);
+                VAuto.Reply("<color=#00FF00>Exited arena zone.</color>");
             }
             catch (Exception ex)
             {
-                ctx.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
+                VAuto.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
             }
         }
 
@@ -125,7 +131,7 @@ namespace VLifecycle.Commands
         /// Show lifecycle configuration (admin).
         /// </summary>
         [Command("config", shortHand: "c", description: "Show lifecycle configuration", adminOnly: true)]
-        public static void Config(ChatCommandContext ctx)
+        public static void Config(ChatCommandContext VAuto)
         {
             var message = "<color=#FFD700>[Lifecycle Configuration]</color>\n" +
                           "Save Inventory: " + (Plugin.SaveInventory ? "Yes" : "No") + "\n" +
@@ -137,14 +143,14 @@ namespace VLifecycle.Commands
                           "Save Spells: " + (Plugin.SaveSpells ? "Yes" : "No") + "\n" +
                           "Zone Triggers: " + (Plugin.ZoneTriggersLifecycle ? "Yes" : "No") + "\n" +
                           "Service Count: " + ArenaLifecycleManager.Instance.ServiceCount;
-            ctx.Reply(message);
+            VAuto.Reply(message);
         }
 
         /// <summary>
         /// List all lifecycle stages (admin).
         /// </summary>
         [Command("stages", shortHand: "st", description: "List lifecycle stages", adminOnly: true)]
-        public static void ListStages(ChatCommandContext ctx)
+        public static void ListStages(ChatCommandContext VAuto)
         {
             try
             {
@@ -156,11 +162,11 @@ namespace VLifecycle.Commands
                     message += stage.Key + ": " + stage.Value + " actions\n";
                 }
                 
-                ctx.Reply(message);
+                VAuto.Reply(message);
             }
             catch (Exception ex)
             {
-                ctx.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
+                VAuto.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
             }
         }
 
@@ -168,14 +174,14 @@ namespace VLifecycle.Commands
         /// Trigger a lifecycle stage manually (admin).
         /// </summary>
         [Command("trigger", shortHand: "t", description: "Trigger a lifecycle stage", adminOnly: true)]
-        public static void TriggerStage(ChatCommandContext ctx, string stageName)
+        public static void TriggerStage(ChatCommandContext VAuto, string stageName)
         {
             try
             {
-                var characterEntity = GetCharacterEntity(ctx);
+                var characterEntity = GetCharacterEntity(VAuto);
                 if (characterEntity == Entity.Null)
                 {
-                    ctx.Reply("<color=#FF0000>Error: Could not find character.</color>");
+                    VAuto.Reply("<color=#FF0000>Error: Could not find character.</color>");
                     return;
                 }
 
@@ -188,18 +194,18 @@ namespace VLifecycle.Commands
                 };
                 
                 var result = ArenaLifecycleManager.Instance.TriggerLifecycleStage(stageName, context);
-                ctx.Reply("<color=#" + (result ? "00FF00" : "FF0000") + ">" + 
+                VAuto.Reply("<color=#" + (result ? "00FF00" : "FF0000") + ">" + 
                           (result ? "Stage triggered successfully" : "Stage trigger failed") + "</color>");
             }
             catch (Exception ex)
             {
-                ctx.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
+                VAuto.Reply("<color=#FF0000>Error: " + ex.Message + "</color>");
             }
         }
 
         #region Helper Methods
 
-        private static Entity GetCharacterEntity(ChatCommandContext ctx)
+        private static Entity GetCharacterEntity(ChatCommandContext VAuto)
         {
             try
             {
@@ -207,13 +213,13 @@ namespace VLifecycle.Commands
                 if (serverWorld == null) return Entity.Null;
 
                 var entityManager = serverWorld.EntityManager;
-                var characterEntity = ctx.Event?.SenderCharacterEntity ?? Entity.Null;
+                var characterEntity = VAuto.Event?.SenderCharacterEntity ?? Entity.Null;
 
                 if (characterEntity != Entity.Null && entityManager.Exists(characterEntity))
                     return characterEntity;
 
                 // Try to find by user entity
-                var userEntity = ctx.Event?.SenderUserEntity ?? Entity.Null;
+                var userEntity = VAuto.Event?.SenderUserEntity ?? Entity.Null;
                 if (userEntity != Entity.Null && entityManager.Exists(userEntity))
                 {
                     var query = entityManager.CreateEntityQuery(
@@ -242,7 +248,7 @@ namespace VLifecycle.Commands
             }
         }
 
-        private static Entity GetUserEntity(ChatCommandContext ctx, Entity characterEntity)
+        private static Entity GetUserEntity(ChatCommandContext VAuto, Entity characterEntity)
         {
             try
             {
@@ -254,7 +260,7 @@ namespace VLifecycle.Commands
                     return pc.UserEntity;
                 }
 
-                return ctx.Event?.SenderUserEntity ?? Entity.Null;
+                return VAuto.Event?.SenderUserEntity ?? Entity.Null;
             }
             catch
             {
@@ -323,3 +329,4 @@ namespace VLifecycle.Commands
     }
     #endregion
 }
+
