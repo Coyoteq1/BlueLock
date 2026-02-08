@@ -101,10 +101,7 @@
     <Compile Remove="..\Extensions\*.cs" />
     <Compile Remove="..\Helpers\*.cs" />
     <Compile Remove="..\Networking\*.cs" />
-    <Compile Include="..\Commands\**\*.cs" />
-    <Compile Remove="..\Commands\LifecycleCommands.cs" />
-    <Compile Remove="..\Commands\PlayerCommands.cs" />
-    <Compile Remove="..\Commands\ZoneCommands.cs" />
+    <Compile Remove="..\Commands\**\*.cs" />
   </ItemGroup>
 
 </Project>
