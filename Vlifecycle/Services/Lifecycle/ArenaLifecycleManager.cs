@@ -196,14 +196,24 @@ namespace VAuto.Core.Lifecycle
             {
                 Name = "onEnterArenaZone",
                 Description = "Triggered when player enters arena",
-                Actions = new List<LifecycleAction>()
+                Actions = new List<LifecycleAction>
+                {
+                    new LifecycleAction { Type = "save" },
+                    new LifecycleAction { Type = "resetcooldowns" },
+                    new LifecycleAction { Type = "message", Message = "Entering Arena Zone..." }
+                }
             };
 
             _lifecycleStages["onExitArenaZone"] = new LifecycleStage
             {
                 Name = "onExitArenaZone",
                 Description = "Triggered when player exits arena",
-                Actions = new List<LifecycleAction>()
+                Actions = new List<LifecycleAction>
+                {
+                    new LifecycleAction { Type = "restore" },
+                    new LifecycleAction { Type = "clearbuffs" },
+                    new LifecycleAction { Type = "message", Message = "Exiting Arena Zone..." }
+                }
             };
         }
 

@@ -35,23 +35,46 @@ namespace VLifecycle.Services.Lifecycle
         }
 
         /// <summary>
-        /// Placeholder for player connection events.
-        /// TODO: Implement actual connection event handling, is player connectivity patch 
-        /// Common classes to check: ServerBootstrap, UserManager, ServerGameManager, GameServer
-        /// Common methods: OnUserConnected, OnUserDisconnected, OnPlayerJoined, OnPlayerLeft
+        /// Handles player connection events.
         /// </summary>
-        /*
-        [HarmonyPatch] // TODO: Replace with actual V Rising class and method
-        public static class ConnectionEventPlaceholder
+        [HarmonyPatch(typeof(ServerBootstrapSystem), nameof(ServerBootstrapSystem.OnUserConnected))]
+        public static class OnUserConnectedPatch
         {
             [HarmonyPostfix]
-            public static void OnConnectionEvent()
+            public static void Postfix(ServerBootstrapSystem __instance, NetConnectionId netConnectionId)
             {
-                // Placeholder for connection event handling
-                Plugin.Log?.LogInfo("[ConnectionEventPatches] Connection event detected (placeholder)");
+                try
+                {
+                    var userIndex = __instance._NetEndPointToUserIndex[netConnectionId];
+                    ArenaLifecycleManager.Instance.OnPlayerConnected(userIndex);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log?.LogError($"[OnUserConnectedPatch] Error: {ex.Message}");
+                }
             }
         }
-        */
+
+        /// <summary>
+        /// Handles player disconnection events.
+        /// </summary>
+        [HarmonyPatch(typeof(ServerBootstrapSystem), nameof(ServerBootstrapSystem.OnUserDisconnected))]
+        public static class OnUserDisconnectedPatch
+        {
+            [HarmonyPostfix]
+            public static void Postfix(ServerBootstrapSystem __instance, NetConnectionId netConnectionId)
+            {
+                try
+                {
+                    var userIndex = __instance._NetEndPointToUserIndex[netConnectionId];
+                    ArenaLifecycleManager.Instance.OnPlayerDisconnected(userIndex);
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log?.LogError($"[OnUserDisconnectedPatch] Error: {ex.Message}");
+                }
+            }
+        }
 
     }
 }

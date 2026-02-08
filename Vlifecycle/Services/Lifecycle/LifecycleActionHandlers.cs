@@ -52,13 +52,13 @@ namespace VAuto.Core.Lifecycle
                     VLifecycle.Plugin.Log?.LogInfo($"[SavePlayerState] Saved position: ({pos.x:F0}, {pos.y:F0}, {pos.z:F0})");
                 }
 
-                // Save blood type (string representation) and quality (int)
+                // Save blood type and quality
                 if (VLifecycle.Plugin.SaveBlood && em.HasComponent<Blood>(character))
                 {
                     var blood = em.GetComponentData<Blood>(character);
-                    storedData["BloodType"] = blood.BloodType.ToString();
-                    storedData["BloodQuality"] = (int)blood.Quality;
-                    VLifecycle.Plugin.Log?.LogInfo($"[SavePlayerState] Blood saved: {blood.BloodType} quality {(int)blood.Quality}");
+                    storedData["BloodType"] = blood.BloodType;
+                    storedData["BloodQuality"] = blood.Quality;
+                    VLifecycle.Plugin.Log?.LogInfo($"[SavePlayerState] Blood saved: {blood.BloodType} quality {blood.Quality}");
                 }
 
                 // Save health
@@ -66,7 +66,8 @@ namespace VAuto.Core.Lifecycle
                 {
                     var health = em.GetComponentData<Health>(character);
                     storedData["HealthValue"] = health.Value;
-                    VLifecycle.Plugin.Log?.LogInfo($"[SavePlayerState] Health saved: {health.Value}");
+                    storedData["MaxHealth"] = health.MaxHealth;
+                    VLifecycle.Plugin.Log?.LogInfo($"[SavePlayerState] Health saved: {health.Value}/{health.MaxHealth}");
                 }
 
                 // Save equipment state - store equipped item prefab GUIDs
@@ -152,8 +153,10 @@ namespace VAuto.Core.Lifecycle
                         if (em.HasComponent<Blood>(character))
                         {
                             var blood = em.GetComponentData<Blood>(character);
-                            // Restore blood settings (type and quality are set via properties)
-                            VLifecycle.Plugin.Log?.LogInfo($"[RestorePlayerState] Blood type restored: {bloodTypeObj}");
+                            blood.BloodType = (PrefabGUID)bloodTypeObj;
+                            blood.Quality = (float)bloodQualityObj;
+                            em.SetComponentData(character, blood);
+                            VLifecycle.Plugin.Log?.LogInfo($"[RestorePlayerState] Blood restored: {blood.BloodType} quality {blood.Quality}");
                         }
                     }
                 }
@@ -165,8 +168,12 @@ namespace VAuto.Core.Lifecycle
                     {
                         var health = em.GetComponentData<Health>(character);
                         health.Value = (float)healthValue;
+                        if (savedState.TryGetValue("MaxHealth", out var maxHealth))
+                        {
+                            health.MaxHealth = (float)maxHealth;
+                        }
                         em.SetComponentData(character, health);
-                        VLifecycle.Plugin.Log?.LogInfo($"[RestorePlayerState] Health restored: {healthValue}");
+                        VLifecycle.Plugin.Log?.LogInfo($"[RestorePlayerState] Health restored: {health.Value}");
                     }
                 }
 

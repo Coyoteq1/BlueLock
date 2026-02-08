@@ -24,7 +24,7 @@ namespace VAuto.Zone.Services
         private const string ConfigFileName = "glow_zones.json";
         
         // Real carpet prefab for glow fallback
-        private static readonly PrefabGUID CarpetPrefabGuid = new PrefabGUID(-298064854); // BlackCarpetsBuildMenuGroup01
+        private static readonly PrefabGUID CarpetPrefabGuid = new PrefabGUID(-298064854);
 
         private class ZoneRuntime
         {
@@ -34,6 +34,7 @@ namespace VAuto.Zone.Services
             public int ActivePrefabIndex { get; set; }
             public DateTime NextRotationUtc { get; set; } = DateTime.MaxValue;
             public PrefabGUID[] ResolvedPrefabs { get; set; } = Array.Empty<PrefabGUID>();
+            public NativeList<Entity> SpawnedEntities { get; } = new NativeList<Entity>(Allocator.Persistent);
         }
 
         #region Public API
@@ -41,6 +42,9 @@ namespace VAuto.Zone.Services
         {
             VRCore.Initialize();
             if (VRCore.ServerWorld == null) return;
+
+            // Initialize EntitySpawner for batch spawning
+            EntitySpawner.Initialize();
 
             LoadConfig();
             if (rebuild) ClearAll();
@@ -55,6 +59,12 @@ namespace VAuto.Zone.Services
         {
             foreach (var zr in _zones.Values)
             {
+                // Use EntitySpawner for cleanup if available
+                if (EntitySpawner.IsReady() && zr.SpawnedEntities.IsCreated)
+                {
+                    EntitySpawner.DespawnAll(zr.SpawnedEntities);
+                    zr.SpawnedEntities.Dispose();
+                }
                 DestroyEntities(zr.Markers);
                 DestroyEntities(zr.Glows);
             }
@@ -87,7 +97,7 @@ namespace VAuto.Zone.Services
             foreach (var kvp in _zones)
             {
                 var z = kvp.Value;
-                yield return $"{kvp.Key}: markers={z.Markers.Count} glows={z.Glows.Count} prefabIndex={z.ActivePrefabIndex} rotation={(z.Entry.Rotation.Enabled ? "on" : "off")}";
+                yield return $"{kvp.Key}: markers={z.Markers.Count} glows={z.Glows.Count} entitySpawner={z.SpawnedEntities.Length} rotation={(z.Entry.Rotation.Enabled ? "on" : "off")}";
             }
         }
         #endregion
@@ -95,23 +105,85 @@ namespace VAuto.Zone.Services
         private static void BuildZone(GlowZoneEntry entry)
         {
             if (string.IsNullOrWhiteSpace(entry.Id)) return;
-            var em = VRCore.EntityManager;
-            if (em == default) return;
 
             var runtime = _zones.ContainsKey(entry.Id) ? _zones[entry.Id] : new ZoneRuntime();
             runtime.Entry = entry;
 
-            if (runtime.Markers.Count > 0 || runtime.Glows.Count > 0)
-            {
-                DestroyEntities(runtime.Markers);
-                DestroyEntities(runtime.Glows);
-            }
+            // Clear existing entities
+            DestroyEntities(runtime.Markers);
+            DestroyEntities(runtime.Glows);
 
-            runtime.ResolvedPrefabs = ResolvePrefabs(entry);
-            runtime.ActivePrefabIndex = 0;
             runtime.NextRotationUtc = ComputeNextRotation(entry);
+            runtime.ActivePrefabIndex = 0;
 
             var points = GeneratePoints(entry);
+            if (points.Count == 0)
+            {
+                _zones[entry.Id] = runtime;
+                return;
+            }
+
+            // Use EntitySpawner for batch spawning if available
+            if (EntitySpawner.IsReady())
+            {
+                BuildZoneWithEntitySpawner(entry, runtime, points);
+            }
+            else
+            {
+                // Fallback to old method
+                Plugin.Logger.LogWarning("[ZoneGlowBorder] EntitySpawner not ready, using fallback");
+                BuildZoneFallback(entry, runtime, points);
+            }
+
+            _zones[entry.Id] = runtime;
+        }
+
+        /// <summary>
+        /// Build zone using new EntitySpawner batch spawning.
+        /// </summary>
+        private static void BuildZoneWithEntitySpawner(GlowZoneEntry entry, ZoneRuntime runtime, List<float3> points)
+        {
+            // Configure glow from zone entry
+            var glowConfig = new EntitySpawner.GlowConfig
+            {
+                Color = entry.GlowColor ?? new float3(0.6f, 0f, 0.8f),
+                Intensity = entry.GlowIntensity ?? 1.5f,
+                Radius = entry.GlowRadius ?? 8f,
+                Duration = entry.GlowDuration ?? 300f
+            };
+
+            // Convert points to NativeArray for batch spawning
+            var positions = new NativeArray<float3>(points.Count, Allocator.Temp);
+            for (int i = 0; i < points.Count; i++)
+            {
+                positions[i] = points[i];
+            }
+
+            // Use EntitySpawner for batch spawning
+            var result = EntitySpawner.SpawnAtPositions(positions, glowConfig, entry.BuffId ?? 561176);
+            positions.Dispose();
+
+            // Store spawned entities for cleanup
+            for (int i = 0; i < result.SpawnedEntities.Length; i++)
+            {
+                runtime.SpawnedEntities.Add(result.SpawnedEntities[i]);
+                runtime.Glows.Add(result.SpawnedEntities[i]);
+            }
+
+            Plugin.Logger.LogInfo($"[ZoneGlowBorder] EntitySpawner: Spawned {result.SuccessCount} glow entities for zone {entry.Id}");
+            result.Dispose();
+        }
+
+        /// <summary>
+        /// Fallback method using old glow spawning when EntitySpawner is not available.
+        /// </summary>
+        private static void BuildZoneFallback(GlowZoneEntry entry, ZoneRuntime runtime, List<float3> points)
+        {
+            var em = VRCore.EntityManager;
+            if (em == default) return;
+
+            runtime.ResolvedPrefabs = ResolvePrefabs(entry);
+
             foreach (var p in points)
             {
                 Entity marker = Entity.Null;
@@ -120,23 +192,58 @@ namespace VAuto.Zone.Services
                     marker = em.CreateEntity(ComponentType.ReadWrite<LocalTransform>());
                     em.SetComponentData(marker, LocalTransform.FromPositionRotationScale(p, quaternion.identity, 1f));
                     runtime.Markers.Add(marker);
-
-                    // Attach glow directly onto marker entity
                     SpawnGlow(em, p, runtime, marker);
                 }
                 else
                 {
-                    // No marker requested → free‑floating glow
                     SpawnGlow(em, p, runtime);
                 }
             }
-
-            _zones[entry.Id] = runtime;
         }
 
         private static void RotateZone(ZoneRuntime zr, bool force)
         {
             if (!zr.Entry.Rotation.Enabled && !force) return;
+
+            // If using EntitySpawner, recreate with new glow config
+            if (EntitySpawner.IsReady() && zr.SpawnedEntities.IsCreated && zr.SpawnedEntities.Length > 0)
+            {
+                // Despawn old entities
+                EntitySpawner.DespawnAll(zr.SpawnedEntities);
+                zr.SpawnedEntities.Clear();
+
+                // Get updated color from rotation config if available
+                var glowConfig = new EntitySpawner.GlowConfig
+                {
+                    Color = zr.Entry.GlowColor ?? new float3(0.6f, 0f, 0.8f),
+                    Intensity = zr.Entry.GlowIntensity ?? 1.5f,
+                    Radius = zr.Entry.GlowRadius ?? 8f,
+                    Duration = zr.Entry.GlowDuration ?? 300f
+                };
+
+                // Regenerate points and respawn
+                var points = GeneratePoints(zr.Entry);
+                var positions = new NativeArray<float3>(points.Count, Allocator.Temp);
+                for (int i = 0; i < points.Count; i++)
+                {
+                    positions[i] = points[i];
+                }
+
+                var result = EntitySpawner.SpawnAtPositions(positions, glowConfig, zr.Entry.BuffId ?? 561176);
+                positions.Dispose();
+
+                for (int i = 0; i < result.SpawnedEntities.Length; i++)
+                {
+                    zr.SpawnedEntities.Add(result.SpawnedEntities[i]);
+                }
+
+                zr.NextRotationUtc = ComputeNextRotation(zr.Entry);
+                Plugin.Logger.LogInfo($"[ZoneGlowBorder] Rotated zone with {result.SuccessCount} entities");
+                result.Dispose();
+                return;
+            }
+
+            // Fallback to old rotation method
             if (zr.ResolvedPrefabs.Length == 0) return;
 
             zr.ActivePrefabIndex = (zr.ActivePrefabIndex + 1) % zr.ResolvedPrefabs.Length;
@@ -146,14 +253,12 @@ namespace VAuto.Zone.Services
             DestroyEntities(zr.Glows);
             zr.Glows.Clear();
 
-            // Use existing marker positions; if no markers, regenerate points from zone entry.
             var positions = zr.Markers.Count > 0
                 ? zr.Markers.Select(m => em.GetComponentData<LocalTransform>(m).Position).ToList()
                 : GeneratePoints(zr.Entry);
 
             foreach (var pos in positions)
             {
-                // If markers exist, attach to them; otherwise spawn free-floating
                 var index = positions.IndexOf(pos);
                 if (zr.Markers.Count > index)
                 {
@@ -174,7 +279,6 @@ namespace VAuto.Zone.Services
 
             var prefabGuid = runtime.ResolvedPrefabs[runtime.ActivePrefabIndex % runtime.ResolvedPrefabs.Length];
 
-            // If we have an attachTo entity (marker), try attaching glow to it first
             if (attachTo != null && em.Exists(attachTo.Value))
             {
                 if (TryAttachGlowToMarker(em, attachTo.Value, prefabGuid, runtime))
@@ -182,7 +286,6 @@ namespace VAuto.Zone.Services
                     Plugin.Logger.LogInfo($"[GlowZone] Attached glow to marker at ({position.x:F0}, {position.z:F0})");
                     return;
                 }
-                // Attach failed, try direct spawn at position
                 if (TrySpawnGlowDirect(em, position, prefabGuid, runtime))
                 {
                     return;
@@ -190,14 +293,12 @@ namespace VAuto.Zone.Services
             }
             else
             {
-                // No marker, try direct spawn first
                 if (TrySpawnGlowDirect(em, position, prefabGuid, runtime))
                 {
                     return;
                 }
             }
 
-            // Fallback: spawn carpet and attach glow to it
             var carpetPrefab = GetCarpetPrefab();
             if (!carpetPrefab.IsEmpty() && TrySpawnGlowOnCarpet(em, position, prefabGuid, carpetPrefab, runtime))
             {
@@ -205,9 +306,8 @@ namespace VAuto.Zone.Services
                 return;
             }
 
-            // Final fallback: create empty marker that will auto-spawn glow later
             CreateEmptyMarker(em, position, runtime);
-            Plugin.Logger.LogWarning($"[GlowZone] Created empty marker at ({position.x:F0}, {position.z:F0}) - glow will auto-spawn when configured");
+            Plugin.Logger.LogWarning($"[GlowZone] Created empty marker at ({position.x:F0}, {position.z:F0})");
         }
 
         private static bool TrySpawnGlowDirect(EntityManager em, float3 position, PrefabGUID prefabGuid, ZoneRuntime runtime)
@@ -242,14 +342,12 @@ namespace VAuto.Zone.Services
             {
                 var glowEntity = em.Instantiate(prefabEntity);
                 
-                // Set position to marker's position (or slight offset if needed)
                 if (em.HasComponent<LocalTransform>(marker))
                 {
                     var markerPos = em.GetComponentData<LocalTransform>(marker).Position;
                     SetEntityPosition(em, glowEntity, markerPos);
                 }
                 
-                // Parent glow to marker
                 em.AddComponentData(glowEntity, new Parent { Value = marker });
                 em.AddComponent<LocalToParent>(glowEntity);
                 
@@ -272,19 +370,16 @@ namespace VAuto.Zone.Services
 
             try
             {
-                // Spawn carpet at position
                 var carpet = em.Instantiate(carpetEntity);
                 var carpetTransform = LocalTransform.FromPositionRotationScale(position, quaternion.identity, 1f);
                 em.SetComponentData(carpet, carpetTransform);
                 runtime.Markers.Add(carpet);
 
-                // Try to attach glow to carpet
                 if (TryGetPrefabEntity(glowGuid, out var glowEntity))
                 {
                     var glow = em.Instantiate(glowEntity);
                     SetEntityPosition(em, glow, float3.zero);
                     
-                    // Parent glow to carpet
                     em.AddComponentData(glow, new Parent { Value = carpet });
                     em.AddComponent<LocalToParent>(glow);
                     runtime.Glows.Add(glow);
@@ -322,15 +417,11 @@ namespace VAuto.Zone.Services
             }
         }
 
-        /// <summary>
-        /// Gets the carpet prefab GUID for fallback spawning.
-        /// </summary>
         private static PrefabGUID GetCarpetPrefab()
         {
             return CarpetPrefabGuid;
         }
 
-        // Helper: attaches existing prefab as child of target entity
         private static void AttachGlowToEntity(EntityManager em, Entity target, PrefabGUID prefabGuid, float3 localOffset)
         {
             if (!TryGetPrefabEntity(prefabGuid, out var prefabEntity))
@@ -341,7 +432,6 @@ namespace VAuto.Zone.Services
 
             var glowEntity = em.Instantiate(prefabEntity);
 
-            // Offset relative to parent
             if (em.HasComponent<LocalTransform>(glowEntity))
             {
                 var t = em.GetComponentData<LocalTransform>(glowEntity);
@@ -349,18 +439,15 @@ namespace VAuto.Zone.Services
                 em.SetComponentData(glowEntity, t);
             }
 
-            // Establish parent/child relationship
             em.AddComponentData(glowEntity, new Parent { Value = target });
             em.AddComponent<LocalToParent>(glowEntity);
 
-            // Optional custom tag for later cleanup
             if (!em.HasComponent<ZoneGlowTag>(glowEntity))
                 em.AddComponentData(glowEntity, new ZoneGlowTag { ParentZone = target });
 
             Plugin.Logger.LogInfo($"[GlowZone] Attached glow prefab {prefabGuid.GuidHash} → parent entity {target.Index}");
         }
 
-        // Optional tag for tracking glow entities
         public struct ZoneGlowTag
         {
             public Entity ParentZone;
@@ -388,7 +475,6 @@ namespace VAuto.Zone.Services
                     var p = new float3(center.x + r * math.cos(angle), center.y, center.z + r * math.sin(angle));
                     points.Add(p);
                 }
-                // Corners of the bounding square
                 points.Add(new float3(center.x - r, center.y, center.z - r));
                 points.Add(new float3(center.x - r, center.y, center.z + r));
                 points.Add(new float3(center.x + r, center.y, center.z - r));
@@ -402,13 +488,9 @@ namespace VAuto.Zone.Services
                 var minZ = center.z - h.y;
                 var maxZ = center.z + h.y;
 
-                // Bottom edge
                 for (float x = minX; x <= maxX; x += spacing) points.Add(new float3(x, center.y, minZ));
-                // Top edge
                 for (float x = minX; x <= maxX; x += spacing) points.Add(new float3(x, center.y, maxZ));
-                // Left edge
                 for (float z = minZ; z <= maxZ; z += spacing) points.Add(new float3(minX, center.y, z));
-                // Right edge
                 for (float z = minZ; z <= maxZ; z += spacing) points.Add(new float3(maxX, center.y, z));
 
                 points.Add(new float3(minX, center.y, minZ));
@@ -417,7 +499,6 @@ namespace VAuto.Zone.Services
                 points.Add(new float3(maxX, center.y, maxZ));
             }
 
-            // De-dup
             var unique = new List<float3>();
             const float eps = 0.05f;
             foreach (var p in points)
@@ -473,7 +554,6 @@ namespace VAuto.Zone.Services
                 }
             }
             
-            // Fallback to Chaos if no valid prefabs found
             if (resolved.Count == 0)
             {
                 var fallbackPrefab = glowService.GetGlowPrefab("Chaos");
@@ -500,47 +580,47 @@ namespace VAuto.Zone.Services
                 {
                     return true;
                 }
+
+                var method = system.GetType().GetMethod("GetPrefab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, new[] { typeof(PrefabGUID) }, null);
+                if (method == null) return false;
+
+                var result = method.Invoke(system, new object[] { guid });
+                if (result is Entity e)
+                {
+                    prefabEntity = e;
+                    return e != Entity.Null;
+                }
             }
             catch
             {
                 return false;
             }
+
             return false;
         }
 
         private static void LoadConfig()
         {
-            var path = GetPreferredConfigPath();
+            _config = new GlowZonesConfig();
+            var configPath = Path.Combine(BepInEx.Paths.ConfigPath, "VAuto.Zone");
+            var configFile = Path.Combine(configPath, ConfigFileName);
+
+            if (!File.Exists(configFile))
+            {
+                Plugin.Logger.LogInfo("[ZoneGlowBorder] No config file found, using defaults");
+                return;
+            }
+
             try
             {
-                if (File.Exists(path))
-                {
-                    var json = File.ReadAllText(path);
-                    _config = JsonSerializer.Deserialize<GlowZonesConfig>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        ReadCommentHandling = JsonCommentHandling.Skip,
-                        AllowTrailingCommas = true
-                    }) ?? new GlowZonesConfig();
-                    return;
-                }
+                var json = File.ReadAllText(configFile);
+                _config = JsonSerializer.Deserialize<GlowZonesConfig>(json) ?? new GlowZonesConfig();
+                Plugin.Logger.LogInfo($"[ZoneGlowBorder] Loaded {_config.Zones.Count} zones from config");
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore and fallback to defaults
+                Plugin.Logger.LogWarning($"[ZoneGlowBorder] Failed to load config: {ex.Message}");
             }
-            _config = new GlowZonesConfig();
-        }
-
-        public static string GetPreferredConfigPath()
-        {
-            var configDir = Path.Combine(BepInEx.Paths.ConfigPath, "VAuto.Arena");
-            var primary = Path.Combine(configDir, ConfigFileName);
-            if (File.Exists(primary)) return primary;
-
-            var asmDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
-            var fallback = Path.Combine(asmDir, "config", "VAuto.Arena", ConfigFileName);
-            return fallback;
         }
         #endregion
     }

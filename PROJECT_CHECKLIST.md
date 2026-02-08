@@ -161,6 +161,6 @@ VAutomationCore (Required by all)
 4. VAutoannounce
 5. VAutoTraps
 
----
+--- /!!
 
 *Last Updated: 2026-02-08*

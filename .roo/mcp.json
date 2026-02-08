@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e",
+        "GITHUB_TOOLSETS",
+        "-e",
+        "GITHUB_READ_ONLY",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "vscode-insiders://RooVeterinaryInc.roo-code-nightly/auth/clerk/callback?state=a6ba4ae84cef1b7091030758225daa14&code=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzMxODM2NTMsImlpZCI6Imluc18yeGg5UGtnNDVhQ0doeGNReUN3eW92VU1pb3ciLCJzaWQiOiJzaXRfMzlQSkRhVHdGR1NPOU5tNFJUbXd0ZExwWVJEIiwic3QiOiJzaWduX2luX3Rva2VuIn0.XTb-p4Sfkp3PtTnKfAezM4rGWXSKyVTQOYrq3cfayuxal-kCDe9g-0uYng9dUzBvRtdMm-YztiL3PTIeK0vKfSoIzjoz5VBJRulm_qniY4GDIeDthw9RF8PTaNIax5bhfbDSxKIX1gqB0auXNQ8eop6930OSoU94OPuCJGQ5sc3IP3-YIV-L413tT9TZ31Du7a2I78pD1S_qdTqicosdfmykOARQl43cpk3Di_uDLtxnCJBV9uFUR0ALyJrZj-8jUBNK8p97bxPRTKCVwJCsWos94bSp3rZRfm7fMaHRmJI0XQys6XBGASMulGqBceFaj0Kbw0AhAZCRtNAAcKGbew",
+        "GITHUB_TOOLSETS": "",
+        "GITHUB_READ_ONLY": ""
+      }
+    }
+  }
+}

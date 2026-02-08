@@ -212,32 +212,20 @@ namespace VLifecycle.Commands
                 var serverWorld = VRCore.ServerWorld;
                 if (serverWorld == null) return Entity.Null;
 
-                var entityManager = serverWorld.EntityManager;
                 var characterEntity = VAuto.Event?.SenderCharacterEntity ?? Entity.Null;
 
-                if (characterEntity != Entity.Null && entityManager.Exists(characterEntity))
+                if (characterEntity != Entity.Null && serverWorld.EntityManager.Exists(characterEntity))
                     return characterEntity;
 
-                // Try to find by user entity
+                // Fallback to searching via User entity
                 var userEntity = VAuto.Event?.SenderUserEntity ?? Entity.Null;
-                if (userEntity != Entity.Null && entityManager.Exists(userEntity))
+                if (userEntity != Entity.Null && serverWorld.EntityManager.Exists(userEntity))
                 {
-                    var query = entityManager.CreateEntityQuery(
-                        ComponentType.ReadOnly<PlayerCharacter>(),
-                        ComponentType.ReadOnly<LocalTransform>()
-                    );
-
-                    var entities = query.ToEntityArray(Allocator.Temp);
-                    foreach (var entity in entities)
+                    var user = serverWorld.EntityManager.GetComponentData<User>(userEntity);
+                    if (serverWorld.EntityManager.Exists(user.LocalCharacter._Entity))
                     {
-                        var pc = entityManager.GetComponentData<PlayerCharacter>(entity);
-                        if (pc.UserEntity == userEntity)
-                        {
-                            entities.Dispose();
-                            return entity;
-                        }
+                        return user.LocalCharacter._Entity;
                     }
-                    entities.Dispose();
                 }
 
                 return Entity.Null;
