@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V Rising Mods - Project Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #383c4a;
+        }
+        h1 {
+            font-size: 28px;
+            color: #fff;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #4a9eff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #3a8eef;
+        }
+        .btn-secondary {
+            background: #383c4a;
+            color: #8c91a0;
+        }
+        .btn-secondary:hover {
+            background: #484d5e;
+        }
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #ff3344;
+        }
+        .overall-progress {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .progress-bar-container {
+            background: #0f3460;
+            border-radius: 10px;
+            height: 24px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4a9eff, #00d9ff);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        .stat-complete { background: #2ed573; }
+        .stat-incomplete { background: #ffa502; }
+        .stat-total { background: #747d8c; }
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .project-card {
+            background: #16213e;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .project-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .project-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #383c4a;
+        }
+        .project-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .project-progress {
+            font-size: 14px;
+            color: #8c91a0;
+        }
+        .project-progress-bar {
+            height: 4px;
+            background: #0f3460;
+        }
+        .project-progress-fill {
+            height: 100%;
+            background: #4a9eff;
+            transition: width 0.3s;
+        }
+        .category {
+            border-bottom: 1px solid #2a2d3e;
+        }
+        .category:last-child {
+            border-bottom: none;
+        }
+        .category-header {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #8c91a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(0,0,0,0.1);
+        }
+        .items {
+            padding: 5px 0;
+        }
+        .item {
+            display: flex;
+            align-items: center;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .item:hover {
+            background: rgba(74, 158, 255, 0.1);
+        }
+        .item.complete {
+            opacity: 0.6;
+        }
+        .item.complete .item-name {
+            text-decoration: line-through;
+        }
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #383c4a;
+            border-radius: 4px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .item.complete .checkbox {
+            background: #2ed573;
+            border-color: #2ed573;
+        }
+        .checkbox::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+        }
+        .item.complete .checkbox::after {
+            display: block;
+        }
+        .item-name {
+            flex: 1;
+            font-size: 14px;
+        }
+        .filter-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .filter-tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: #383c4a;
+            color: #8c91a0;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .filter-tab.active {
+            background: #4a9eff;
+            color: white;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8c91a0;
+        }
+        @media (max-width: 768px) {
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .stats {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 V Rising Mods - Project Tracker</h1>
+            <div class="controls">
+                <button class="btn-secondary" onclick="exportData()">📤 Export</button>
+                <button class="btn-secondary" onclick="importData()">📥 Import</button>
+                <button class="btn-primary" onclick="markAllComplete()">✓ Mark All Complete</button>
+                <button class="btn-danger" onclick="resetAll()">↺ Reset All</button>
+            </div>
+        </header>
+
+        <div class="overall-progress">
+            <div class="progress-header">
+                <span>Overall Progress</span>
+                <span id="overallPercent">0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="overallProgress" style="width: 0%"></div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-icon stat-complete"></div>
+                    <span>Complete: <strong id="completeCount">0</strong></span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon stat-incomplete"></div>
+                    <span>Incomplete: <strong id="incompleteCount">0</strong></span>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon stat-total"></div>
+                    <span>Total: <strong id="totalCount">0</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+            <button class="filter-tab" data-filter="incomplete" onclick="setFilter('incomplete')">Incomplete</button>
+            <button class="filter-tab" data-filter="complete" onclick="setFilter('complete')">Complete</button>
+        </div>
+
+        <div class="projects-grid" id="projectsGrid"></div>
+    </div>
+
+    <script>
+        const projectData = {
+            "VAutomationCore": {
+                categories: {
+                    "Build": ["Build Release", "Dependencies"],
+                    "Core": ["Core_ECSHelper", "Core_VRCore"],
+                    "Chat": ["ChatService"],
+                    "Config": ["VAutoConfigService", "JsonConfigManager", "PluginManifest"],
+                    "Helpers": ["PrefabGuidConverter", "VAutoLogger"],
+                    "Extensions": ["ECSExtensions", "PrefabGuidExtensions", "VAutoExtensions"]
+                }
+            },
+            "VAutoannounce": {
+                categories: {
+                    "Build": ["Build", "Dependencies"],
+                    "Command": [".announce", ".say", ".alert", ".trapalert", ".broadcast"],
+                    "Service": ["AnnouncementService"],
+                    "Core": ["VRCore", "PrefabGuidConverter"]
+                }
+            },
+            "VAutoTraps": {
+                categories: {
+                    "Build": ["Build", "Dependencies"],
+                    "Command": [
+                        ".trap help", ".trap status", ".trap config", ".trap reload", ".trap debug",
+                        ".trap set", ".trap remove", ".trap list", ".trap arm", ".trap trigger", ".trap clear",
+                        ".trap chest spawn", ".trap chest list", ".trap chest remove", ".trap chest clear",
+                        ".trap zone create", ".trap zone delete", ".trap zone list", ".trap zone arm", ".trap zone check", ".trap zone clear",
+                        ".trap streak status", ".trap streak reset", ".trap streak config", ".trap streak toggle", ".trap streak test", ".trap streak stats"
+                    ],
+                    "Service": ["ChestSpawnService", "ContainerTrapService", "TrapZoneService", "TrapSpawnRules"],
+                    "Config": ["TOML Config", "JSON Config"]
+                }
+            },
+            "VAutoZone": {
+                categories: {
+                    "Build": ["Build", "Dependencies"],
+                    "Command": [".arena help", ".arena list", ".arena enter", ".arena exit", ".zone help"],
+                    "Service": ["ArenaCommands", "ArenaGlowBorderService", "ArenaTerritory", "ArenaZoneConfigLoader", "GlowService", "PlayerSnapshotService", "ZoneEventBridge", "ZoneGlowBorderService", "ZoneGlowRotationService"],
+                    "Config": ["arena_territory.json", "arena_zones.json", "glow_zones.json"]
+                }
+            },
+            "Vlifecycle": {
+                categories: {
+                    "Build": ["Build", "Dependencies"],
+                    "Command": [".lifecycle status", ".lifecycle enter", ".lifecycle exit", ".lifecycle debug"],
+                    "Service": ["ArenaLifecycleManager", "ConnectionEventPatches", "InputSystemUpdatePatch", "LifecycleActionHandlers", "LifecycleModels", "Singleton", "ZUIInputBlocker", "ZUISpellMenu"],
+                    "Config": ["pvp_item.toml", "VLifecycle.json"]
+                }
+            },
+            "Cross-Project Integration": {
+                categories: {
+                    "Check": [
+                        "VAutomationCore loads first",
+                        "Vlifecycle before VAutoZone",
+                        "VAutoannounce works",
+                        "VAutoTraps zone rules",
+                        "Zone detection events",
+                        "Glow borders display"
+                    ]
+                }
+            }
+        };
+
+        let completedItems = new Set();
+        let currentFilter = 'all';
+        const STORAGE_KEY = 'vrising_mods_tracker';
+
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                completedItems = new Set(JSON.parse(saved));
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedItems]));
+        }
+
+        function getItemKey(project, category, item) {
+            return `${project}|${category}|${item}`;
+        }
+
+        function toggleItem(project, category, item) {
+            const key = getItemKey(project, category, item);
+            if (completedItems.has(key)) {
+                completedItems.delete(key);
+            } else {
+                completedItems.add(key);
+            }
+            saveData();
+            render();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === filter);
+            });
+            render();
+        }
+
+        function markAllComplete() {
+            Object.keys(projectData).forEach(project => {
+                Object.keys(projectData[project].categories).forEach(category => {
+                    projectData[project].categories[category].forEach(item => {
+                        completedItems.add(getItemKey(project, category, item));
+                    });
+                });
+            });
+            saveData();
+            render();
+        }
+
+        function resetAll() {
+            if (confirm('Are you sure you want to reset all progress?')) {
+                completedItems.clear();
+                saveData();
+                render();
+            }
+        }
+
+        function exportData() {
+            const data = JSON.stringify([...completedItems], null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'vrising-tracker-export.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        completedItems = new Set(JSON.parse(e.target.result));
+                        saveData();
+                        render();
+                        alert('Import successful!');
+                    } catch (err) {
+                        alert('Invalid file format');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function calculateProgress(project) {
+            let total = 0;
+            let complete = 0;
+            Object.keys(projectData[project].categories).forEach(category => {
+                projectData[project].categories[category].forEach(item => {
+                    total++;
+                    if (completedItems.has(getItemKey(project, category, item))) {
+                        complete++;
+                    }
+                });
+            });
+            return { total, complete, percent: total > 0 ? Math.round((complete / total) * 100) : 0 };
+        }
+
+        function render() {
+            const grid = document.getElementById('projectsGrid');
+            grid.innerHTML = '';
+
+            let totalItems = 0;
+            let completeItems = 0;
+
+            Object.keys(projectData).forEach(project => {
+                const progress = calculateProgress(project);
+                totalItems += progress.total;
+                completeItems += progress.complete;
+
+                if (currentFilter === 'complete' && progress.complete === 0) return;
+                if (currentFilter === 'incomplete' && progress.complete === progress.total) return;
+
+                const card = document.createElement('div');
+                card.className = 'project-card';
+
+                let categoriesHTML = '';
+                Object.keys(projectData[project].categories).forEach(category => {
+                    const items = projectData[project].categories[category];
+                    let itemsHTML = '';
+
+                    items.forEach(item => {
+                        const key = getItemKey(project, category, item);
+                        const isComplete = completedItems.has(key);
+
+                        if (currentFilter === 'complete' && !isComplete) return;
+                        if (currentFilter === 'incomplete' && isComplete) return;
+
+                        itemsHTML += `
+                            <div class="item ${isComplete ? 'complete' : ''}" onclick="toggleItem('${project}', '${category}', '${item}')">
+                                <div class="checkbox"></div>
+                                <span class="item-name">${item}</span>
+                            </div>
+                        `;
+                    });
+
+                    if (currentFilter === 'all' || itemsHTML) {
+                        categoriesHTML += `
+                            <div class="category">
+                                <div class="category-header">${category}</div>
+                                <div class="items">${itemsHTML}</div>
+                            </div>
+                        `;
+                    }
+                });
+
+                card.innerHTML = `
+                    <div class="project-header">
+                        <span class="project-title">${project}</span>
+                        <span class="project-progress">${progress.complete}/${progress.total} (${progress.percent}%)</span>
+                    </div>
+                    <div class="project-progress-bar">
+                        <div class="project-progress-fill" style="width: ${progress.percent}%"></div>
+                    </div>
+                    ${categoriesHTML}
+                `;
+
+                grid.appendChild(card);
+            });
+
+            const overallPercent = totalItems > 0 ? Math.round((completeItems / totalItems) * 100) : 0;
+            document.getElementById('overallPercent').textContent = overallPercent + '%';
+            document.getElementById('overallProgress').style.width = overallPercent + '%';
+            document.getElementById('completeCount').textContent = completeItems;
+            document.getElementById('incompleteCount').textContent = totalItems - completeItems;
+            document.getElementById('totalCount').textContent = totalItems;
+        }
+
+        // Initialize on load
+        loadData();
+        render();
