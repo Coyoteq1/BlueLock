@@ -11,7 +11,6 @@ using Unity.Transforms;
 using VampireCommandFramework;
 using VAuto.Core;
 using VAuto.Core.Services;
-using VAuto.Core.Logging;
 using VAutoTraps;
 #if INCLUDE_KILLSTREAK_ECS
 using VAuto.Core.Components;

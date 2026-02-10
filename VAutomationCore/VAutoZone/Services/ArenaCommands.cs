@@ -223,7 +223,7 @@ namespace VAuto.Zone.Commands
             position = float3.zero;
             try
             {
-                var serverWorld = ArenaVRCore.Server;
+                var serverWorld = ZoneCore.Server;
                 if (serverWorld == null) return false;
 
                 var entityManager = serverWorld.EntityManager;
@@ -256,7 +256,7 @@ namespace VAuto.Zone.Commands
             
             try
             {
-                var em = ArenaVRCore.EntityManager;
+                var em = ZoneCore.EntityManager;
                 var query = em.CreateEntityQuery(ComponentType.ReadOnly<PlayerCharacter>());
                 var entities = query.ToEntityArray(Allocator.Temp);
                 

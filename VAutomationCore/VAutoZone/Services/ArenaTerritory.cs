@@ -71,7 +71,7 @@ namespace VAuto.Zone.Services
             }
 
             IsInitialized = true;
-            UnifiedCore.LogInfo($"Arena territory '{ZoneId}' initialized with {ArenaBlocks.Count} blocks");
+            ZoneCore.LogInfo($"Arena territory '{ZoneId}' initialized with {ArenaBlocks.Count} blocks");
         }
 
         public static void Reload()
@@ -176,7 +176,7 @@ namespace VAuto.Zone.Services
         {
             try
             {
-                var em = UnifiedCore.EntityManager;
+                var em = ZoneCore.EntityManager;
                 var position = ArenaGridCenter;
                 
                 if (em.HasComponent<LocalTransform>(characterEntity))
@@ -184,12 +184,12 @@ namespace VAuto.Zone.Services
                     var transform = em.GetComponentData<LocalTransform>(characterEntity);
                     transform.Position = position;
                     em.SetComponentData(characterEntity, transform);
-                    UnifiedCore.LogInfo($"[ArenaTerritory] Teleported player to ({position.x:F0}, {position.y:F0}, {position.z:F0})");
+                    ZoneCore.LogInfo($"[ArenaTerritory] Teleported player to ({position.x:F0}, {position.y:F0}, {position.z:F0})");
                 }
             }
             catch (Exception ex)
             {
-                UnifiedCore.LogError($"[ArenaTerritory] Teleport failed: {ex.Message}");
+                ZoneCore.LogError($"[ArenaTerritory] Teleport failed: {ex.Message}");
             }
         }
 
@@ -197,11 +197,11 @@ namespace VAuto.Zone.Services
         {
             try
             {
-                ZoneGlowBorderService.BuildAll(rebuild: false);
+                ZoneGlowBorderService.BuildAll();
             }
             catch (Exception ex)
             {
-                UnifiedCore.LogWarning($"[ArenaTerritory] Glow zones not loaded, using fallback: {ex.Message}");
+                ZoneCore.LogWarning($"[ArenaTerritory] Glow zones not loaded, using fallback: {ex.Message}");
             }
         }
 
@@ -230,7 +230,7 @@ namespace VAuto.Zone.Services
                             var instance = prop?.GetValue(null);
                             if (instance != null)
                             {
-                                UnifiedCore.LogInfo($"[ArenaTerritory] Found ArenaLifecycleManager in assembly: {asm.GetName().Name}");
+                                ZoneCore.LogInfo($"[ArenaTerritory] Found ArenaLifecycleManager in assembly: {asm.GetName().Name}");
                                 return instance;
                             }
                         }
@@ -240,7 +240,7 @@ namespace VAuto.Zone.Services
             }
             catch (Exception ex)
             {
-                UnifiedCore.LogWarning($"[ArenaTerritory] Could not find lifecycle manager: {ex.Message}");
+                ZoneCore.LogWarning($"[ArenaTerritory] Could not find lifecycle manager: {ex.Message}");
             }
             return null;
         }
@@ -254,7 +254,7 @@ namespace VAuto.Zone.Services
             }
             catch (Exception ex)
             {
-                UnifiedCore.LogError($"[ArenaTerritory] Failed to invoke {methodName}: {ex.Message}");
+                ZoneCore.LogError($"[ArenaTerritory] Failed to invoke {methodName}: {ex.Message}");
             }
         }
 

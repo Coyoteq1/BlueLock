@@ -88,5 +88,47 @@ namespace VAutomationCore.Core.Logging
         /// <param name="caller">The calling member name (auto-populated).</param>
         public void ErrorFormat(string format, [CallerMemberName] string caller = null, params object[] args)
             => _log.LogError($"[{_source}][{caller}] {string.Format(format, args)}");
+
+        #region Static Methods
+
+        private static readonly ManualLogSource _staticLog = Plugin.Log;
+        
+        /// <summary>
+        /// Gets whether the CoreLogger has been initialized.
+        /// </summary>
+        public static bool IsInitialized { get; private set; } = true;
+
+        /// <summary>
+        /// Logs an informational message statically.
+        /// </summary>
+        public static void LogInfo(string message, string source = "Core")
+            => _staticLog.LogInfo($"[{source}] {message}");
+
+        /// <summary>
+        /// Logs a warning message statically.
+        /// </summary>
+        public static void LogWarning(string message, string source = "Core")
+            => _staticLog.LogWarning($"[{source}] {message}");
+
+        /// <summary>
+        /// Logs an error message statically.
+        /// </summary>
+        public static void LogError(string message, string source = "Core")
+            => _staticLog.LogError($"[{source}] {message}");
+
+        /// <summary>
+        /// Logs a debug message statically.
+        /// </summary>
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void LogDebug(string message, string source = "Core")
+            => _staticLog.LogInfo($"[DEBUG][{source}] {message}");
+
+        /// <summary>
+        /// Logs an exception statically.
+        /// </summary>
+        public static void LogException(Exception ex, string source = "Core")
+            => _staticLog.LogError($"[{source}] Exception: {ex.Message}\n{ex.StackTrace}");
+
+        #endregion
     }
 }

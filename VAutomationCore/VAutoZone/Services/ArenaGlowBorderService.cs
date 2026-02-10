@@ -10,9 +10,9 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using VAuto.Zone.Core;
+using VAuto.Zone.Models;
 using VAutomationCore.Core;
 using VAutomationCore.Core.ECS;
-using VAutomationCore.Core.Logging;
 using VAutomationCore.Core.Services;
 
 namespace VAuto.Zone.Services
@@ -36,13 +36,13 @@ namespace VAuto.Zone.Services
 
         private static void Initialize()
         {
-            CoreLogger.Info("Initializing ArenaGlowBorderService", ServiceName);
-            CoreLogger.Info($"ArenaGlowBorderService initialized", ServiceName);
+            ZoneCore.LogInfo("Initializing ArenaGlowBorderService");
+            ZoneCore.LogInfo("ArenaGlowBorderService initialized");
         }
 
         private static bool Validate()
         {
-            return UnifiedCore.IsInitialized;
+            return ZoneCore.IsInitialized;
         }
 
         #endregion
@@ -121,11 +121,11 @@ namespace VAuto.Zone.Services
         {
             error = string.Empty;
 
-            var em = UnifiedCore.EntityManager;
+            var em = ZoneCore.EntityManager;
             if (em == default)
             {
                 error = "EntityManager not available.";
-                CoreLogger.Error(error, ServiceName);
+                ZoneCore.LogError(error);
                 return false;
             }
 
@@ -141,7 +141,7 @@ namespace VAuto.Zone.Services
             if (allPoints.Count == 0)
             {
                 error = "No border points to spawn.";
-                CoreLogger.Error(error, ServiceName);
+                ZoneCore.LogError(error);
                 return false;
             }
 
@@ -166,16 +166,7 @@ namespace VAuto.Zone.Services
                 else if (int.TryParse(prefabName, out var intGuid))
                 {
                     prefabGuid = new PrefabGUID(intGuid);
-                    if (!UnifiedCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(prefabGuid))
-                    {
-                        error = $"Prefab not found: {prefabName}";
-                        return false;
-                    }
-                }
-                else if (long.TryParse(prefabName, out var longGuid))
-                {
-                    prefabGuid = new PrefabGUID((int)longGuid);
-                    if (!UnifiedCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(prefabGuid))
+                    if (!ZoneCore.PrefabCollection._PrefabGuidToEntityMap.ContainsKey(prefabGuid))
                     {
                         error = $"Prefab not found: {prefabName}";
                         return false;
@@ -205,15 +196,15 @@ namespace VAuto.Zone.Services
                 SpawnGlow(em, prefabGuid, marker);
             }
 
-            CoreLogger.Info($"Spawned {_glows.Count} border glows", ServiceName);
+            ZoneCore.LogInfo($"Spawned {_glows.Count} border glows");
             return true;
         }
 
         private static bool SpawnGlow(EntityManager em, PrefabGUID prefabGuid, Entity marker)
         {
-            if (!UnifiedCore.TryGetPrefabEntity(prefabGuid, out var prefabEntity))
+            if (!ZoneCore.TryGetPrefabEntity(prefabGuid, out var prefabEntity))
             {
-                CoreLogger.Warning($"Could not resolve prefab entity for {prefabGuid.Name}", ServiceName);
+                ZoneCore.LogWarning($"Could not resolve prefab entity for {prefabGuid.GuidHash}");
                 return false;
             }
 
@@ -266,7 +257,7 @@ namespace VAuto.Zone.Services
 
         public static void ClearAll()
         {
-            var em = UnifiedCore.EntityManager;
+            var em = ZoneCore.EntityManager;
             
             DestroyEntities(_glows);
             DestroyEntities(_markers);
@@ -274,12 +265,12 @@ namespace VAuto.Zone.Services
             _glows.Clear();
             _markers.Clear();
             
-            CoreLogger.Info("Cleared all arena glow borders", ServiceName);
+            ZoneCore.LogInfo("Cleared all arena glow borders");
         }
 
         private static void DestroyEntities(List<Entity> list)
         {
-            var em = UnifiedCore.EntityManager;
+            var em = ZoneCore.EntityManager;
             foreach (var e in list.ToArray())
             {
                 if (em.Exists(e)) em.DestroyEntity(e);
@@ -305,7 +296,7 @@ namespace VAuto.Zone.Services
             guid = default;
             try
             {
-                var system = UnifiedCore.Server?.GetExistingSystemManaged<PrefabCollectionSystem>();
+                var system = ZoneCore.Server?.GetExistingSystemManaged<PrefabCollectionSystem>();
                 if (system == null)
                     return false;
 
@@ -328,7 +319,7 @@ namespace VAuto.Zone.Services
             }
             catch (Exception ex)
             {
-                CoreLogger.Exception(ex, ServiceName);
+                ZoneCore.LogException("Failed to resolve prefab GUID", ex);
                 return false;
             }
 
@@ -365,7 +356,7 @@ namespace VAuto.Zone.Services
             }
             catch (Exception ex)
             {
-                CoreLogger.Exception(ex, ServiceName);
+                ZoneCore.LogException("Failed to load prefab config", ex);
                 return false;
             }
         }
@@ -411,7 +402,7 @@ namespace VAuto.Zone.Services
             }
             catch (Exception ex)
             {
-                CoreLogger.Exception(ex, ServiceName);
+                ZoneCore.LogException("Failed to load prefab TOML", ex);
                 return false;
             }
         }

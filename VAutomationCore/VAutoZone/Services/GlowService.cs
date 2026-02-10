@@ -5,68 +5,173 @@ using System.Linq;
 using System.Text;
 using BepInEx;
 using ProjectM;
+using ProjectM.Network;
 using Stunlock.Core;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using VAuto.Zone.Core;
-using VAutoZone;
-using VAutomationCore.Core;
+using VAutomationCore;
 using VAutomationCore.Core.ECS;
-using VAutomationCore.Core.Logging;
 
 namespace VAuto.Zone.Services
 {
     /// <summary>
     /// Service for managing glow buff choices with named presets.
-    /// Provides fallback to carpet prefabs when glow spawning fails.
+    /// 
+    /// IMPORTANT: This service manages TWO types of glows:
+    /// 1. Buff Glows - Applied via AddBuff (use Buffs.AddBuff pattern)
+    /// 2. World Glows - Instantiated as entities (carpets, decorations)
+    /// 
+    /// Using the wrong spawn method will cause the glow to fail or not replicate properly.
     /// </summary>
     public class GlowService
     {
-        private static readonly CoreLogger _log = new CoreLogger("GlowService");
-        
         private static readonly string GlowChoicesFileName = "glowChoices.txt";
 
-        // Carpet prefabs for manual border spawning (fallback when glow prefabs fail)
-        private static readonly Dictionary<string, PrefabGUID> CarpetPrefabs = new Dictionary<string, PrefabGUID>(StringComparer.OrdinalIgnoreCase)
+        // Buff glow prefabs - these should be applied via AddBuff, NOT instantiated
+        private static readonly Dictionary<string, PrefabGUID> BuffGlowPrefabs = new Dictionary<string, PrefabGUID>(StringComparer.OrdinalIgnoreCase)
         {
-            { "BlackCarpetsBuildMenuGroup01", new PrefabGUID(-298064854) },
-            { "BlackCarpetsBuildMenuGroup02", new PrefabGUID(1878965767) },
-            { "BlueCarpetsBuildMenuGroup01", new PrefabGUID(362468619) },
-            { "BlueCarpetsBuildMenuGroup02", new PrefabGUID(0) } // TODO: Add GUID
+            { "InkShadow", new PrefabGUID(-1124645803) },
+            { "Cursed", new PrefabGUID(1425734039) },
+            { "Howl", new PrefabGUID(-91451769) },
+            { "Chaos", new PrefabGUID(1163490655) },
+            { "Emerald", new PrefabGUID(-1559874083) },
+            { "Poison", new PrefabGUID(-1965215729) },
+            { "Agony", new PrefabGUID(1025643444) },
+            { "Light", new PrefabGUID(178225731) },
+        };
+
+        // World decoration prefabs for manual border spawning (fallback when glow prefabs fail)
+        // These can be instantiated as entities
+        private static readonly Dictionary<string, PrefabGUID> WorldGlowPrefabs = new Dictionary<string, PrefabGUID>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Note: These require actual game prefab GUIDs, not hash codes
+            // Add known GUIDs here, or remove entries if not available
+            // Example: { "BlackCarpet", new PrefabGUID(123456789) },
         };
 
         private readonly Dictionary<string, PrefabGUID> _glowChoices = new Dictionary<string, PrefabGUID>(StringComparer.InvariantCultureIgnoreCase);
         private readonly Dictionary<PrefabGUID, string> _prefabToGlowName = new Dictionary<PrefabGUID, string>();
+        private readonly HashSet<PrefabGUID> _buffGlowPrefabs = new HashSet<PrefabGUID>();
+        private readonly HashSet<PrefabGUID> _worldGlowPrefabs = new HashSet<PrefabGUID>();
+
+        // Cached delegate for prefab lookup - avoid reflection on every call
+        private static Func<PrefabGUID, Entity> _cachedPrefabLookup;
 
         private string ConfigPath => ArenaTerritory.GetPreferredConfigPath();
         private string GlowChoicesPath => Path.Combine(ConfigPath, GlowChoicesFileName);
 
         public GlowService()
         {
+            // Initialize category tracking
+            foreach (var prefab in BuffGlowPrefabs.Values)
+            {
+                _buffGlowPrefabs.Add(prefab);
+            }
+            foreach (var prefab in WorldGlowPrefabs.Values)
+            {
+                _worldGlowPrefabs.Add(prefab);
+            }
+
             InitializeDefaults();
             LoadGlowChoices();
         }
 
         private void InitializeDefaults()
         {
-            // Glow buff prefabs
-            _glowChoices["InkShadow"] = new PrefabGUID(-1124645803);
-            _glowChoices["Cursed"] = new PrefabGUID(1425734039);
-            _glowChoices["Howl"] = new PrefabGUID(-91451769);
-            _glowChoices["Chaos"] = new PrefabGUID(1163490655);
-            _glowChoices["Emerald"] = new PrefabGUID(-1559874083);
-            _glowChoices["Poison"] = new PrefabGUID(-1965215729);
-            _glowChoices["Agony"] = new PrefabGUID(1025643444);
-            _glowChoices["Light"] = new PrefabGUID(178225731);
+            // Add all buff glows to choices
+            foreach (var kvp in BuffGlowPrefabs)
+            {
+                _glowChoices[kvp.Key] = kvp.Value;
+            }
             
-            // Decoration prefabs for border spawning
-            _glowChoices["Table3x3Cabal"] = new PrefabGUID("TM_Castle_ObjectDecor_Table_3x3_Cabal01".GetHashCode());
-            _glowChoices["ChairCabal"] = new PrefabGUID("TM_Castle_ObjectDecor_Chair_01_Cabal01".GetHashCode());
-            _glowChoices["Barrel01"] = new PrefabGUID("NM_Castle_Prop_Barrel_01".GetHashCode());
-            _glowChoices["Crate01"] = new PrefabGUID("NM_Castle_Prop_Crate_01".GetHashCode());
-            _glowChoices["Fireplace"] = new PrefabGUID("NM_Castle_Prop_Fireplace_01".GetHashCode());
-            _glowChoices["Banner01"] = new PrefabGUID("NM_Castle_Deco_Banner_01".GetHashCode());
+            // Add world prefabs (commented out - need actual GUIDs)
+            // foreach (var kvp in WorldGlowPrefabs)
+            // {
+            //     _glowChoices[kvp.Key] = kvp.Value;
+            // }
+
+            // NOTE: The following entries using GetHashCode() were REMOVED because:
+            // string.GetHashCode() is NOT stable across runtimes/sessions
+            // PrefabGUIDs derived this way will silently fail or spawn wrong prefabs
+            // 
+            // If you have actual PrefabGUID values for these decorations, add them to WorldGlowPrefabs
+            // with proper int values, e.g.:
+            // { "Table3x3Cabal", new PrefabGUID(123456789) },
+        }
+
+        /// <summary>
+        /// Gets the cached prefab lookup delegate, initializing if needed.
+        /// Uses reflection once and caches the result.
+        /// </summary>
+        private static Func<PrefabGUID, Entity> GetPrefabLookup()
+        {
+            if (_cachedPrefabLookup != null)
+                return _cachedPrefabLookup;
+
+            try
+            {
+                var prefabSystem = ZoneCore.Server?.GetExistingSystemManaged<PrefabCollectionSystem>();
+                if (prefabSystem == null)
+                {
+                    ZoneCore.LogWarning("[GlowService] PrefabCollectionSystem not available");
+                    _cachedPrefabLookup = _ => Entity.Null;
+                    return _cachedPrefabLookup;
+                }
+
+                // Try to get the dictionary via reflection
+                var field = typeof(PrefabCollectionSystem).GetField(
+                    "_PrefabGuidToEntityDictionary",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                if (field != null)
+                {
+                    var dictionary = field.GetValue(prefabSystem) as System.Collections.IDictionary;
+                    if (dictionary != null)
+                    {
+                        _cachedPrefabLookup = guid =>
+                        {
+                            if (dictionary.Contains(guid))
+                                return (Entity)dictionary[guid];
+                            return Entity.Null;
+                        };
+                        ZoneCore.LogInfo("[GlowService] Prefab lookup cached successfully");
+                        return _cachedPrefabLookup;
+                    }
+                }
+
+                // Fallback: try alternate field name
+                var altField = typeof(PrefabCollectionSystem).GetField(
+                    "_PrefabGuidToEntityMap",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                if (altField != null)
+                {
+                    var dictionary = altField.GetValue(prefabSystem) as System.Collections.IDictionary;
+                    if (dictionary != null)
+                    {
+                        _cachedPrefabLookup = guid =>
+                        {
+                            if (dictionary.Contains(guid))
+                                return (Entity)dictionary[guid];
+                            return Entity.Null;
+                        };
+                        ZoneCore.LogInfo("[GlowService] Prefab lookup cached (alternate field)");
+                        return _cachedPrefabLookup;
+                    }
+                }
+
+                ZoneCore.LogWarning("[GlowService] Could not find prefab dictionary field");
+                _cachedPrefabLookup = _ => Entity.Null;
+                return _cachedPrefabLookup;
+            }
+            catch (Exception ex)
+            {
+                ZoneCore.LogException("[GlowService] Failed to cache prefab lookup", ex);
+                _cachedPrefabLookup = _ => Entity.Null;
+                return _cachedPrefabLookup;
+            }
         }
 
         public void SaveGlowChoices()
@@ -80,7 +185,7 @@ namespace VAuto.Zone.Services
                 sb.AppendLine($"{entry.Key}={entry.Value.GuidHash}");
             }
             File.WriteAllText(GlowChoicesPath, sb.ToString());
-            _log.Info("Glow choices saved");
+            ZoneCore.LogInfo("Glow choices saved");
         }
 
         public void LoadGlowChoices()
@@ -91,12 +196,12 @@ namespace VAuto.Zone.Services
                 return;
             }
 
-            // Guard: Check UnifiedCore initialization before accessing PrefabCollection
+            // Guard: Check ZoneCore initialization before accessing PrefabCollection
             if (!IsVRCoreInitialized())
             {
-                // UnifiedCore not ready, use defaults only
+                // ZoneCore not ready, use defaults only
                 BuildPrefabToGlowName();
-                _log.Warning("VRCore not initialized, using default glow choices");
+                ZoneCore.LogWarning("VRCore not initialized, using default glow choices");
                 return;
             }
 
@@ -110,40 +215,64 @@ namespace VAuto.Zone.Services
                 if (parts.Length == 2 && int.TryParse(parts[1], out var guid))
                 {
                     var prefabGuid = new PrefabGUID(guid);
-                    var prefabSystem = UnifiedCore.PrefabCollection;
-                    if (prefabSystem != null)
+                    if (ValidateGlowPrefab(prefabGuid, out var isBuff))
                     {
-                        var field = typeof(PrefabCollectionSystem).GetField(
-                            "_PrefabGuidToEntityDictionary", 
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        
-                        if (field != null)
+                        _glowChoices[parts[0]] = prefabGuid;
+                        if (isBuff.HasValue)
                         {
-                            var dictionary = field.GetValue(prefabSystem) as System.Collections.IDictionary;
-                            if (dictionary != null && dictionary.Contains(prefabGuid))
-                            {
-                                var entity = (Entity)dictionary[prefabGuid];
-                                if (UnifiedCore.EntityManager.HasComponent<Buff>(entity))
-                                {
-                                    _glowChoices[parts[0]] = prefabGuid;
-                                }
-                            }
+                            if (isBuff.Value)
+                                _buffGlowPrefabs.Add(prefabGuid);
+                            else
+                                _worldGlowPrefabs.Add(prefabGuid);
                         }
                     }
                 }
             }
 
             BuildPrefabToGlowName();
-            _log.Info($"Loaded {_glowChoices.Count} glow choices");
+            ZoneCore.LogInfo($"Loaded {_glowChoices.Count} glow choices");
+        }
+
+        /// <summary>
+        /// Validates if a prefab is a valid glow (Buff or World) and returns its type.
+        /// </summary>
+        private bool ValidateGlowPrefab(PrefabGUID prefabGuid, out bool? isBuff)
+        {
+            isBuff = null;
+            
+            var entity = GetPrefabLookup()(prefabGuid);
+            if (entity == Entity.Null)
+            {
+                ZoneCore.LogWarning($"[GlowService] Prefab {prefabGuid.Name()} not found in collection");
+                return false;
+            }
+
+            var em = ZoneCore.EntityManager;
+            
+            // Check if it's a buff prefab
+            if (em.HasComponent<Buff>(entity))
+            {
+                isBuff = true;
+                return true;
+            }
+            
+            // Check if it can be instantiated as a world object
+            if (em.HasComponent<PrefabGUID>(entity))
+            {
+                isBuff = false;
+                return true;
+            }
+
+            ZoneCore.LogWarning($"[GlowService] Prefab {prefabGuid.Name()} is neither a Buff nor instantiable");
+            return false;
         }
 
         private static bool IsVRCoreInitialized()
         {
             try
             {
-                return UnifiedCore.PrefabCollection != null && 
-                       UnifiedCore.EntityManager != null &&
-                       UnifiedCore.Server != null;
+                return ZoneCore.Server != null && 
+                       ZoneCore.Server.IsCreated;
             }
             catch
             {
@@ -160,12 +289,38 @@ namespace VAuto.Zone.Services
             }
         }
 
+        /// <summary>
+        /// Determines if a glow prefab is a Buff type (applied via AddBuff) or World type (instantiated).
+        /// </summary>
+        public bool IsBuffGlow(PrefabGUID prefabGuid)
+        {
+            // Check cached categories first
+            if (_buffGlowPrefabs.Contains(prefabGuid))
+                return true;
+            if (_worldGlowPrefabs.Contains(prefabGuid))
+                return false;
+
+            // Fallback: check the entity
+            var em = ZoneCore.EntityManager;
+            var lookup = GetPrefabLookup();
+            var entity = lookup(prefabGuid);
+            
+            if (em.Exists(entity) && em.HasComponent<Buff>(entity))
+            {
+                _buffGlowPrefabs.Add(prefabGuid);
+                return true;
+            }
+
+            _worldGlowPrefabs.Add(prefabGuid);
+            return false;
+        }
+
         public void AddNewGlowChoice(PrefabGUID prefab, string name)
         {
             _glowChoices[name] = prefab;
             _prefabToGlowName[prefab] = name;
             SaveGlowChoices();
-            _log.Info($"Added new glow choice: {name}");
+            ZoneCore.LogInfo($"Added new glow choice: {name}");
         }
 
         public bool RemoveGlowChoice(string name)
@@ -173,7 +328,7 @@ namespace VAuto.Zone.Services
             if (_glowChoices.Remove(name))
             {
                 SaveGlowChoices();
-                _log.Info($"Removed glow choice: {name}");
+                ZoneCore.LogInfo($"Removed glow choice: {name}");
                 return true;
             }
             return false;
@@ -186,6 +341,35 @@ namespace VAuto.Zone.Services
                 return guid;
             }
             return default;
+        }
+
+        /// <summary>
+        /// Gets a glow prefab entity, properly handling Buff vs World types.
+        /// Returns Entity.Null if not found.
+        /// </summary>
+        public bool TryGetGlowEntity(PrefabGUID prefabGuid, out Entity entity)
+        {
+            entity = Entity.Null;
+            
+            var lookup = GetPrefabLookup();
+            entity = lookup(prefabGuid);
+            
+            if (entity == Entity.Null)
+            {
+                ZoneCore.LogWarning($"[GlowService] Glow prefab {prefabGuid.Name()} entity not found");
+                return false;
+            }
+
+            // Guard: verify entity still exists
+            var em = ZoneCore.EntityManager;
+            if (!em.Exists(entity))
+            {
+                ZoneCore.LogWarning($"[GlowService] Glow prefab entity is invalid");
+                entity = Entity.Null;
+                return false;
+            }
+
+            return true;
         }
 
         public IEnumerable<(string name, PrefabGUID prefab)> ListGlowChoices()
@@ -202,31 +386,24 @@ namespace VAuto.Zone.Services
         }
 
         /// <summary>
-        /// Gets a carpet prefab for manual border spawning as fallback.
+        /// Gets a world glow prefab for manual border spawning.
+        /// Returns default if not found or is a buff type.
         /// </summary>
-        public PrefabGUID GetCarpetPrefab(string name)
+        public PrefabGUID GetWorldGlowPrefab(string name)
         {
-            if (CarpetPrefabs.TryGetValue(name, out var prefab) && !prefab.IsEmpty())
+            if (WorldGlowPrefabs.TryGetValue(name, out var prefab) && !prefab.IsEmpty())
             {
                 return prefab;
-            }
-            // Return first available carpet
-            foreach (var carpet in CarpetPrefabs)
-            {
-                if (!carpet.Value.IsEmpty())
-                {
-                    return carpet.Value;
-                }
             }
             return default;
         }
 
         /// <summary>
-        /// Lists available carpet prefabs for border spawning.
+        /// Lists available world glow prefabs for border spawning.
         /// </summary>
-        public IEnumerable<(string name, PrefabGUID prefab)> ListCarpetChoices()
+        public IEnumerable<(string name, PrefabGUID prefab)> ListWorldGlowChoices()
         {
-            foreach (var entry in CarpetPrefabs)
+            foreach (var entry in WorldGlowPrefabs)
             {
                 if (!entry.Value.IsEmpty())
                 {
@@ -236,57 +413,122 @@ namespace VAuto.Zone.Services
         }
 
         /// <summary>
-        /// Tries to spawn a glow prefab, falling back to carpet if glow fails.
+        /// Spawns a world glow prefab at the specified position.
+        /// Use this for carpets and other world decoration prefabs.
+        /// 
+        /// IMPORTANT: This is for WORLD prefabs only. Buff prefabs should use AddBuff pattern.
+        /// </summary>
+        public bool SpawnWorldGlow(PrefabGUID worldPrefab, float3 position, quaternion rotation, out Entity spawnedEntity, out string error)
+        {
+            spawnedEntity = Entity.Null;
+            error = string.Empty;
+            
+            var em = ZoneCore.EntityManager;
+
+            if (worldPrefab.IsEmpty())
+            {
+                error = "World glow prefab is empty";
+                return false;
+            }
+
+            if (!TryGetGlowEntity(worldPrefab, out var prefabEntity))
+            {
+                error = $"World glow prefab {worldPrefab.Name()} not found";
+                return false;
+            }
+
+            // Guard: verify entity exists
+            if (!em.Exists(prefabEntity))
+            {
+                error = "Prefab entity no longer exists";
+                return false;
+            }
+
+            try
+            {
+                spawnedEntity = em.Instantiate(prefabEntity);
+
+                // Set position - support both LocalTransform and Translation
+                if (em.HasComponent<LocalTransform>(spawnedEntity))
+                {
+                    var transform = LocalTransform.FromPositionRotation(position, rotation);
+                    em.SetComponentData(spawnedEntity, transform);
+                }
+                else if (em.HasComponent<Translation>(spawnedEntity))
+                {
+                    em.SetComponentData(spawnedEntity, new Translation { Value = position });
+                    if (em.HasComponent<Rotation>(spawnedEntity))
+                    {
+                        em.SetComponentData(spawnedEntity, new Rotation { Value = rotation });
+                    }
+                }
+                else
+                {
+                    ZoneCore.LogWarning($"[GlowService] Spawned entity has no position component");
+                }
+
+                ZoneCore.LogInfo($"[GlowService] Spawned world glow {worldPrefab.Name()} at {position}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = $"Failed to spawn world glow: {ex.Message}";
+                ZoneCore.LogException(error, ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tries to spawn a glow prefab, with fallback to world prefab if it's a buff type.
         /// Returns the prefab that was spawned.
         /// </summary>
-        public bool TrySpawnWithFallback(PrefabGUID glowPrefab, PrefabGUID carpetPrefab, float3 position, out PrefabGUID spawnedPrefab, out string error)
+        public bool TrySpawnWithFallback(PrefabGUID glowPrefab, PrefabGUID worldFallbackPrefab, float3 position, quaternion rotation, out PrefabGUID spawnedPrefab, out string error)
         {
             error = string.Empty;
             spawnedPrefab = default;
-            var em = UnifiedCore.EntityManager;
 
-            // Try glow prefab first
-            if (!glowPrefab.IsEmpty() && UnifiedCore.TryGetPrefabEntity(glowPrefab, out var glowEntity))
+            // Validate the prefab
+            if (glowPrefab.IsEmpty())
             {
-                try
-                {
-                    var instance = em.Instantiate(glowEntity);
-                    em.SetComponentData(instance, LocalTransform.FromPosition(position));
-                    spawnedPrefab = glowPrefab;
-                    _log.Info($"Spawned glow prefab: {glowPrefab.Name}");
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    _log.Exception(ex);
-                }
+                error = "Glow prefab is empty";
+                return false;
             }
 
-            // Fallback to carpet prefab
-            if (!carpetPrefab.IsEmpty() && UnifiedCore.TryGetPrefabEntity(carpetPrefab, out var carpetEntity))
+            // Check if it's a buff or world prefab
+            var isBuff = IsBuffGlow(glowPrefab);
+
+            if (isBuff)
             {
-                try
+                // Buff prefabs should be applied, not instantiated
+                error = $"Cannot instantiate buff prefab {glowPrefab.Name()} - use AddBuff pattern instead";
+                ZoneCore.LogWarning($"[GlowService] {error}");
+                
+                // Try fallback to world prefab
+                if (!worldFallbackPrefab.IsEmpty())
                 {
-                    var instance = em.Instantiate(carpetEntity);
-                    var transform = LocalTransform.FromPosition(position);
-                    // Rotate to lay flat (adjust rotation as needed)
-                    transform.Rotation = quaternion.Euler(0, 0, 0);
-                    em.SetComponentData(instance, transform);
-                    spawnedPrefab = carpetPrefab;
-                    _log.Info($"Spawned carpet fallback: {carpetPrefab.Name}");
-                    return true;
+                    return SpawnWorldGlow(worldFallbackPrefab, position, rotation, out var entity, out error);
                 }
-                catch (Exception ex)
-                {
-                    error = $"Failed to spawn carpet fallback: {ex.Message}";
-                    _log.Exception(ex);
-                    return false;
-                }
+                
+                return false;
             }
 
-            error = "No valid glow or carpet prefab found";
-            _log.Error(error);
+            // It's a world prefab, try to spawn it
+            if (SpawnWorldGlow(glowPrefab, position, rotation, out var spawnedEntity, out error))
+            {
+                spawnedPrefab = glowPrefab;
+                return true;
+            }
             return false;
         }
+
+        /// <summary>
+        /// Gets the count of available glow choices.
+        /// </summary>
+        public int Count => _glowChoices.Count;
+
+        /// <summary>
+        /// Gets whether a glow choice with the specified name exists.
+        /// </summary>
+        public bool HasGlowChoice(string name) => _glowChoices.ContainsKey(name);
     }
 }

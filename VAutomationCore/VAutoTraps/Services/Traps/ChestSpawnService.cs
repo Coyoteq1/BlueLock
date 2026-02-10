@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using VAutoTraps;
-using VAuto.Core.Logging;
 
 namespace VAuto.Core.Services
 {

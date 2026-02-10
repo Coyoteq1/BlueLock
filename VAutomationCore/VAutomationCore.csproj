@@ -6,7 +6,7 @@
     <OutputType>Library</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
-    <ImplicitUsings>false</ImplicitUsings>
+    <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
@@ -83,10 +83,13 @@
   <ItemGroup>
     <Compile Include="Core\UnifiedCore.cs" />
     <Compile Include="Core\Logging\CoreLogger.cs" />
+    <Compile Include="Core\Logging\CoreLoggerExtensions.cs" />
+    <Compile Include="Core\Arena\ArenaLifecycleManager.cs" />
     <Compile Include="Core\Config\ConfigService.cs" />
     <Compile Include="Core\Config\JsonConverters.cs" />
     <Compile Include="Core\ECS\EntityQueryHelper.cs" />
     <Compile Include="Core\ECS\EntityExtensions.cs" />
+    <Compile Include="Core\ECS\PrefabGUIDExtensions.cs" />
     <Compile Include="Core\Commands\CommandBase.cs" />
     <Compile Include="Core\Commands\CommandException.cs" />
     <Compile Include="Core\Commands\ChatColor.cs" />
@@ -97,6 +100,9 @@
     <Compile Remove="..\Helpers\ECSServiceManager.cs" />
     <Compile Include="..\Extensions\*.cs" />
     <Compile Include="Chat\ChatService.cs" />
+    <Compile Include="Models\GlowZoneEntry.cs" />
+    <Compile Include="Models\PlayerZoneState.cs" />
+    <Compile Include="Services\ZoneEventBridge.cs" />
 
     <Compile Include="Plugin.cs" />
     <Compile Include="PrefabGuidConverter.cs" />

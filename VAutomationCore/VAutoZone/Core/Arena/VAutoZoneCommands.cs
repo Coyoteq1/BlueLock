@@ -48,7 +48,6 @@ namespace VAuto.Zone.Commands
         [Command("status", shortHand: "s", description: "Show current zone status", adminOnly: false)]
         public static void ZoneStatus(ChatCommandContext ctx)
         {
-            var log = CoreLogger.ForContext("ZoneStatus");
             try
             {
                 if (!TryGetPlayerPosition(ctx, out var playerPos))
@@ -75,7 +74,7 @@ namespace VAuto.Zone.Commands
             }
             catch (Exception ex)
             {
-                log.LogError($"ZoneStatus error: {ex.Message}");
+                ZoneCore.LogError($"ZoneStatus error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error retrieving zone status.</color>");
             }
         }
@@ -91,7 +90,7 @@ namespace VAuto.Zone.Commands
                 if (enable.HasValue)
                 {
                     ArenaTerritory.EnableGlowBorder = enable.Value;
-                    Plugin.Logger.LogInfo($"Glow border {(enable.Value ? "enabled" : "disabled")} by {ctx.User.CharacterName}");
+                    ZoneCore.LogInfo($"Glow border {(enable.Value ? "enabled" : "disabled")} by {ctx.User.CharacterName}");
                     ctx.Reply($"<color=#00FF00>Glow border {(enable.Value ? "enabled" : "disabled")}.</color>");
                 }
                 else
@@ -112,7 +111,7 @@ namespace VAuto.Zone.Commands
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneBorder error: {ex.Message}");
+                ZoneCore.LogError($"ZoneBorder error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error managing border.</color>");
             }
         }
@@ -136,7 +135,7 @@ namespace VAuto.Zone.Commands
                             out var spawnError))
                         {
                             var spawnedCount = ArenaGlowBorderService.GetSpawnedCount();
-                            Plugin.Logger.LogInfo($"Spawned {spawnedCount} glow borders");
+                            ZoneCore.LogInfo($"Spawned {spawnedCount} glow borders");
                             ctx.Reply($"<color=#00FF00>Spawned {spawnedCount} glow borders.</color>");
                         }
                         else
@@ -148,7 +147,7 @@ namespace VAuto.Zone.Commands
                     case "clear":
                     case "hide":
                         ArenaGlowBorderService.ClearAll();
-                        Plugin.Logger.LogInfo("Cleared all glow borders");
+                        ZoneCore.LogInfo("Cleared all glow borders");
                         ctx.Reply("<color=#00FF00>Cleared all glow borders.</color>");
                         break;
                         
@@ -164,7 +163,7 @@ namespace VAuto.Zone.Commands
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneGlow error: {ex.Message}");
+                ZoneCore.LogError($"ZoneGlow error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error managing glows.</color>");
             }
         }
@@ -178,12 +177,12 @@ namespace VAuto.Zone.Commands
             try
             {
                 ArenaTerritory.Reload();
-                Plugin.Logger.LogInfo($"Arena configuration reloaded by {ctx.User.CharacterName}");
+                ZoneCore.LogInfo($"Arena configuration reloaded by {ctx.User.CharacterName}");
                 ctx.Reply("<color=#00FF00>Arena configuration reloaded.</color>");
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneReload error: {ex.Message}");
+                ZoneCore.LogError($"ZoneReload error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error reloading configuration.</color>");
             }
         }
@@ -212,7 +211,7 @@ namespace VAuto.Zone.Commands
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneConfig error: {ex.Message}");
+                ZoneCore.LogError($"ZoneConfig error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error retrieving configuration.</color>");
             }
         }
@@ -249,7 +248,7 @@ namespace VAuto.Zone.Commands
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneGlowList error: {ex.Message}");
+                ZoneCore.LogError($"ZoneGlowList error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error listing glow prefabs.</color>");
             }
         }
@@ -272,12 +271,12 @@ namespace VAuto.Zone.Commands
                 }
                 
                 ArenaTerritory.GlowPrefab = prefabName;
-                Plugin.Logger.LogInfo($"Glow prefab set to {prefabName} by {ctx.User.CharacterName}");
+                ZoneCore.LogInfo($"Glow prefab set to {prefabName} by {ctx.User.CharacterName}");
                 ctx.Reply($"<color=#00FF00>Glow prefab set to: {prefabName}</color>");
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneGlowPrefab error: {ex.Message}");
+                ZoneCore.LogError($"ZoneGlowPrefab error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error setting glow prefab.</color>");
             }
         }
@@ -297,12 +296,12 @@ namespace VAuto.Zone.Commands
                 }
                 
                 ArenaTerritory.GlowSpacingMeters = spacing;
-                Plugin.Logger.LogInfo($"Glow spacing set to {spacing}m by {ctx.User.CharacterName}");
+                ZoneCore.LogInfo($"Glow spacing set to {spacing}m by {ctx.User.CharacterName}");
                 ctx.Reply($"<color=#00FF00>Glow spacing set to: {spacing}m</color>");
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneSpacing error: {ex.Message}");
+                ZoneCore.LogError($"ZoneSpacing error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error setting spacing.</color>");
             }
         }
@@ -317,12 +316,12 @@ namespace VAuto.Zone.Commands
             {
                 var newValue = enable ?? !ArenaTerritory.SpawnGlowInCorners;
                 ArenaTerritory.SpawnGlowInCorners = newValue;
-                Plugin.Logger.LogInfo($"Corner spawning {(newValue ? "enabled" : "disabled")} by {ctx.User.CharacterName}");
+                ZoneCore.LogInfo($"Corner spawning {(newValue ? "enabled" : "disabled")} by {ctx.User.CharacterName}");
                 ctx.Reply($"<color=#00FF00>Corner spawning {(newValue ? "enabled" : "disabled")}.</color>");
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"ZoneCorners error: {ex.Message}");
+                ZoneCore.LogError($"ZoneCorners error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error managing corners.</color>");
             }
         }
@@ -334,10 +333,11 @@ namespace VAuto.Zone.Commands
             position = float3.zero;
             try
             {
-                var serverWorld = ArenaVRCore.Server;
-                if (serverWorld == null)
+                // FIX: Use ZoneCore.Server instead of non-existent ArenaVRCore
+                var serverWorld = ZoneCore.Server;
+                if (serverWorld == null || !serverWorld.IsCreated)
                 {
-                    Plugin.Logger.LogWarning("[Zone] Server world not available");
+                    ZoneCore.LogWarning("[Zone] Server world not available");
                     return false;
                 }
 
@@ -345,7 +345,7 @@ namespace VAuto.Zone.Commands
                 var characterEntity = ctx.Event?.SenderCharacterEntity ?? Entity.Null;
                 if (characterEntity == Entity.Null || !entityManager.Exists(characterEntity))
                 {
-                    Plugin.Logger.LogWarning("[Zone] Sender character entity not found");
+                    ZoneCore.LogWarning("[Zone] Sender character entity not found");
                     return false;
                 }
 
@@ -365,7 +365,7 @@ namespace VAuto.Zone.Commands
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"[Zone] GetPlayerPosition failed: {ex.Message}");
+                ZoneCore.LogError($"[Zone] GetPlayerPosition failed: {ex.Message}");
                 return false;
             }
         }

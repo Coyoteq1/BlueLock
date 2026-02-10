@@ -23,6 +23,8 @@ namespace VAuto.Commands.Core
     /// </summary>
     public static class VBloodUnlockCommands
     {
+        private static readonly string LogPrefix = "[VBloodUnlock]";
+
         /// <summary>
         /// Unlock VBlood Tech_Collection prefab by parsing VBloodUnlockTechBuffer from VBlood entities.
         /// Usage: .unlockprefab [vbloodName]
@@ -30,14 +32,13 @@ namespace VAuto.Commands.Core
         [Command("unlockprefab", description: "Unlock VBlood Tech_Collection prefab for testing", adminOnly: true)]
         public static void UnlockPrefabCommand(ChatCommandContext ctx, string vbloodName = null)
         {
-            var log = CoreLogger.ForContext("VBloodUnlock");
             try
             {
-                var em = UnifiedCore.EntityManager;
+                var em = ZoneCore.EntityManager;
                 var user = ctx.User;
                 var playerName = user.CharacterName.ToString();
                 
-                log.LogInfo($"unlockprefab command by {playerName}, vbloodName: {vbloodName ?? "all"}");
+                ZoneCore.LogInfo($"{LogPrefix} command by {playerName}, vbloodName: {vbloodName ?? "all"}");
                 
                 // Find all VBlood entities with VBloodUnlockTechBuffer
                 var vbloodQuery = em.CreateEntityQuery(ComponentType.ReadOnly<VBloodUnlockTechBuffer>());
@@ -50,7 +51,7 @@ namespace VAuto.Commands.Core
                     return;
                 }
                 
-                log.LogInfo($"Found {vbloodEntities.Length} VBlood entities");
+                ZoneCore.LogInfo($"Found {vbloodEntities.Length} VBlood entities");
                 
                 var unlockedCount = 0;
                 var errors = new List<string>();
@@ -74,11 +75,11 @@ namespace VAuto.Commands.Core
                         
                         if (buffer.Length == 0)
                         {
-                            log.LogWarning($"Entity {entityName} has empty buffer");
+                            ZoneCore.LogWarning($"Entity {entityName} has empty buffer");
                             continue;
                         }
                         
-                        log.LogInfo($"Processing {entityName} with {buffer.Length} tech buffer entries");
+                        ZoneCore.LogInfo($"Processing {entityName} with {buffer.Length} tech buffer entries");
                         
                         foreach (var entry in buffer)
                         {
@@ -93,13 +94,13 @@ namespace VAuto.Commands.Core
                                 prefabGuid = (PrefabGUID)guidProperty.GetValue(entry);
                             }
                             
-                            log.LogInfo($"Entry PrefabGuid: {prefabGuid}");
+                            ZoneCore.LogInfo($"Entry PrefabGuid: {prefabGuid}");
                             
                             // Try to resolve the prefab GUID to get the Tech_Collection name
                             var prefabName = ResolvePrefabName(prefabGuid);
                             if (prefabName != null)
                             {
-                                log.LogInfo($"Resolved prefab: {prefabName}");
+                                ZoneCore.LogInfo($"Resolved prefab: {prefabName}");
                                 
                                 // Here we would actually unlock the prefab for the player
                                 // For testing purposes, just log it
@@ -108,14 +109,14 @@ namespace VAuto.Commands.Core
                             }
                             else
                             {
-                                log.LogWarning($"Could not resolve PrefabGuid: {prefabGuid}");
+                                ZoneCore.LogWarning($"Could not resolve PrefabGuid: {prefabGuid}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
                         var entityDebug = em.Exists(entity) ? "unknown" : "invalid";
-                        log.LogError($"Error processing entity: {ex.Message}");
+                        ZoneCore.LogError($"Error processing entity: {ex.Message}");
                         errors.Add($"Error processing entity: {ex.Message}");
                     }
                 }
@@ -139,14 +140,14 @@ namespace VAuto.Commands.Core
                 
                 if (errors.Count > 0)
                 {
-                    log.LogWarning($"Errors: {string.Join(", ", errors)}");
+                    ZoneCore.LogWarning($"Errors: {string.Join(", ", errors)}");
                 }
                 
-                log.LogInfo($"Command completed: {unlockedCount} unlocks, {errors.Count} errors");
+                ZoneCore.LogInfo($"Command completed: {unlockedCount} unlocks, {errors.Count} errors");
             }
             catch (Exception ex)
             {
-                log.LogError($"Error: {ex.Message}");
+                ZoneCore.LogError($"Error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>[VBloodUnlock] An error occurred processing your command.</color>");
             }
         }
@@ -172,7 +173,7 @@ namespace VAuto.Commands.Core
                     }
                     else
                     {
-                        Plugin.Logger.LogWarning("[VBloodUnlock] PrefabIndex.json not found.");
+                        ZoneCore.LogWarning($"{LogPrefix} PrefabIndex.json not found.");
                         _prefabIndex = new Dictionary<int, string>();
                     }
                 }
@@ -188,7 +189,7 @@ namespace VAuto.Commands.Core
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogWarning($"[VBloodUnlock] Failed to resolve prefab name: {ex.Message}");
+                ZoneCore.LogWarning($"{LogPrefix} Failed to resolve prefab name: {ex.Message}");
                 return null;
             }
         }
@@ -209,11 +210,11 @@ namespace VAuto.Commands.Core
                 // For now, just log the unlock intent
                 var playerName = user.CharacterName.ToString();
                 var prefabName = ResolvePrefabName(techCollectionGuid);
-                Plugin.Logger.LogInfo($"[VBloodUnlock] Would unlock Tech_Collection {prefabName ?? techCollectionGuid.ToString()} for player {playerName}");
+                ZoneCore.LogInfo($"{LogPrefix} Would unlock Tech_Collection {prefabName ?? techCollectionGuid.ToString()} for player {playerName}");
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogWarning($"[VBloodUnlock] Could not unlock tech collection: {ex.Message}");
+                ZoneCore.LogWarning($"{LogPrefix} Could not unlock tech collection: {ex.Message}");
             }
         }
 
@@ -239,7 +240,7 @@ namespace VAuto.Commands.Core
         {
             try
             {
-                var em = ArenaVRCore.EntityManager;
+                var em = ZoneCore.EntityManager;
                 
                 var vbloodQuery = em.CreateEntityQuery(ComponentType.ReadOnly<VBloodUnlockTechBuffer>());
                 var vbloodEntities = vbloodQuery.ToEntityArray(Allocator.Temp);
@@ -286,11 +287,11 @@ namespace VAuto.Commands.Core
                 }
                 
                 ctx.Reply(message);
-                Plugin.Logger.LogInfo($"[VBloodUnlock] Listed {index} Tech_Collection prefabs");
+                ZoneCore.LogInfo($"{LogPrefix} Listed {index} Tech_Collection prefabs");
             }
             catch (Exception ex)
             {
-                Plugin.Logger.LogError($"[VBloodUnlockCommands] List error: {ex.Message}");
+                ZoneCore.LogError($"{LogPrefix} List error: {ex.Message}");
                 ctx.Reply("<color=#FF0000>[VBloodUnlock] An error occurred listing prefabs.</color>");
             }
         }

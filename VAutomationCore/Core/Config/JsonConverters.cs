@@ -168,9 +168,13 @@ namespace VAutomationCore.Core.Config
                     return new PrefabGUID(hash);
                 }
                 // Try legacy Guid format for backwards compatibility
+                // WARNING: GetHashCode() is NOT stable - this may produce wrong prefabs
+                // Consider using known prefab GUID values directly instead
                 if (Guid.TryParse(guidString, out var legacyGuid))
                 {
-                    // Use GetHashCode to convert Guid to int
+                    // Keep this for backward compatibility
+                    // In production, prefabs should be referenced by their actual GuidHash value
+                    // Log at your own risk - JsonConverters may be used before ZoneCore is initialized
                     return new PrefabGUID(legacyGuid.GetHashCode());
                 }
             }

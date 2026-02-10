@@ -8,6 +8,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
     <ImplicitUsings>false</ImplicitUsings>
+    <!-- Nullable disabled due to BepInEx/Unity interop compatibility -->
+    <Nullable>disable</Nullable>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
   <ItemGroup>
@@ -63,6 +66,10 @@
     </Reference>
     <Reference Include="ProjectM.GeneratedNetCode">
       <HintPath>$(VAutoServerInteropPath)ProjectM.GeneratedNetCode.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Stunlock.Core">
+      <HintPath>$(VAutoServerInteropPath)Stunlock.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

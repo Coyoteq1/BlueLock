@@ -15,6 +15,7 @@ using ProjectM;
 using ProjectM.Network;
 using VAuto.Zone.Commands;
 using VAuto.Zone.Services;
+using VAuto.Zone.Core;
 using VAutomationCore.Core;
 using VAutomationCore.Core.Services;
 using VAutomationCore.Core.Logging;
@@ -37,9 +38,6 @@ namespace VAuto.Zone
         public static Plugin Instance { get; private set; }
         
         private Harmony _harmony;
-        
-        // ZoneEventBridge instance for lifecycle zone tracking
-        private ZoneEventBridge _zoneEventBridge;
 
         #region CFG Configuration Entries
         // General
@@ -128,21 +126,11 @@ namespace VAuto.Zone
                     Logger.LogWarning($"Territory init failed: {ex.Message}");
                 }
 
-                // Initialize ZoneEventBridge for lifecycle zone tracking
+                // Initialize ZoneEventBridge (now static)
                 try
                 {
-                    var serverWorld = UnifiedCore.Server;
-                    if (serverWorld != null)
-                    {
-                        var entityManager = serverWorld.EntityManager;
-                        _zoneEventBridge = new ZoneEventBridge(CoreLog, entityManager);
-                        _zoneEventBridge.Start();
-                        Logger.LogInfo("ZoneEventBridge started");
-                    }
-                    else
-                    {
-                        Logger.LogWarning("ZoneEventBridge not started - Server not available");
-                    }
+                    ZoneEventBridge.Initialize();
+                    Logger.LogInfo("ZoneEventBridge initialized");
                 }
                 catch (Exception ex)
                 {
@@ -299,8 +287,6 @@ namespace VAuto.Zone
         {
             _hotReloadTimer?.Dispose();
             _hotReloadTimer = null;
-            _zoneEventBridge?.Dispose();
-            _zoneEventBridge = null;
             _harmony?.UnpatchSelf();
             Logger.LogInfo("VAutoZone unloaded");
         }

@@ -8,7 +8,6 @@ using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using VampireCommandFramework;
 using VAuto.Core.Services;
-using VAuto.Core.Logging;
 using VAutoTraps;
 
 namespace VAutoTraps

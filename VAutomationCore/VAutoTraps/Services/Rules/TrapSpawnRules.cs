@@ -7,7 +7,6 @@ using Unity.Mathematics;
 using VAuto.Extensions;
 using VAutoTraps;
 using VAuto.Core.Logging;
-using VAuto.Core.Config;
 
 namespace VAuto.Core.Services
 {
