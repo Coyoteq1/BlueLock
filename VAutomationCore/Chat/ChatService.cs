@@ -3,6 +3,7 @@ using ProjectM;
 using ProjectM.Network;
 using Unity.Collections;
 using Unity.Entities;
+using VAutomationCore.Core;
 
 namespace VAuto.Core.Chat
 {
@@ -13,14 +14,13 @@ namespace VAuto.Core.Chat
             error = string.Empty;
             try
             {
-                VRCore.Initialize();
-                var em = VRCore.EntityManager;
-                if (em == default)
+                if (UnifiedCore.EntityManager == default)
                 {
                     error = "Server EntityManager not ready";
                     return false;
                 }
 
+                var em = UnifiedCore.EntityManager;
                 var query = em.CreateEntityQuery(ComponentType.ReadOnly<User>());
                 using var users = query.ToEntityArray(Allocator.Temp);
 
@@ -58,14 +58,13 @@ namespace VAuto.Core.Chat
             error = string.Empty;
             try
             {
-                VRCore.Initialize();
-                var em = VRCore.EntityManager;
-                if (em == default)
+                if (UnifiedCore.EntityManager == default)
                 {
                     error = "Server EntityManager not ready";
                     return false;
                 }
 
+                var em = UnifiedCore.EntityManager;
                 var query = em.CreateEntityQuery(ComponentType.ReadOnly<User>());
                 using var users = query.ToEntityArray(Allocator.Temp);
                 var msg = new FixedString512Bytes(TrimForFixedString(message));
@@ -99,10 +98,8 @@ namespace VAuto.Core.Chat
             if (string.IsNullOrEmpty(message))
                 return string.Empty;
 
-            // FixedString512Bytes reserves space for the struct header; keep payload comfortably under 512.
-            const int max = 480;
-            return message.Length <= max ? message : message.Substring(0, max);
+            var trimmed = message.Length > 512 ? message[..512] : message;
+            return trimmed.Replace("\n", " ").Replace("\r", " ");
         }
     }
 }
-

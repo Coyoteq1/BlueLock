@@ -3,6 +3,7 @@ using System.Reflection;
 using ProjectM;
 using Stunlock.Core;
 using Unity.Entities;
+using VAutomationCore.Core;
 
 namespace VAuto.Core
 {
@@ -14,7 +15,10 @@ namespace VAuto.Core
             if (string.IsNullOrWhiteSpace(prefabName))
                 return false;
 
-            var system = VRCore.ServerWorld?.GetExistingSystemManaged<PrefabCollectionSystem>();
+            if (UnifiedCore.Server == null)
+                return false;
+
+            var system = UnifiedCore.Server.GetExistingSystemManaged<PrefabCollectionSystem>();
             if (system == null)
                 return false;
 
@@ -42,7 +46,10 @@ namespace VAuto.Core
             if (guid.GuidHash == 0L)
                 return false;
 
-            var system = VRCore.ServerWorld?.GetExistingSystemManaged<PrefabCollectionSystem>();
+            if (UnifiedCore.Server == null)
+                return false;
+
+            var system = UnifiedCore.Server.GetExistingSystemManaged<PrefabCollectionSystem>();
             if (system == null)
                 return false;
 
@@ -78,31 +85,6 @@ namespace VAuto.Core
                     guid = pg;
                     return true;
                 }
-
-                if (dictValue is int intGuid)
-                {
-                    guid = new PrefabGUID((int)intGuid);
-                    return true;
-                }
-            }
-
-            foreach (var key in dict.Keys)
-            {
-                if (key is not string keyStr) continue;
-                if (!keyStr.Equals(prefabName, StringComparison.OrdinalIgnoreCase)) continue;
-
-                var dictValue = dict[key];
-                if (dictValue is PrefabGUID pg)
-                {
-                    guid = pg;
-                    return true;
-                }
-
-                if (dictValue is int intGuid)
-                {
-                    guid = new PrefabGUID((int)intGuid);
-                    return true;
-                }
             }
 
             return false;
@@ -116,18 +98,9 @@ namespace VAuto.Core
 
             foreach (var key in dict.Keys)
             {
-                if (key is not string keyStr) continue;
-
-                var dictValue = dict[key];
-                if (dictValue is PrefabGUID pg && pg.GuidHash == guid.GuidHash)
+                if (dict[key] is PrefabGUID pg && pg.GuidHash == guid.GuidHash)
                 {
-                    prefabName = keyStr;
-                    return true;
-                }
-
-                if (dictValue is int intGuid && (long)intGuid == guid.GuidHash)
-                {
-                    prefabName = keyStr;
+                    prefabName = key.ToString() ?? string.Empty;
                     return true;
                 }
             }

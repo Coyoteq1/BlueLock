@@ -21,31 +21,31 @@
 
   <ItemGroup>
     <Reference Include="Unity.Entities">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Entities.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Unity.Entities.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Collections">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Collections.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Unity.Collections.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Mathematics">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Mathematics.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Unity.Mathematics.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Burst">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Burst.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Unity.Burst.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Transforms">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Transforms.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Unity.Transforms.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Physics">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\Unity.Physics.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Unity.Physics.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -72,22 +72,32 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="VRising.GameData">
-      <HintPath>libs\VRising.GameData.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)VRising.GameData.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Stunlock.Core">
-      <HintPath>C:\Program Files (x86)\Steam\VRising_Server\BepInEx\plugins\DedicatedServerLauncher\VRisingServer\BepInEx\unity-libs\Stunlock.Core.dll</HintPath>
+      <HintPath>$(VAutoServerInteropPath)Stunlock.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\UnifiedCore.cs" />
+    <Compile Include="Core\Logging\CoreLogger.cs" />
+    <Compile Include="Core\Config\ConfigService.cs" />
+    <Compile Include="Core\Config\JsonConverters.cs" />
+    <Compile Include="Core\ECS\EntityQueryHelper.cs" />
+    <Compile Include="Core\ECS\EntityExtensions.cs" />
+    <Compile Include="Core\Commands\CommandBase.cs" />
+    <Compile Include="Core\Commands\CommandException.cs" />
+    <Compile Include="Core\Commands\ChatColor.cs" />
+    <Compile Include="Core\Services\ServiceInitializer.cs" />
     <Compile Include="..\Models\ArenaBuilds\**\*.cs" />
     <Compile Include="..\Models\*.cs" />
     <Compile Include="..\Helpers\*.cs" />
     <Compile Remove="..\Helpers\ECSServiceManager.cs" />
     <Compile Include="..\Extensions\*.cs" />
     <Compile Include="Chat\ChatService.cs" />
-    <Compile Include="Core_VRCore.cs" />
+
     <Compile Include="Plugin.cs" />
     <Compile Include="PrefabGuidConverter.cs" />
     <Compile Include="IService.cs" />

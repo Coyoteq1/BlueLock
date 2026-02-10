@@ -3,5 +3,7 @@
     <BaseIntermediateOutputPath>$(SolutionDir)_build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!-- Path to server interop DLLs - defaults to local libs folder -->
+    <VAutoServerInteropPath>$(MSBuildThisFileDirectory)VAutomationCore\libs\</VAutoServerInteropPath>
   </PropertyGroup>
 </Project>

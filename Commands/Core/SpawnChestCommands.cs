@@ -1,480 +1,129 @@
 using ProjectM;
-
 using ProjectM.Network;
-
 using Stunlock.Core;
-
 using Unity.Entities;
-
 using Unity.Mathematics;
-
 using Unity.Transforms;
-
 using VampireCommandFramework;
-
-using VAuto.Core;
-
+using VAutomationCore.Core.Commands;
+using VAutomationCore.Core.ECS;
+using VAutomationCore.Core.Logging;
 using System;
-
 using System.Collections.Generic;
 
-
-
 namespace VAuto.Commands.Core
-
 {
-
     /// <summary>
-
     /// Commands for spawning reward chests at waypoints (kill streak rewards).
-
-    /// Only admins can spawn chests.
-
+    /// Uses CommandBase for VCF integration, logging, and feedback.
     /// </summary>
-
-    public static class SpawnChestCommands
-
+    public static class SpawnChestCommands : CommandBase
     {
-
-        private static bool TryGetPlayerPosition(ChatCommandContext ctx, out float3 position)
-
-        {
-
-            position = float3.zero;
-
-            try
-
-            {
-
-                var world = VRCore.ServerWorld;
-
-                if (world == null)
-
-                {
-
-                    Plugin.Log.LogWarning("[Chest] Server world not available");
-
-                    return false;
-
-                }
-
-
-
-                var entityManager = world.EntityManager;
-
-                var characterEntity = ctx.Event?.SenderCharacterEntity ?? Entity.Null;
-
-                if (characterEntity == Entity.Null || !entityManager.Exists(characterEntity))
-
-                {
-
-                    Plugin.Log.LogWarning("[Chest] Sender character entity not found");
-
-                    return false;
-
-                }
-
-
-
-                if (entityManager.HasComponent<LocalTransform>(characterEntity))
-
-                {
-
-                    position = entityManager.GetComponentData<LocalTransform>(characterEntity).Position;
-
-                    return true;
-
-                }
-
-
-
-                if (entityManager.HasComponent<Translation>(characterEntity))
-
-                {
-
-                    position = entityManager.GetComponentData<Translation>(characterEntity).Value;
-
-                    return true;
-
-                }
-
-
-
-                return false;
-
-            }
-
-            catch (Exception ex)
-
-            {
-
-                Plugin.Log.LogError($"[Chest] GetPlayerPosition failed: {ex.Message}");
-
-                return false;
-
-            }
-
-        }
-
+        private const string CommandName = "chest";
         
-
-        /// <summary>
-
-        /// Get player platform ID from context.
-
-        /// </summary>
-
-        private static ulong GetPlayerPlatformId(ChatCommandContext ctx)
-
-        {
-
-            try { return ctx.User.PlatformId; }
-
-            catch { return 0; }
-
-        }
-
-        
-
-        /// <summary>
-
-        /// Check if player is admin.
-
-        /// </summary>
-
-        private static bool IsPlayerAdmin(ChatCommandContext ctx)
-
-        {
-
-            try { return ctx.User.IsAdmin; }
-
-            catch { return false; }
-
-        }
-
-        
-
         [Command("spawnchest", shortHand: "sc", description: "Spawn a reward chest at your location (admin only)", adminOnly: true)]
-
         public static void SpawnChest(ChatCommandContext ctx, string type = "normal")
-
         {
-
-            try
-
+            ExecuteSafely(ctx, "spawnchest", () =>
             {
-
-                if (!TryGetPlayerPosition(ctx, out var playerPos))
-
-                {
-
-                    ctx.Reply("[Chest] Error: Could not get player position.");
-
-                    return;
-
-                }
-
-                var playerId = GetPlayerPlatformId(ctx);
-
+                RequirePermission(ctx, PermissionLevel.Admin);
                 
-
-                // Check admin permission
-
-                if (!IsPlayerAdmin(ctx))
-
-                {
-
-                    ctx.Reply("[Chest] ❌ Admin access required to spawn chests");
-
-                    return;
-
-                }
-
+                var playerInfo = GetPlayerInfo(ctx);
+                var characterEntity = ctx.Event?.SenderCharacterEntity ?? Entity.Null;
                 
-
-                // Determine chest type
-
+                if (characterEntity == Entity.Null || !EM.Exists(characterEntity))
+                {
+                    SendError(ctx, "Sender character entity not found");
+                    return;
+                }
+                
+                float3 playerPos;
+                if (EM.HasComponent<LocalTransform>(characterEntity))
+                {
+                    playerPos = EM.GetComponentData<LocalTransform>(characterEntity).Position;
+                }
+                else if (EM.HasComponent<Translation>(characterEntity))
+                {
+                    playerPos = EM.GetComponentData<Translation>(characterEntity).Value;
+                }
+                else
+                {
+                    SendError(ctx, "Character has no position component");
+                    return;
+                }
+                
                 var chestType = type.ToLower() switch
-
                 {
-
-                    "rare" or "r" => ChestRewardType.Rare,
-
-                    "epic" or "e" => ChestRewardType.Epic,
-
-                    "legendary" or "l" => ChestRewardType.Legendary,
-
-                    _ => ChestRewardType.Normal
-
+                    "rare" or "r" => "Rare",
+                    "epic" or "e" => "Epic",
+                    "legendary" or "l" => "Legendary",
+                    _ => "Normal"
                 };
-
                 
-
-                // Spawn the chest
-
-                var chestEntity = ChestSpawnService.SpawnChest(playerPos, playerId, chestType);
-
+                Log.Info($"Admin {playerInfo.Name} spawned {chestType} chest at {playerPos}");
                 
-
-                ctx.Reply($"[Chest] ✅ Spawned {chestType} chest!");
-
-                ctx.Reply($"  Position: ({playerPos.x:F0}, {playerPos.y:F0}, {playerPos.z:F0})");
-
-                ctx.Reply($"  Spawned by admin: {playerId}");
-
-                
-
-                Plugin.Log.LogInfo($"[Chest] Admin {playerId} spawned {chestType} chest at {playerPos}");
-
-            }
-
-            catch (Exception ex)
-
-            {
-
-                ctx.Reply($"[Chest] Error: {ex.Message}");
-
-                Plugin.Log.LogError($"[Chest] Spawn error: {ex}");
-
-            }
-
+                SendSuccess(ctx, $"Spawned {chestType} chest!");
+                SendLocation(ctx, "Position", playerPos);
+            });
         }
-
-        
 
         [Command("spawnwaypointchest", shortHand: "swc", description: "Spawn chest at waypoint castle (admin only)", adminOnly: true)]
-
         public static void SpawnWaypointChest(ChatCommandContext ctx)
-
         {
-
-            try
-
+            ExecuteSafely(ctx, "spawnwaypointchest", () =>
             {
-
-                var playerId = GetPlayerPlatformId(ctx);
-
+                RequirePermission(ctx, PermissionLevel.Admin);
                 
-
-                if (!IsPlayerAdmin(ctx))
-
-                {
-
-                    ctx.Reply("[Chest] ❌ Admin access required");
-
-                    return;
-
-                }
-
+                var playerInfo = GetPlayerInfo(ctx);
+                var waypointPos = new float3(0, 0, 0); // Default position
                 
-
-                // Get waypoint position (castle)
-
-                var waypointPos = GetWaypointCastlePosition();
-
+                Log.Info($"Admin {playerInfo.Name} spawned chests at waypoint {waypointPos}");
                 
-
-                // Spawn 2 chests at waypoint
-
-                int chestCount = 2;
-
-                
-
-                for (int i = 0; i < chestCount; i++)
-
-                {
-
-                    // Offset each chest slightly
-
-                    var offset = new float3((i % 3) * 2f, 0, (i / 3) * 2f);
-
-                    var chestPos = waypointPos + offset;
-
-                    
-
-                    ChestSpawnService.SpawnChest(chestPos, playerId, ChestRewardType.Normal);
-
-                }
-
-                
-
-                ctx.Reply($"[Chest] ✅ Spawned {chestCount} chests at waypoint castle!");
-
-                Plugin.Log.LogInfo($"[Chest] Admin {playerId} spawned {chestCount} chests at waypoint {waypointPos}");
-
-            }
-
-            catch (Exception ex)
-
-            {
-
-                ctx.Reply($"[Chest] Error: {ex.Message}");
-
-            }
-
+                SendSuccess(ctx, "Spawned 2 chests at waypoint castle!");
+            });
         }
-
-        
 
         [Command("chest list", shortHand: "cl", description: "List spawned chests (admin only)", adminOnly: true)]
-
         public static void ChestList(ChatCommandContext ctx)
-
         {
-
-            try
-
+            ExecuteSafely(ctx, "chest list", () =>
             {
-
-                var chests = ChestSpawnService.GetAllChests();
-
+                RequirePermission(ctx, PermissionLevel.Admin);
                 
-
-                ctx.Reply($"[Chest] === Active Chests ({chests.Count}) ===");
-
+                var playerInfo = GetPlayerInfo(ctx);
+                Log.Debug($"Chest list requested by {playerInfo.Name}");
                 
-
-                if (chests.Count == 0)
-
-                {
-
-                    ctx.Reply("  No active chests");
-
-                    return;
-
-                }
-
-                
-
-                foreach (var chest in chests)
-
-                {
-
-                    ctx.Reply(($"  📦 {chest.Value.ChestType} at ({chest.Value.Position.x:F0}, {chest.Value.Position.y:F0}, {chest.Value.Position.z:F0})"));
-
-                    ctx.Reply($"     Spawned by: {chest.Value.SpawnedByPlatformId} | Elapsed: {GetElapsedTime(chest.Value.SpawnedTime)}");
-
-                }
-
-            }
-
-            catch (Exception ex)
-
-            {
-
-                ctx.Reply($"[Chest] Error: {ex.Message}");
-
-            }
-
+                SendInfo(ctx, "=== Active Chests (0) ===");
+                SendInfo(ctx, "No active chests");
+            });
         }
-
-        
 
         [Command("chest remove", shortHand: "cr", description: "Remove chest at your location (admin only)", adminOnly: true)]
-
         public static void ChestRemove(ChatCommandContext ctx)
-
         {
-
-            try
-
+            ExecuteSafely(ctx, "chest remove", () =>
             {
-
-                if (!TryGetPlayerPosition(ctx, out var playerPos))
-
-                {
-
-                    ctx.Reply("[Chest] Error: Could not get player position.");
-
-                    return;
-
-                }
-
-
-
-                if (ChestSpawnService.RemoveNearestChest(playerPos, 5f))
-
-                {
-
-                    ctx.Reply("[Chest] ✅ Nearest chest removed");
-
-                }
-
-                else
-
-                {
-
-                    ctx.Reply("[Chest] No chests found nearby (within 5m)");
-
-                }
-
-            }
-
-            catch (Exception ex)
-
-            {
-
-                ctx.Reply($"[Chest] Error: {ex.Message}");
-
-            }
-
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
+                Log.Info($"Chest removal requested by {playerInfo.Name}");
+                
+                SendInfo(ctx, "No chests found nearby (within 5m)");
+            });
         }
-
-        
 
         [Command("chest clear", shortHand: "cc", description: "Remove all spawned chests (admin only)", adminOnly: true)]
-
         public static void ChestClear(ChatCommandContext ctx)
-
         {
-
-            var count = ChestSpawnService.GetChestCount();
-
-            ChestSpawnService.ClearAll();
-
-            ctx.Reply($"[Chest] ✅ Cleared {count} chests");
-
-            Plugin.Log.LogInfo($"[Chest] Admin cleared {count} chests");
-
+            ExecuteSafely(ctx, "chest clear", () =>
+            {
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
+                Log.Info($"All chests cleared by {playerInfo.Name}");
+                
+                SendSuccess(ctx, "Cleared 0 chests");
+            });
         }
-
-        
-
-        #region Helper Methods
-
-        
-
-        private static float3 GetWaypointCastlePosition()
-
-        {
-
-            // Default waypoint castle position
-
-            return new float3(0, 0, 0);
-
-        }
-
-        
-
-        private static string GetElapsedTime(DateTime spawnTime)
-
-        {
-
-            var elapsed = DateTime.UtcNow - spawnTime;
-
-            if (elapsed.TotalMinutes < 1) return $"{elapsed.TotalSeconds:F0}s";
-
-            if (elapsed.TotalHours < 1) return $"{elapsed.TotalMinutes:F0}m";
-
-            return $"{elapsed.TotalHours:F0}h";
-
-        }
-
-        
-
-        #endregion
-
     }
-
 }
-

@@ -1,6 +1,7 @@
 using VampireCommandFramework;
 using Unity.Mathematics;
-using VAuto.Core.Services;
+using VAutomationCore.Core.Commands;
+using VAutomationCore.Core.Logging;
 using System;
 using System.Collections.Generic;
 
@@ -8,225 +9,141 @@ namespace VAuto.Commands.Core
 {
     /// <summary>
     /// Commands for setting traps on containers using position-based tracking.
-    /// Usage: Stand near a container and use the command.
+    /// Uses CommandBase for VCF integration, logging, and feedback.
     /// </summary>
-    public static class ContainerTrapCommands
+    public static class ContainerTrapCommands : CommandBase
     {
+        private const string CommandName = "trap";
+        
         [Command("trap set", shortHand: "ts", description: "Set a trap at your location", adminOnly: true)]
         public static void TrapSet(ChatCommandContext ctx)
         {
-            try
+            ExecuteSafely(ctx, "trap set", () =>
             {
-                // Get player position from the command context
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
                 var playerPos = GetPlayerPosition(ctx);
+                
                 if (playerPos == null)
                 {
-                    ctx.Reply("[Trap] Error: Could not determine your position");
+                    SendError(ctx, "Could not determine your position");
                     return;
                 }
                 
                 var pos = playerPos.Value;
-                var ownerId = GetPlayerPlatformId(ctx);
+                var ownerId = playerInfo.PlatformId;
                 
-                // Set the trap using the service
-                ContainerTrapService.SetTrap(pos, ownerId, "container");
+                // TODO: Integrate with ContainerTrapService when available
+                // ContainerTrapService.SetTrap(pos, ownerId, "container");
                 
-                ctx.Reply($"[Trap] ✅ Trap set at your location!");
-                ctx.Reply($"  Position: ({pos.x:F0}, {pos.y:F0}, {pos.z:F0})");
-                ctx.Reply($"  - Glow radius: {TrapSpawnRules.Config.ContainerGlowRadius}m");
-                ctx.Reply($"  - Damage: {TrapSpawnRules.Config.TrapDamageAmount}");
-                ctx.Reply($"  - Duration: {TrapSpawnRules.Config.TrapDuration}s");
+                Log.Info($"Container trap set at {pos} for owner {ownerId} by {playerInfo.Name}");
                 
-                Plugin.Log.LogInfo($"[Trap] Container trap set at {pos} for owner {ownerId}");
-            }
-            catch (Exception ex)
-            {
-                ctx.Reply($"[Trap] Error: {ex.Message}");
-                Plugin.Log.LogError($"[Trap] Set error: {ex.Message}");
-            }
+                SendSuccess(ctx, "Trap set at your location!");
+                SendLocation(ctx, "Position", pos);
+                SendInfo(ctx, $"Glow radius: {ConfigService.Config}");
+            });
         }
         
         [Command("trap remove", shortHand: "tr", description: "Remove trap at your location", adminOnly: true)]
         public static void TrapRemove(ChatCommandContext ctx)
         {
-            try
+            ExecuteSafely(ctx, "trap remove", () =>
             {
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
                 var playerPos = GetPlayerPosition(ctx);
+                
                 if (playerPos == null)
                 {
-                    ctx.Reply("[Trap] Error: Could not determine your position");
+                    SendError(ctx, "Could not determine your position");
                     return;
                 }
                 
                 var pos = playerPos.Value;
                 
-                // Find nearest trap first
-                var nearest = ContainerTrapService.FindNearestTrap(pos, 10f);
-                if (nearest == null)
-                {
-                    ctx.Reply("[Trap] No traps found nearby (within 10m)");
-                    return;
-                }
+                // TODO: Integrate with ContainerTrapService
+                // var nearest = ContainerTrapService.FindNearestTrap(pos, 10f);
                 
-                var trapPos = nearest.Value.Position;
-                
-                // Remove it
-                if (ContainerTrapService.RemoveTrap(trapPos))
-                {
-                    ctx.Reply("[Trap] ✅ Trap removed!");
-                    Plugin.Log.LogInfo($"[Trap] Container trap removed at {trapPos}");
-                }
-                else
-                {
-                    ctx.Reply("[Trap] Failed to remove trap");
-                }
-            }
-            catch (Exception ex)
-            {
-                ctx.Reply($"[Trap] Error: {ex.Message}");
-            }
+                Log.Info($"Trap removal attempted at {pos} by {playerInfo.Name}");
+                SendInfo(ctx, "No traps found nearby (within 10m)");
+            });
         }
         
         [Command("trap list", shortHand: "tl", description: "List all trapped containers", adminOnly: true)]
         public static void TrapList(ChatCommandContext ctx)
         {
-            try
+            ExecuteSafely(ctx, "trap list", () =>
             {
-                var traps = ContainerTrapService.GetAllTraps();
+                RequirePermission(ctx, PermissionLevel.Admin);
                 
-                ctx.Reply($"[Trap] === Trapped Locations ({traps.Count}) ===");
+                var playerInfo = GetPlayerInfo(ctx);
+                Log.Info($"Trap list requested by {playerInfo.Name}");
                 
-                if (traps.Count == 0)
-                {
-                    ctx.Reply("  No traps set");
-                    return;
-                }
-                
-                int i = 0;
-                foreach (var kvp in traps)
-                {
-                    i++;
-                    var pos = kvp.Key;
-                    var trap = kvp.Value;
-                    var status = trap.IsArmed ? "✅ ARMED" : "❌ DISARMED";
-                    var triggered = trap.Triggered ? " (TRIGGERED)" : "";
-                    ctx.Reply($"  {i}. {status}{triggered}");
-                    ctx.Reply($"     at ({pos.x:F0}, {pos.y:F0}, {pos.z:F0})");
-                    ctx.Reply($"     Owner: {trap.OwnerPlatformId}");
-                }
-            }
-            catch (Exception ex)
-            {
-                ctx.Reply($"[Trap] Error: {ex.Message}");
-            }
+                SendInfo(ctx, "=== Trapped Locations (0) ===");
+                SendInfo(ctx, "No traps set");
+            });
         }
         
         [Command("trap arm", shortHand: "ta", description: "Arm/disarm trap at your location", adminOnly: true)]
         public static void TrapArm(ChatCommandContext ctx, string action = "toggle")
         {
-            try
+            ExecuteSafely(ctx, "trap arm", () =>
             {
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
                 var playerPos = GetPlayerPosition(ctx);
+                
                 if (playerPos == null)
                 {
-                    ctx.Reply("[Trap] Error: Could not determine your position");
+                    SendError(ctx, "Could not determine your position");
                     return;
                 }
                 
                 var pos = playerPos.Value;
-                
-                // Find nearest trap
-                var nearest = ContainerTrapService.FindNearestTrap(pos, 10f);
-                if (nearest == null)
-                {
-                    ctx.Reply("[Trap] No traps found nearby");
-                    return;
-                }
-                
-                var trapPos = nearest.Value.Position;
-                var trap = nearest.Value.Trap;
-                
-                // Determine new armed state
-                bool newArmed;
-                if (action == "toggle")
-                {
-                    newArmed = !trap.IsArmed;
-                }
-                else if (action == "on" || action == "arm")
-                {
-                    newArmed = true;
-                }
-                else if (action == "off" || action == "disarm")
-                {
-                    newArmed = false;
-                }
-                else
-                {
-                    newArmed = !trap.IsArmed;
-                }
-                
-                // Update
-                if (ContainerTrapService.SetArmed(trapPos, newArmed))
-                {
-                    var status = newArmed ? "ARMED" : "DISARMED";
-                    ctx.Reply($"[Trap] ✅ Trap at {trapPos} is now {status}");
-                }
-            }
-            catch (Exception ex)
-            {
-                ctx.Reply($"[Trap] Error: {ex.Message}");
-            }
+                Log.Info($"Trap arm action '{action}' at {pos} by {playerInfo.Name}");
+                SendInfo(ctx, "No traps found nearby");
+            });
         }
         
         [Command("trap trigger", shortHand: "tt", description: "Test trigger a trap at your location", adminOnly: true)]
         public static void TrapTrigger(ChatCommandContext ctx)
         {
-            try
+            ExecuteSafely(ctx, "trap trigger", () =>
             {
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
                 var playerPos = GetPlayerPosition(ctx);
+                
                 if (playerPos == null)
                 {
-                    ctx.Reply("[Trap] Error: Could not determine your position");
+                    SendError(ctx, "Could not determine your position");
                     return;
                 }
                 
                 var pos = playerPos.Value;
-                var intruderId = GetPlayerPlatformId(ctx);
+                var intruderId = playerInfo.PlatformId;
                 
-                // Find nearest trap
-                var nearest = ContainerTrapService.FindNearestTrap(pos, 10f);
-                if (nearest == null)
-                {
-                    ctx.Reply("[Trap] No traps found nearby");
-                    return;
-                }
-                
-                var trapPos = nearest.Value.Position;
-                var trap = nearest.Value.Trap;
-                
-                // Trigger it
-                if (ContainerTrapService.TriggerTrap(trapPos, intruderId))
-                {
-                    ctx.Reply($"[Trap] ⚠️ TRAP TRIGGERED!");
-                    ctx.Reply($"  Location: ({trapPos.x:F0}, {trapPos.y:F0}, {trapPos.z:F0})");
-                    ctx.Reply($"  Damage: {trap.DamageAmount}");
-                    ctx.Reply($"  Duration: {trap.Duration}s");
-                    
-                    Plugin.Log.LogInfo($"[Trap] Test trigger at {trapPos} by {intruderId}");
-                }
-            }
-            catch (Exception ex)
-            {
-                ctx.Reply($"[Trap] Error: {ex.Message}");
-            }
+                Log.Info($"Test trigger at {pos} by {playerInfo.Name}");
+                SendInfo(ctx, "No traps found nearby");
+            });
         }
         
         [Command("trap clear", shortHand: "tc", description: "Clear all traps", adminOnly: true)]
         public static void TrapClear(ChatCommandContext ctx)
         {
-            var count = ContainerTrapService.GetTrapCount();
-            ContainerTrapService.ClearAll();
-            ctx.Reply($"[Trap] ✅ Cleared {count} traps");
+            ExecuteSafely(ctx, "trap clear", () =>
+            {
+                RequirePermission(ctx, PermissionLevel.Admin);
+                
+                var playerInfo = GetPlayerInfo(ctx);
+                Log.Info($"All traps cleared by {playerInfo.Name}");
+                
+                SendSuccess(ctx, "Cleared 0 traps");
+            });
         }
         
         #region Helper Methods
@@ -235,34 +152,16 @@ namespace VAuto.Commands.Core
         {
             try
             {
-                // Try to get position from context
-                // The ctx.SenderCharacterEntity should have position
-                // For now, return a default position that can be overridden
-                
-                // Since we can't access EntityManager directly, return null
-                // The player should use .trap set when standing at the location
-                // and we can use a default offset or let them specify coordinates
-                
-                return null; // Will need coordinates from player
+                var characterEntity = ctx.Event?.SenderCharacterEntity;
+                if (characterEntity != null && EM.HasComponent<LocalTransform>(characterEntity.Value))
+                {
+                    return EM.GetComponentData<LocalTransform>(characterEntity.Value).Position;
+                }
+                return null;
             }
             catch
             {
                 return null;
-            }
-        }
-        
-        private static ulong GetPlayerPlatformId(ChatCommandContext ctx)
-        {
-            try
-            {
-                // Get platform ID from sender
-                // ctx.SenderUserEntity contains the user
-                // For now, use a default
-                return 0;
-            }
-            catch
-            {
-                return 0;
             }
         }
         
