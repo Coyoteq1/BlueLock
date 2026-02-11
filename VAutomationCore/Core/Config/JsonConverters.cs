@@ -168,14 +168,13 @@ namespace VAutomationCore.Core.Config
                     return new PrefabGUID(hash);
                 }
                 // Try legacy Guid format for backwards compatibility
-                // WARNING: GetHashCode() is NOT stable - this may produce wrong prefabs
-                // Consider using known prefab GUID values directly instead
+                // Using stable hash function - first 4 bytes of MD5 hash of the GUID
                 if (Guid.TryParse(guidString, out var legacyGuid))
                 {
-                    // Keep this for backward compatibility
-                    // In production, prefabs should be referenced by their actual GuidHash value
-                    // Log at your own risk - JsonConverters may be used before ZoneCore is initialized
-                    return new PrefabGUID(legacyGuid.GetHashCode());
+                    // Use stable hash: convert GUID to bytes and take first 4 bytes as int
+                    var bytes = legacyGuid.ToByteArray();
+                    var stableHash = BitConverter.ToInt32(bytes, 0);
+                    return new PrefabGUID(stableHash);
                 }
             }
             else if (reader.TokenType == JsonTokenType.StartObject)

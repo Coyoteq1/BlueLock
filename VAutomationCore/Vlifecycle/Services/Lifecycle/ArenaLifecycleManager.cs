@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using BepInEx.Logging;
 using ProjectM;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using VAuto.Core.Patterns;
@@ -25,6 +26,12 @@ namespace VAuto.Core.Lifecycle
         public ManualLogSource Log { get; private set; }
         public new bool IsInitialized { get; private set; }
         public int ServiceCount => _lifecycleStages.Count;
+
+        // ECS Tracking
+        private ZoneTrackingHelper _zoneTrackingHelper;
+        private bool _ecsTrackingEnabled;
+        private float _lastUpdateTime;
+        private readonly float _updateInterval = 0.1f; // 10 updates per second
 
         public ArenaLifecycleManager()
         {
@@ -54,12 +61,110 @@ namespace VAuto.Core.Lifecycle
         }
 
         /// <summary>
+        /// Enable ECS-based zone tracking for autonomous detection.
+        /// </summary>
+        public void EnableECSTracking()
+        {
+            if (_ecsTrackingEnabled) return;
+            
+            try
+            {
+                _zoneTrackingHelper = new ZoneTrackingHelper(VAutoCore.EntityManager, new CoreLogger("ZoneTracking"));
+                _zoneTrackingHelper.Initialize();
+                
+                // Subscribe to zone transition events
+                _zoneTrackingHelper.OnPlayerEnterLifecycleZone += OnPlayerEnterLifecycleZoneHandler;
+                _zoneTrackingHelper.OnPlayerExitLifecycleZone += OnPlayerExitLifecycleZoneHandler;
+                
+                _ecsTrackingEnabled = true;
+                Log?.LogInfo($"{_logPrefix} ECS zone tracking enabled");
+            }
+            catch (Exception ex)
+            {
+                Log?.LogError($"{_logPrefix} Failed to enable ECS tracking: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Disable ECS-based zone tracking.
+        /// </summary>
+        public void DisableECSTracking()
+        {
+            if (!_ecsTrackingEnabled) return;
+            
+            if (_zoneTrackingHelper != null)
+            {
+                _zoneTrackingHelper.OnPlayerEnterLifecycleZone -= OnPlayerEnterLifecycleZoneHandler;
+                _zoneTrackingHelper.OnPlayerExitLifecycleZone -= OnPlayerExitLifecycleZoneHandler;
+                _zoneTrackingHelper.Dispose();
+                _zoneTrackingHelper = null;
+            }
+            
+            _ecsTrackingEnabled = false;
+            Log?.LogInfo($"{_logPrefix} ECS zone tracking disabled");
+        }
+
+        /// <summary>
+        /// ECS update loop - called every frame for autonomous zone detection.
+        /// </summary>
+        public void UpdateECS(double currentTime)
+        {
+            if (!_ecsTrackingEnabled) return;
+            
+            // Throttle updates to reduce CPU usage
+            if (currentTime - _lastUpdateTime < _updateInterval) return;
+            _lastUpdateTime = currentTime;
+            
+            try
+            {
+                _zoneTrackingHelper?.UpdateTracking();
+            }
+            catch (Exception ex)
+            {
+                Log?.LogError($"{_logPrefix} ECS update failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Register a zone for ECS tracking.
+        /// </summary>
+        public void RegisterZoneForTracking(Entity zoneEntity, float3 center, float radius, string zoneId, bool isLifecycleZone)
+        {
+            _zoneTrackingHelper?.RegisterZone(zoneEntity, center, radius, zoneId, isLifecycleZone);
+        }
+
+        private void OnPlayerEnterLifecycleZoneHandler(Entity player, Entity zone)
+        {
+            Log?.LogInfo($"{_logPrefix} Player {player} entered lifecycle zone {zone}");
+            
+            // Trigger enter lifecycle actions
+            TriggerLifecycleStage("onEnterLifecycleZone", new LifecycleContext
+            {
+                CharacterEntity = player,
+                Position = _zoneTrackingHelper?.GetPlayerPosition(player) ?? default
+            });
+        }
+
+        private void OnPlayerExitLifecycleZoneHandler(Entity player, Entity zone)
+        {
+            Log?.LogInfo($"{_logPrefix} Player {player} exited lifecycle zone {zone}");
+            
+            // Trigger exit lifecycle actions
+            TriggerLifecycleStage("onExitLifecycleZone", new LifecycleContext
+            {
+                CharacterEntity = player,
+                Position = _zoneTrackingHelper?.GetPlayerPosition(player) ?? default
+            });
+        }
+
+        /// <summary>
         /// Shutdown the arena lifecycle manager
         /// </summary>
         public void Shutdown()
         {
             if (!IsInitialized) return;
             
+            DisableECSTracking();
             _lifecycleStages.Clear();
             _actionHandlers.Clear();
             IsInitialized = false;
@@ -215,6 +320,28 @@ namespace VAuto.Core.Lifecycle
                     new LifecycleAction { Type = "message", Message = "Exiting Arena Zone..." }
                 }
             };
+
+            // Phase 2-3: Spellbook lifecycle stages
+            _lifecycleStages["onEnterLifecycleZone"] = new LifecycleStage
+            {
+                Name = "onEnterLifecycleZone",
+                Description = "Triggered when player enters any lifecycle zone",
+                Actions = new List<LifecycleAction>
+                {
+                    new LifecycleAction { Type = "spellbookgrant" },
+                    new LifecycleAction { Type = "vbloodunlock" }
+                }
+            };
+
+            _lifecycleStages["onExitLifecycleZone"] = new LifecycleStage
+            {
+                Name = "onExitLifecycleZone",
+                Description = "Triggered when player exits any lifecycle zone",
+                Actions = new List<LifecycleAction>
+                {
+                    new LifecycleAction { Type = "spellbookrestore" }
+                }
+            };
         }
 
         /// <summary>
@@ -234,6 +361,10 @@ namespace VAuto.Core.Lifecycle
             _actionHandlers["resetcooldowns"] = new ResetCooldownsHandler();
             _actionHandlers["teleport"] = new TeleportHandler();
             _actionHandlers["gameplayevent"] = new CreateGameplayEventHandler();
+            
+            // Phase 2-3: Automation handlers
+            _actionHandlers["vbloodunlock"] = new AutoVBloodUnlockHandler();
+            _actionHandlers["spellbookgrant"] = new AutoSpellbookGrantHandler();
         }
 
         #region Test Methods

@@ -91,12 +91,22 @@ namespace VAutomationCore.Core.Logging
 
         #region Static Methods
 
-        private static readonly ManualLogSource _staticLog = Plugin.Log;
+        private static ManualLogSource? _staticLog;
+        private static bool _isInitialized;
         
         /// <summary>
         /// Gets whether the CoreLogger has been initialized.
         /// </summary>
-        public static bool IsInitialized { get; private set; } = true;
+        public static bool IsInitialized => _isInitialized;
+        
+        /// <summary>
+        /// Initialize the static logger with a log source.
+        /// </summary>
+        public static void Initialize(ManualLogSource logSource)
+        {
+            _staticLog = logSource ?? throw new ArgumentNullException(nameof(logSource));
+            _isInitialized = true;
+        }
 
         /// <summary>
         /// Logs an informational message statically.

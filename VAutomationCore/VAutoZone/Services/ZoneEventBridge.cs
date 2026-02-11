@@ -7,16 +7,27 @@ using VAuto.Zone.Models;
 namespace VAuto.Zone.Services
 {
     /// <summary>
-    /// Stub implementation - Zone event bridge for player zone transitions.
+    /// Zone event bridge for player zone transitions.
+    /// Provides event publishing with delegate pattern for cross-plugin communication.
     /// </summary>
     public static class ZoneEventBridge
     {
-        // Player zone state storage - in-memory only for this stub
+        /// <summary>
+        /// Event fired when a player enters a zone.
+        /// </summary>
+        public static event Action<Entity, string>? OnPlayerEntered;
+
+        /// <summary>
+        /// Event fired when a player exits a zone.
+        /// </summary>
+        public static event Action<Entity, string>? OnPlayerExited;
+
+        // Player zone state storage - in-memory only for this implementation
         private static readonly Dictionary<Entity, PlayerZoneState> _playerStates = new Dictionary<Entity, PlayerZoneState>();
 
         public static void Initialize()
         {
-            ZoneCore.LogInfo("[ZoneEventBridge] Initialized (stub)");
+            ZoneCore.LogInfo("[ZoneEventBridge] Initialized");
         }
 
         public static void PublishPlayerEntered(Entity player, string zoneId)
@@ -31,6 +42,9 @@ namespace VAuto.Zone.Services
             state.WasInZone = true;
             state.EnteredAt = DateTime.UtcNow;
             ZoneCore.LogInfo($"[ZoneEventBridge] Player entered zone: {zoneId}");
+            
+            // Fire event for subscribers
+            OnPlayerEntered?.Invoke(player, zoneId);
         }
 
         public static void PublishPlayerExited(Entity player, string zoneId)
@@ -42,6 +56,9 @@ namespace VAuto.Zone.Services
                 state.ExitedAt = DateTime.UtcNow;
                 ZoneCore.LogInfo($"[ZoneEventBridge] Player exited zone: {zoneId}");
             }
+            
+            // Fire event for subscribers
+            OnPlayerExited?.Invoke(player, zoneId);
         }
 
         public static PlayerZoneState GetPlayerState(Entity player)

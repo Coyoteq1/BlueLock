@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VAuto Unified Configuration",
+  "version": "1.0.0",
+  "description": "Master configuration file for all VAuto plugins",
+  
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration schema version"
+    },
+    "core": {
+      "type": "object",
+      "description": "Core settings shared across all plugins",
+      "properties": {
+        "enableLogging": { "type": "boolean", "default": true },
+        "logLevel": { "type": "string", "enum": ["Debug", "Info", "Warning", "Error"], "default": "Info" },
+        "apiEnabled": { "type": "boolean", "default": true },
+        "apiPort": { "type": "integer", "minimum": 1024, "maximum": 65535, "default": 8080 }
+      }
+    },
+    "vlifecycle": {
+      "type": "object",
+      "description": "Vlifecycle plugin settings",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "arena": {
+          "type": "object",
+          "properties": {
+            "saveInventory": { "type": "boolean", "default": true },
+            "restoreInventory": { "type": "boolean", "default": true },
+            "saveBuffs": { "type": "boolean", "default": true },
+            "restoreBuffs": { "type": "boolean", "default": true },
+            "clearArenaBuffsOnExit": { "type": "boolean", "default": true },
+            "resetAbilityCooldowns": { "type": "boolean", "default": true },
+            "resetCooldownsOnExit": { "type": "boolean", "default": true }
+          }
+        },
+        "playerState": {
+          "type": "object",
+          "properties": {
+            "saveEquipment": { "type": "boolean", "default": true },
+            "saveBlood": { "type": "boolean", "default": true },
+            "saveSpells": { "type": "boolean", "default": true },
+            "saveHealth": { "type": "boolean", "default": true },
+            "restoreHealth": { "type": "boolean", "default": true }
+          }
+        },
+        "transitions": {
+          "type": "object",
+          "properties": {
+            "enterDelayMs": { "type": "integer", "default": 0 },
+            "exitDelayMs": { "type": "integer", "default": 0 },
+            "lockMovementDuringTransition": { "type": "boolean", "default": false },
+            "showTransitionMessages": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    },
+    "vautozone": {
+      "type": "object",
+      "description": "VAutoZone plugin settings",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "glowZones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "enabled": { "type": "boolean", "default": true },
+              "center": { "$ref": "#/definitions/vec3" },
+              "radius": { "type": "number" },
+              "borderSpacing": { "type": "number", "default": 5 },
+              "glowPrefabs": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "rotation": {
+                "type": "object",
+                "properties": {
+                  "enabled": { "type": "boolean", "default": false },
+                  "intervalSeconds": { "type": "integer", "default": 120 },
+                  "mode": { "type": "string", "enum": ["sequential", "random"], "default": "sequential" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "vautotraps": {
+      "type": "object",
+      "description": "VAutoTraps plugin settings",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "killThreshold": { "type": "integer", "default": 5 },
+        "chestsPerSpawn": { "type": "integer", "default": 2 },
+        "containerGlowRadius": { "type": "number", "default": 5 },
+        "waypointTrapThreshold": { "type": "integer", "default": 10 },
+        "waypointTrapGlowRadius": { "type": "number", "default": 8 },
+        "notificationEnabled": { "type": "boolean", "default": true },
+        "trapDamageAmount": { "type": "number", "default": 50 },
+        "trapDuration": { "type": "number", "default": 30 },
+        "enableWaypointTraps": { "type": "boolean", "default": true }
+      }
+    }
+  },
+  
+  "definitions": {
+    "vec3": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}
