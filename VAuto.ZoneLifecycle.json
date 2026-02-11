@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "checkIntervalMs": 100,
+  "positionChangeThreshold": 1.0,
+  "mappings": {
+    "arena_main": {
+      "onEnter": [ "store" ],
+      "onExit": [ "message" ],
+      "useGlobalDefaults": false
+    },
+    "arena_pvp_1": {
+      "onEnter": [ "store" ],
+      "onExit": [ "message" ],
+      "useGlobalDefaults": false
+    },
+    "*": {
+      "onEnter": [],
+      "onExit": [],
+      "useGlobalDefaults": false
+    }
+  }
+}

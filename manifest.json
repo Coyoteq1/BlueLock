@@ -1,0 +1,11 @@
+{
+  "name": "BlueLock",
+  "version_number": "1.0.1",
+  "website_url": "https://github.com/Coyoteq1/BlueLock",
+  "description": "BlueLock controls zone-based gameplay and can lock players in an arena until they win.",
+  "dependencies": [
+    "deca-VampireCommandFramework-0.10.4",
+    "Coyoteq1-VAutomationCore-1.0.0",
+    "Coyoteq1-CycleBorn-1.0.0"
+  ]
+}
