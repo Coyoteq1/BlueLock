@@ -1,298 +1,184 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using ProjectM;
-using Stunlock.Core;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using VAuto.Zone.Core;
 using VAuto.Zone.Models;
+using VAuto.Zone.Services;
+using Stunlock.Core;
 
 namespace VAuto.Zone.Services
 {
     public static class GlowTileService
     {
-        private const string TemplateType = "glowTM";
-        private const int MaxTileEntities = 500;
+        private static readonly Dictionary<string, List<Entity>> SpawnedGlowTiles = new(StringComparer.OrdinalIgnoreCase);
 
-        public static TemplateSpawnResult SpawnGlowTiles(string zoneId, EntityManager em)
+        public static void PrepareForZoneActivation(string zoneId, EntityManager em)
         {
-            var result = new TemplateSpawnResult
-            {
-                ZoneId = zoneId,
-                TemplateType = TemplateType
-            };
-
-            if (em == default || em.World == null || !em.World.IsCreated)
-            {
-                result.Error = "EntityManager world not ready";
-                return result;
-            }
-
-            var zone = ZoneConfigService.GetZoneById(zoneId);
-            if (zone == null)
-            {
-                result.Error = $"Zone '{zoneId}' not found";
-                return result;
-            }
-
-            if (!zone.GlowTileEnabled)
-            {
-                result.Error = "Glow tiles are disabled for this zone";
-                return result;
-            }
-
-            if (ZoneTemplateRegistry.IsSpawned(zoneId, TemplateType))
-            {
-                result.Success = true;
-                result.Status = "AlreadySpawned";
-                return result;
-            }
-
-            if (!TryResolveGlowPrefab(zone, out var prefabEntity, out var prefabToken))
-            {
-                result.Error = $"Glow tile prefab not configured or unavailable (zone={zone.Id}, glowTilePrefab='{zone.GlowTilePrefab}', glowTilePrefabId={zone.GlowTilePrefabId}, glowPrefab='{zone.GlowPrefab}', glowPrefabId={zone.GlowPrefabId})";
-                return result;
-            }
-
-            var centerY = zone.CenterY + zone.GlowTileHeightOffset;
-            var positions = GenerateGlowTilePositions(zone);
-            if (positions.Count == 0)
-            {
-                result.Error = "No glow tile positions generated";
-                return result;
-            }
-
-            var spawned = new List<Entity>();
-            foreach (var (x, y, z) in positions)
-            {
-                var point = new float3(x, y, z);
-                var entity = em.Instantiate(prefabEntity);
-                if (entity == Entity.Null || !em.Exists(entity))
-                {
-                    continue;
-                }
-
-                TrySetTranslation(em, entity, point);
-                spawned.Add(entity);
-            }
-
-            if (spawned.Count == 0)
-            {
-                result.Error = "Failed to spawn glow tiles";
-                return result;
-            }
-
-            result.Entities = spawned;
-            result.TemplateName = prefabToken;
-            result.Success = true;
-
-            var metadata = new TemplateSpawnMetadata
-            {
-                SpawnedAt = DateTime.UtcNow,
-                EntityCount = spawned.Count,
-                TemplateName = prefabToken,
-                OriginPosition = new float3(zone.CenterX, centerY, zone.CenterZ),
-                Rotation = quaternion.identity
-            };
-
-            if (!ZoneTemplateRegistry.RegisterEntities(zoneId, TemplateType, spawned, metadata))
-            {
-                foreach (var entity in spawned)
-                {
-                    if (em.Exists(entity))
-                    {
-                    em.DestroyEntity(entity);
-                    }
-                }
-
-                result.Success = false;
-                result.Error = "Glow tile spawn would exceed registry limits";
-                result.Entities.Clear();
-            }
-
-            return result;
+            ClearZoneGlow(zoneId, em);
         }
 
         public static TemplateSpawnResult TryAutoSpawnGlowTiles(ZoneDefinition zone, EntityManager em)
         {
             if (zone == null)
             {
-                return new TemplateSpawnResult { Success = false, Error = "Zone definition missing" };
+                return TemplateFailure(zone?.Id ?? string.Empty, "Zone definition missing");
             }
 
             if (!zone.GlowTileEnabled)
             {
-                return new TemplateSpawnResult { Success = false, Error = $"Glow tiles disabled for zone '{zone.Id}'" };
-            }
-
-            if (!zone.GlowTileAutoSpawnOnEnter)
-            {
-                return new TemplateSpawnResult { Success = false, Error = $"Auto spawn disabled for zone '{zone.Id}'" };
+                return TemplateFailure(zone.Id, "Glow tiles disabled");
             }
 
             return SpawnGlowTiles(zone.Id, em);
         }
 
+        public static TemplateSpawnResult SpawnGlowTiles(string zoneId, EntityManager em)
+        {
+            if (string.IsNullOrWhiteSpace(zoneId))
+            {
+                return TemplateFailure(string.Empty, "Zone id missing");
+            }
+
+            var zone = ZoneConfigService.GetZoneById(zoneId);
+            if (zone == null)
+            {
+                return TemplateFailure(zoneId, "Zone not found");
+            }
+
+            if (!zone.GlowTileEnabled)
+            {
+                return TemplateFailure(zone.Id, "Glow tiles disabled");
+            }
+
+            var prefab = ResolveGlowPrefab(zone, out var resolveError);
+            if (prefab == Entity.Null)
+            {
+                return TemplateFailure(zone.Id, $"Glow prefab unavailable: {resolveError}");
+            }
+
+            var spacing = zone.GlowTileSpacing > 0 ? zone.GlowTileSpacing : 3f;
+            var borderPoints = GlowTileGeometry.GetZoneBorderPoints(zone, spacing);
+            if (borderPoints.Count == 0)
+            {
+                return TemplateFailure(zone.Id, "No border points generated");
+            }
+
+            var height = zone.CenterY + zone.GlowSpawnHeight + zone.GlowTileHeightOffset;
+            ClearZoneGlow(zone.Id, em);
+
+            var spawned = new List<Entity>();
+            foreach (var point in borderPoints)
+            {
+                try
+                {
+                    var entity = em.Instantiate(prefab);
+                    if (entity == Entity.Null || !em.Exists(entity))
+                    {
+                        continue;
+                    }
+
+                    SetTranslation(em, entity, new float3(point.x, height, point.y));
+                    spawned.Add(entity);
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            if (spawned.Count > 0)
+            {
+                SpawnedGlowTiles[zone.Id] = spawned;
+            }
+
+            return new TemplateSpawnResult
+            {
+                Success = spawned.Count > 0,
+                ZoneId = zone.Id,
+                TemplateName = "GlowTiles",
+                Entities = spawned,
+                Status = spawned.Count > 0 ? "Glow border spawned" : "No entities spawned"
+            };
+        }
+
         public static int ClearGlowTiles(string zoneId, EntityManager em)
         {
-            if (em == default || em.World == null || !em.World.IsCreated)
+            return RemoveSpawned(zoneId, em);
+        }
+
+        public static TemplateSpawnResult ClearZoneGlow(string zoneId, EntityManager em)
+        {
+            var removed = RemoveSpawned(zoneId, em);
+            return new TemplateSpawnResult
+            {
+                Success = true,
+                ZoneId = zoneId,
+                TemplateName = "GlowTiles",
+                Entities = new List<Entity>(),
+                Status = removed > 0 ? "Glow cleared" : "No glow to clear"
+            };
+        }
+
+        private static int RemoveSpawned(string zoneId, EntityManager em)
+        {
+            if (string.IsNullOrWhiteSpace(zoneId) || !SpawnedGlowTiles.TryGetValue(zoneId, out var entities) || entities.Count == 0)
             {
                 return 0;
             }
 
-            if (!ZoneTemplateRegistry.TryGetEntities(zoneId, TemplateType, out var entities))
-            {
-                return 0;
-            }
-
-            var toDestroy = entities.ToList();
             var destroyed = 0;
-            foreach (var entity in toDestroy)
+            foreach (var entity in entities)
             {
-                if (em.Exists(entity))
+                if (entity == Entity.Null || !em.Exists(entity))
+                {
+                    continue;
+                }
+
+                try
                 {
                     em.DestroyEntity(entity);
                     destroyed++;
                 }
+                catch
+                {
+                    // ignore individual destroy errors
+                }
             }
 
-            ZoneTemplateRegistry.ClearZoneType(zoneId, TemplateType);
+            SpawnedGlowTiles.Remove(zoneId);
             return destroyed;
         }
 
-        public static void PrepareForZoneActivation(string zoneId, EntityManager em)
+        private static Entity ResolveGlowPrefab(ZoneDefinition zone, out string error)
         {
-            if (string.IsNullOrWhiteSpace(zoneId))
-            {
-                return;
-            }
-
-            ClearGlowTiles(zoneId, em);
-        }
-
-        public static void ClearZoneGlow(string zoneId, EntityManager em)
-        {
-            ClearGlowTiles(zoneId, em);
-        }
-
-        public static bool IsGlowTilesSpawned(string zoneId) => ZoneTemplateRegistry.IsSpawned(zoneId, TemplateType);
-
-        public static int GetGlowTileCount(string zoneId) => ZoneTemplateRegistry.GetEntityCount(zoneId, TemplateType);
-
-        private static bool TryResolveGlowPrefab(ZoneDefinition zone, out Entity prefabEntity, out string prefabToken)
-        {
-            prefabEntity = Entity.Null;
-            prefabToken = string.Empty;
-
-            if (TryResolveByGuid(zone.GlowTilePrefabId, out prefabEntity, out prefabToken))
-            {
-                return true;
-            }
-
-            if (TryResolveByName(zone.GlowTilePrefab, out prefabEntity, out prefabToken))
-            {
-                return true;
-            }
-
-            if (TryResolveByGuid(zone.GlowPrefabId, out prefabEntity, out prefabToken))
-            {
-                return true;
-            }
-
-            if (TryResolveByName(zone.GlowPrefab, out prefabEntity, out prefabToken))
-            {
-                return true;
-            }
-
-            // Final fallback: attach glow tiles to effective zone border prefab configuration.
-            var effectiveBorder = ZoneConfigService.GetEffectiveBorderConfig(zone);
-            if (effectiveBorder != null)
-            {
-                if (TryResolveByGuid(effectiveBorder.PrefabGuid, out prefabEntity, out prefabToken))
-                {
-                    prefabToken = "borderGuid:" + effectiveBorder.PrefabGuid;
-                    return true;
-                }
-
-                if (TryResolveByName(effectiveBorder.PrefabName, out prefabEntity, out prefabToken))
-                {
-                    prefabToken = "borderName:" + effectiveBorder.PrefabName;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool TryResolveByGuid(int guidHash, out Entity prefabEntity, out string prefabToken)
-        {
-            prefabEntity = Entity.Null;
-            prefabToken = string.Empty;
-            if (guidHash == 0)
-            {
-                return false;
-            }
-
-            var guid = new PrefabGUID(guidHash);
-            if (!ZoneCore.TryGetPrefabEntity(guid, out var resolved) || resolved == Entity.Null)
-            {
-                return false;
-            }
-
-            prefabEntity = resolved;
-            prefabToken = "GUID:" + guidHash;
-            return true;
-        }
-
-        private static bool TryResolveByName(string prefabName, out Entity prefabEntity, out string prefabToken)
-        {
-            prefabEntity = Entity.Null;
-            prefabToken = string.Empty;
-            if (string.IsNullOrWhiteSpace(prefabName))
-            {
-                return false;
-            }
-
-            var token = prefabName.Trim();
-            if (!ZoneCore.TryResolvePrefabEntity(token, out var resolvedGuid, out var resolvedEntity) || resolvedEntity == Entity.Null)
-            {
-                return false;
-            }
-
-            prefabEntity = resolvedEntity;
-            prefabToken = token;
-            return true;
-        }
-
-        public static List<(float x, float y, float z)> GenerateGlowTilePositions(ZoneDefinition zone)
-        {
+            error = string.Empty;
             if (zone == null)
             {
-                return new List<(float x, float y, float z)>();
+                error = "Zone definition missing";
+                return Entity.Null;
             }
 
-            var centerY = zone.CenterY + zone.GlowTileHeightOffset;
-            var positions = GlowTileGeometry.GeneratePoints(
-                zone.CenterX,
-                centerY,
-                zone.CenterZ,
-                zone.Radius,
-                zone.GlowTileSpacing,
-                zone.GlowTileRotationDegrees);
-
-            if (positions.Count > MaxTileEntities)
+            if (!string.IsNullOrWhiteSpace(zone.GlowTilePrefab))
             {
-                positions = positions.Take(MaxTileEntities).ToList();
+                if (ZoneCore.TryResolvePrefabEntity(zone.GlowTilePrefab, out _, out var prefab) && prefab != Entity.Null)
+                {
+                    return prefab;
+                }
+
+                error = $"Name '{zone.GlowTilePrefab}' not resolvable";
             }
 
-            return positions;
+            return ZoneCore.TryResolvePrefabEntity("PurpleCarpetsBuildMenuGroup01", out _, out var fallbackEntity) && fallbackEntity != Entity.Null
+                ? fallbackEntity
+                : Entity.Null;
         }
 
-        private static void TrySetTranslation(EntityManager em, Entity entity, float3 position)
+        private static void SetTranslation(EntityManager em, Entity entity, float3 position)
         {
-            if (entity == Entity.Null || em == default || !em.Exists(entity))
+            if (!em.Exists(entity))
             {
                 return;
             }
@@ -309,6 +195,17 @@ namespace VAuto.Zone.Services
                 translation.Value = position;
                 em.SetComponentData(entity, translation);
             }
+        }
+
+        private static TemplateSpawnResult TemplateFailure(string zoneId, string error)
+        {
+            return new TemplateSpawnResult
+            {
+                Success = false,
+                ZoneId = zoneId,
+                TemplateName = "GlowTiles",
+                Error = error
+            };
         }
     }
 }

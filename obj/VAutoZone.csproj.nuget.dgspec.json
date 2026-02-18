@@ -1,21 +1,21 @@
 {
   "format": 1,
   "restore": {
-    "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj": {}
+    "d:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj": {}
   },
   "projects": {
-    "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj": {
+    "d:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
+        "projectUniqueName": "d:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
         "projectName": "BlueLock",
-        "projectPath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
+        "projectPath": "d:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
         "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
-        "outputPath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\obj\\",
+        "outputPath": "d:\\VAutomationCore\\VAutomationCore\\Bluelock\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "D:\\VAutomationCore\\NuGet.Config",
-          "D:\\NuGet.Config",
+          "d:\\VAutomationCore\\NuGet.Config",
+          "d:\\NuGet.Config",
           "C:\\Users\\coyot.RWE\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
@@ -29,11 +29,11 @@
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {
-              "D:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj": {
-                "projectPath": "D:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj"
+              "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj": {
+                "projectPath": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj"
               },
-              "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
-                "projectPath": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj"
+              "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
+                "projectPath": "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj"
               }
             }
           }
@@ -77,18 +77,18 @@
         }
       }
     },
-    "D:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj": {
+    "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj",
+        "projectUniqueName": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj",
         "projectName": "Cycleborn",
-        "projectPath": "D:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj",
+        "projectPath": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj",
         "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
-        "outputPath": "D:\\VAutomationCore\\VAutomationCore\\CycleBorn\\obj\\",
+        "outputPath": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "D:\\VAutomationCore\\NuGet.Config",
-          "D:\\NuGet.Config",
+          "d:\\VAutomationCore\\NuGet.Config",
+          "d:\\NuGet.Config",
           "C:\\Users\\coyot.RWE\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
@@ -102,8 +102,8 @@
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {
-              "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
-                "projectPath": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj"
+              "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
+                "projectPath": "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj"
               }
             }
           }
@@ -160,18 +160,18 @@
         }
       }
     },
-    "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
+    "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj",
+        "projectUniqueName": "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj",
         "projectName": "VAutomationCore",
-        "projectPath": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj",
+        "projectPath": "d:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj",
         "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
-        "outputPath": "D:\\VAutomationCore\\VAutomationCore\\obj\\",
+        "outputPath": "d:\\VAutomationCore\\VAutomationCore\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "D:\\VAutomationCore\\NuGet.Config",
-          "D:\\NuGet.Config",
+          "d:\\VAutomationCore\\NuGet.Config",
+          "d:\\NuGet.Config",
           "C:\\Users\\coyot.RWE\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [

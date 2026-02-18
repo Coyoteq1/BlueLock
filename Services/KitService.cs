@@ -1487,7 +1487,7 @@ namespace VAuto.Zone.Services
     /// </summary>
     internal static class ArenaBuildExecutor
     {
-        private const string DefaultArenaBuildId = "brute";
+        private const string DefaultArenaBuildId = "arenabuild";
         private static readonly string[] GiveBuildPrefixes = { ".", string.Empty, "/" };
         private static readonly string[] GiveBuildCommandBases = { "give_build", "giveb", "givebuild" };
         private static readonly string[] ClearBuildCommandBases = { "clear_build", "clearb", "clearbuild" };
@@ -1548,7 +1548,18 @@ namespace VAuto.Zone.Services
 
         private static string ResolveBuildId(string zoneId)
         {
-            // Single default build for now; future: map zone->build via CFG.
+            // In ArenaBuild mode, allow using Zone KitId as build id when it looks like a build token.
+            // This keeps manual `.give_build <id>` and kit-triggered flow aligned.
+            var configured = ZoneConfigService.GetKitIdForZone(zoneId)?.Trim();
+            if (!string.IsNullOrWhiteSpace(configured))
+            {
+                // Ignore legacy/default kit-style ids (Kit1/Kit2/...) and keep ArenaBuild default.
+                if (!configured.StartsWith("Kit", StringComparison.OrdinalIgnoreCase))
+                {
+                    return configured;
+                }
+            }
+
             return DefaultArenaBuildId;
         }
 

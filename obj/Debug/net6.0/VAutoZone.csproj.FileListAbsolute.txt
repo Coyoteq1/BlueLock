@@ -1,6 +1,5 @@
 D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\Configuration\pvp_item.json
 D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\Configuration\pvp_item.toml
-D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\config\glow_zones.json
 D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\BlueLock.deps.json
 D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\BlueLock.dll
 D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\BlueLock.pdb
@@ -16,3 +15,7 @@ D:\VAutomationCore\VAutomationCore\Bluelock\obj\Debug\net6.0\BlueLock.dll
 D:\VAutomationCore\VAutomationCore\Bluelock\obj\Debug\net6.0\refint\BlueLock.dll
 D:\VAutomationCore\VAutomationCore\Bluelock\obj\Debug\net6.0\BlueLock.pdb
 D:\VAutomationCore\VAutomationCore\Bluelock\obj\Debug\net6.0\ref\BlueLock.dll
+D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\BepInEx.Preloader.Core.dll
+D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\MonoMod.Backports.dll
+D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\MonoMod.ILHelpers.dll
+D:\VAutomationCore\VAutomationCore\Bluelock\bin\Debug\net6.0\BepInEx.Preloader.Core.xml

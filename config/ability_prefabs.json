@@ -1,3 +1,31 @@
 {
-  "aliases": {}
+  "aliases": {
+    "Spell_VeilOfBlood": "AB_Vampire_VeilOfBlood_Group",
+    "Spell_VeilOfChaos": "AB_Vampire_VeilOfChaos_Group",
+    "Spell_VeilOfFrost": "AB_Vampire_VeilOfFrost_Group",
+    "Spell_VeilOfBones": "AB_Vampire_VeilOfBones_AbilityGroup",
+    "Spell_BloodRite": "AB_Blood_BloodRite_AbilityGroup"
+  },
+  "slotMappings": {
+    "slot0": {
+      "name": "T",
+      "prefabName": "AB_Vampire_VeilOfBlood_Group",
+      "description": "Veil of Blood - Heal & Sustain"
+    },
+    "slot1": {
+      "name": "C",
+      "prefabName": "AB_Vampire_VeilOfChaos_Group",
+      "description": "Veil of Chaos - Offensive Damage"
+    },
+    "slot2": {
+      "name": "R",
+      "prefabName": "AB_Vampire_VeilOfFrost_Group",
+      "description": "Veil of Frost - Crowd Control"
+    },
+    "slot3": {
+      "name": "SPACE",
+      "prefabName": "AB_Vampire_VeilOfBones_AbilityGroup",
+      "description": "Veil of Bones - Defensive Buff"
+    }
+  }
 }

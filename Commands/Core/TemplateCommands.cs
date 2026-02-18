@@ -94,56 +94,7 @@ namespace VAuto.Zone.Commands
             {
                 ctx.Reply($"  {kvp.Key}: {kvp.Value} entities");
             }
-
-            var glowCount = GlowTileService.GetGlowTileCount(zoneId);
-            var glowState = GlowTileService.IsGlowTilesSpawned(zoneId) ? "<color=#00FF00>spawned</color>" : "<color=#FF0000>not spawned</color>";
-            ctx.Reply($"  Glow tiles: {glowCount} ({glowState})");
-        }
-
-        [Command("glow", shortHand: "g", description: "Manage glow tiles for a zone", adminOnly: true)]
-        public static void GlowCommand(ChatCommandContext ctx, string action, string zoneId)
-        {
-            if (string.IsNullOrWhiteSpace(action) || string.IsNullOrWhiteSpace(zoneId))
-            {
-                ctx.Reply("<color=#FF0000>Error: Usage: .tm glow <spawn|clear|status> <zoneId></color>");
-                return;
-            }
-
-            switch (action.Trim().ToLowerInvariant())
-            {
-                case "spawn":
-                {
-                    var spawn = GlowTileService.SpawnGlowTiles(zoneId, EntityManager);
-                    if (spawn.Success)
-                    {
-                        ctx.Reply($"<color=#00FF00>Spawned {spawn.EntityCount} glow tiles in '{zoneId}'.</color>");
-                    }
-                    else
-                    {
-                        ctx.Reply($"<color=#FF0000>Glow spawn failed: {spawn.Error}</color>");
-                    }
-
-                    break;
-                }
-
-                case "clear":
-                {
-                    var destroyed = GlowTileService.ClearGlowTiles(zoneId, EntityManager);
-                    ctx.Reply($"<color=#FFD700>Cleared {destroyed} glow tiles in '{zoneId}'.</color>");
-                    break;
-                }
-
-                case "status":
-                    var spawnedGlow = GlowTileService.GetGlowTileCount(zoneId);
-                    var metadata = ZoneTemplateRegistry.GetMetadata(zoneId, "glowTM");
-                    var when = metadata?.SpawnedAt.ToString("u") ?? "N/A";
-                    ctx.Reply($"<color=#00FFFF>Glow tiles in '{zoneId}': {spawnedGlow} ({when})</color>");
-                    break;
-
-                default:
-                    ctx.Reply("<color=#FF0000>Error: Unknown glow action. Use spawn, clear, or status.</color>");
-                    break;
-            }
         }
     }
 }
+

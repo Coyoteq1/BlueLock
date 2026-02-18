@@ -11,7 +11,10 @@
           "Cycleborn": "1.0.0",
           "Lib.Harmony": "2.2.2",
           "VAutomationCore": "1.0.0",
-          "VRising.VampireCommandFramework": "0.10.4"
+          "VRising.VampireCommandFramework": "0.10.4",
+          "BepInEx.Preloader.Core": "6.0.0.0",
+          "MonoMod.Backports": "1.1.2.0",
+          "MonoMod.ILHelpers": "1.1.0.0"
         },
         "runtime": {
           "BlueLock.dll": {}
@@ -2424,6 +2427,30 @@
         "runtime": {
           "VAutomationCore.dll": {}
         }
+      },
+      "BepInEx.Preloader.Core/6.0.0.0": {
+        "runtime": {
+          "BepInEx.Preloader.Core.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.0.0"
+          }
+        }
+      },
+      "MonoMod.Backports/1.1.2.0": {
+        "runtime": {
+          "MonoMod.Backports.dll": {
+            "assemblyVersion": "1.1.2.0",
+            "fileVersion": "1.1.2.0"
+          }
+        }
+      },
+      "MonoMod.ILHelpers/1.1.0.0": {
+        "runtime": {
+          "MonoMod.ILHelpers.dll": {
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
       }
     }
   },
@@ -3203,6 +3230,21 @@
     },
     "VAutomationCore/1.0.0": {
       "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "BepInEx.Preloader.Core/6.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MonoMod.Backports/1.1.2.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MonoMod.ILHelpers/1.1.0.0": {
+      "type": "reference",
       "serviceable": false,
       "sha512": ""
     }

@@ -1,34 +1,32 @@
 {
-  "enabled": true,
-  "checkIntervalMs": 100,
-  "positionChangeThreshold": 1.0,
-  "mapIconSpawnRefreshIntervalSeconds": 10.0,
-  "mappings": {
-    "*": {
-      "onEnter": [
-        "capture_return_position",
-        "snapshot_save",
-        "zone_enter_message",
-        "apply_kit",
-        "teleport_enter",
-        "apply_templates",
-        "apply_abilities",
-        "glow_spawn",
-        "boss_enter",
-        "integration_events_enter",
-        "announce_enter"
-      ],
-      "onExit": [
-        "zone_exit_message",
-        "restore_kit_snapshot",
-        "restore_abilities",
-        "boss_exit",
-        "teleport_return",
-        "glow_reset",
-        "integration_events_exit"
-      ],
-      "useGlobalDefaults": false,
-      "mapIconChangePrefab": ""
-    }
-  }
+    "enabled":  true,
+    "checkIntervalMs":  100,
+    "positionChangeThreshold":  1.0,
+    "mapIconSpawnRefreshIntervalSeconds":  10.0,
+    "mappings":  {
+                     "*":  {
+                               "onEnter":  [
+                                               "capture_return_position",
+                                               "snapshot_save",
+                                               "zone_enter_message",
+                                               "apply_kit",
+                                               "teleport_enter",
+                                               "apply_templates",
+                                               "apply_abilities",
+                                               "boss_enter",
+                                               "integration_events_enter",
+                                               "announce_enter"
+                                           ],
+                               "onExit":  [
+                                              "zone_exit_message",
+                                              "restore_kit_snapshot",
+                                              "restore_abilities",
+                                              "boss_exit",
+                                              "teleport_return",
+                                              "integration_events_exit"
+                                          ],
+                               "useGlobalDefaults":  false,
+                               "mapIconChangePrefab":  ""
+                           }
+                 }
 }

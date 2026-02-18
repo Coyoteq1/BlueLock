@@ -203,6 +203,13 @@ namespace VAuto.Zone
                 // Load JSON configuration
                 LoadJsonConfiguration();
 
+                // Validate all configurations
+                var configValidation = ProcessConfigService.ValidateAllConfigs(Path.GetDirectoryName(_zonesConfigPath) ?? Paths.ConfigPath);
+                if (!configValidation.Success)
+                {
+                    Logger.LogWarning("[BlueLock] Configuration validation completed with errors - review log above");
+                }
+
                 // Check if enabled
                 if (GeneralEnabled != null && !GeneralEnabled.Value)
                 {
@@ -530,6 +537,10 @@ namespace VAuto.Zone
                     {
                         _lastConfigCheck = lastModified;
                         LoadJsonConfiguration();
+                        
+                        // Validate reloaded configurations
+                        var configValidation = ProcessConfigService.ValidateAllConfigs(Path.GetDirectoryName(_zonesConfigPath) ?? Paths.ConfigPath);
+                        
                         Logger.LogInfo("[BlueLock] Configuration hot-reloaded successfully");
                     }
                 }
@@ -972,7 +983,10 @@ namespace VAuto.Zone
                         {
                             if (glowBuffs.Length == 0)
                             {
-                                glowBuffs = GlowService.GetValidatedGlowBuffs();
+                        glowBuffs = GlowService.GetValidatedGlowBuffHashes()
+                            .Where(hash => hash != 0)
+                            .Select(hash => new PrefabGUID(hash))
+                            .ToArray();
                                 Logger.LogDebug($"[BlueLock] Loaded {glowBuffs.Length} glow buffs");
                             }
 
@@ -1418,9 +1432,13 @@ namespace VAuto.Zone
                 return false;
             }
 
-            if (GlowService.TryResolve(lookup, out guid))
+            if (GlowService.TryResolve(lookup, out var hash))
             {
-                return ZoneCore.TryGetPrefabEntity(guid, out prefabEntity);
+                if (hash != 0)
+                {
+                    guid = new PrefabGUID(hash);
+                    return ZoneCore.TryGetPrefabEntity(guid, out prefabEntity);
+                }
             }
 
             if (PrefabReferenceCatalog.TryResolve(lookup, out guid,
@@ -1456,11 +1474,12 @@ namespace VAuto.Zone
                 }
 
                 // Fallback to token/name resolution from zone config.
-                if (!string.IsNullOrWhiteSpace(zone.GlowPrefab) && GlowService.TryResolve(zone.GlowPrefab, out var resolved) && resolved != PrefabGUID.Empty)
+                if (!string.IsNullOrWhiteSpace(zone.GlowPrefab) && GlowService.TryResolve(zone.GlowPrefab, out var resolvedHash) && resolvedHash != 0)
                 {
-                    if (ZoneCore.TryGetPrefabEntity(resolved, out var entity) && entity != Entity.Null && em.Exists(entity) && IsBuffPrefab(em, entity))
+                    var resolvedGuid = new PrefabGUID(resolvedHash);
+                    if (ZoneCore.TryGetPrefabEntity(resolvedGuid, out var entity) && entity != Entity.Null && em.Exists(entity) && IsBuffPrefab(em, entity))
                     {
-                        glowGuid = resolved;
+                        glowGuid = resolvedGuid;
                         return true;
                     }
                 }
@@ -2131,21 +2150,39 @@ namespace VAuto.Zone
 
                 foreach (var template in templates)
                 {
-                    // Template placement can trigger spawn-chain side effects; skip InitializeNewSpawnChainSystem once to reduce racey transitions.
-                    // This mirrors common KindredSchematics mitigation patterns.
-                    Patches.SkipInitializeNewSpawnChainOnce = true;
-                    var zone = ZoneConfigService.GetZoneById(zoneId);
-                    var origin = zone != null
-                        ? new float3(zone.CenterX, zone.CenterY, zone.CenterZ)
-                        : float3.zero;
-                    var result = BuildingService.Instance.LoadTemplate(template, em, origin, 0f);
-                    if (!result.Success)
+                    var isSchematic = ZoneSchematicLoader.TryGetSchematicPath(template) != null ||
+                                      template.EndsWith(".schematic", StringComparison.OrdinalIgnoreCase);
+
+                    if (isSchematic)
                     {
-                        Logger.LogWarning($"[BlueLock] Zone '{zoneId}' template '{template}' failed: {result.Error}");
+                        var schematicResult = SchematicZoneService.ApplySchematicOnEnter(player, zoneId, template, em);
+                        if (!schematicResult.Success)
+                        {
+                            Logger.LogWarning($"[BlueLock] Zone '{zoneId}' schematic spawn failed: {schematicResult.Error}");
+                        }
+                        else
+                        {
+                            Logger.LogInfo($"[BlueLock] Zone '{zoneId}' applied schematic ({schematicResult.EntityCount} entities)");
+                        }
                     }
                     else
                     {
-                        Logger.LogInfo($"[BlueLock] Zone '{zoneId}' applied template '{template}'");
+                        // Template placement can trigger spawn-chain side effects; skip InitializeNewSpawnChainSystem once to reduce racey transitions.
+                        // This mirrors common KindredSchematics mitigation patterns.
+                        Patches.SkipInitializeNewSpawnChainOnce = true;
+                        var zone = ZoneConfigService.GetZoneById(zoneId);
+                        var origin = zone != null
+                            ? new float3(zone.CenterX, zone.CenterY, zone.CenterZ)
+                            : float3.zero;
+                        var result = BuildingService.Instance.LoadTemplate(template, em, origin, 0f);
+                        if (!result.Success)
+                        {
+                            Logger.LogWarning($"[BlueLock] Zone '{zoneId}' template '{template}' failed: {result.Error}");
+                        }
+                        else
+                        {
+                            Logger.LogInfo($"[BlueLock] Zone '{zoneId}' applied template '{template}'");
+                        }
                     }
                 }
             }
@@ -2374,7 +2411,8 @@ namespace VAuto.Zone
                     }
                     if (IsSandboxZone(zoneId))
                     {
-                        TryRunZoneEnterStep("DebugEventBridge.OnPlayerEnterZone", () => TryInvokeDebugEventBridge(true, player, zoneId));
+                        TryRunZoneEnterStep("DebugEventBridge.OnZoneEnterStart", () => VAuto.Core.Services.DebugEventBridge.OnZoneEnterStart(player, zoneId, ZoneConfigService.IsSandboxUnlockEnabled(zoneId, SandboxProgressionDefaultZoneUnlockEnabledValue)));
+                        TryRunZoneEnterStep("DebugEventBridge.OnPlayerEnterZone", () => VAuto.Core.Services.DebugEventBridge.OnPlayerEnterZone(player, ZoneConfigService.IsSandboxUnlockEnabled(zoneId, SandboxProgressionDefaultZoneUnlockEnabledValue)));
                     }
                     break;
                 case "announce_enter":
@@ -2427,7 +2465,7 @@ namespace VAuto.Zone
                     }
                     if (IsSandboxZone(zoneId))
                     {
-                        TryRunZoneExitStep("DebugEventBridge.OnPlayerExitZone", () => TryInvokeDebugEventBridge(false, player, zoneId));
+                        TryRunZoneExitStep("DebugEventBridge.OnPlayerExitZone", () => VAuto.Core.Services.DebugEventBridge.OnPlayerExitZone(player, ZoneConfigService.IsSandboxUnlockEnabled(zoneId, SandboxProgressionDefaultZoneUnlockEnabledValue)));
                     }
                     break;
                 case "announce_exit":
@@ -2901,22 +2939,7 @@ namespace VAuto.Zone
                     "OnPlayerIsInZone",
                     BindingFlags.Public | BindingFlags.Static,
                     null,
-                    new[] { typeof(Entity), typeof(bool) },
-                    null);
-
-                if (method != null)
-                {
-                    Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnPlayerIsInZone(entity={characterEntity.Index}:{characterEntity.Version}, enableUnlock={zoneUnlockEnabled})");
-                    method.Invoke(null, new object[] { characterEntity, zoneUnlockEnabled });
-                    Logger.LogInfo($"[BlueLock] DebugEventBridge.OnPlayerIsInZone completed");
-                    return;
-                }
-
-                method = bridgeType.GetMethod(
-                    "OnPlayerIsInZone",
-                    BindingFlags.Public | BindingFlags.Static,
-                    null,
-                    new[] { typeof(Entity) },
+                    new[] { typeof(Entity), typeof(string), typeof(bool) },
                     null);
 
                 if (method == null)
@@ -2925,8 +2948,8 @@ namespace VAuto.Zone
                     return;
                 }
 
-                Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnPlayerIsInZone(entity={characterEntity.Index}:{characterEntity.Version})");
-                method.Invoke(null, new object[] { characterEntity });
+                Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnPlayerIsInZone(entity={characterEntity.Index}:{characterEntity.Version}, zone='{zoneId}', enableUnlock={zoneUnlockEnabled})");
+                method.Invoke(null, new object[] { characterEntity, zoneId, zoneUnlockEnabled });
                 Logger.LogInfo($"[BlueLock] DebugEventBridge.OnPlayerIsInZone completed");
             }
             catch (Exception ex)

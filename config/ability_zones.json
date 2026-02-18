@@ -1,6 +1,51 @@
 {
   "zones": [
     {
+      "zoneId": "1",
+      "resetCooldownsOnEnter": true,
+      "resetCooldownsOnExit": false,
+      "saveAndRestoreSlots": true,
+      "saveAndRestoreCooldowns": true,
+      "presetSlots": [
+        "AB_Vampire_VeilOfBlood_Group",
+        "AB_Vampire_VeilOfChaos_Group",
+        "AB_Vampire_VeilOfFrost_Group",
+        "AB_Vampire_VeilOfBones_AbilityGroup"
+      ],
+      "restrictedAbilities": [],
+      "allowedAbilities": []
+    },
+    {
+      "zoneId": "2",
+      "resetCooldownsOnEnter": true,
+      "resetCooldownsOnExit": false,
+      "saveAndRestoreSlots": true,
+      "saveAndRestoreCooldowns": true,
+      "presetSlots": [
+        "AB_Vampire_VeilOfBlood_Group",
+        "AB_Vampire_VeilOfChaos_Group",
+        "AB_Vampire_VeilOfFrost_Group",
+        "AB_Vampire_VeilOfBones_AbilityGroup"
+      ],
+      "restrictedAbilities": [],
+      "allowedAbilities": []
+    },
+    {
+      "zoneId": "3",
+      "resetCooldownsOnEnter": true,
+      "resetCooldownsOnExit": false,
+      "saveAndRestoreSlots": true,
+      "saveAndRestoreCooldowns": true,
+      "presetSlots": [
+        "AB_Vampire_VeilOfBlood_Group",
+        "AB_Vampire_VeilOfChaos_Group",
+        "AB_Vampire_VeilOfFrost_Group",
+        "AB_Vampire_VeilOfBones_AbilityGroup"
+      ],
+      "restrictedAbilities": [],
+      "allowedAbilities": []
+    },
+    {
       "zoneId": "*",
       "resetCooldownsOnEnter": true,
       "resetCooldownsOnExit": false,
@@ -12,7 +57,8 @@
         "AB_Blood_BloodRite_AbilityGroup",
         "AB_Vampire_VeilOfBlood_Group"
       ],
-      "restrictedAbilities": []
+      "restrictedAbilities": [],
+      "allowedAbilities": []
     }
   ]
 }

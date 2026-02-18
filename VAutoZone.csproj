@@ -98,18 +98,11 @@
     <BepInExConfigPath>D:\DedicatedServerLauncher\VRisingServer\BepInEx\config</BepInExConfigPath>
     <DeployToServer Condition="'$(DeployToServer)' == ''">false</DeployToServer>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="config\glow_zones.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <Target Name="CopyToBepInEx" AfterTargets="Build" Condition="'$(DeployToServer)' == 'true'">
+<Target Name="CopyToBepInEx" AfterTargets="Build" Condition="'$(DeployToServer)' == 'true'">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExPluginsPath)" SkipUnchangedFiles="true" />
     <MakeDir Directories="$(BepInExConfigPath)\Bluelock" />
-    <Copy SourceFiles="config\glow_zones.json" DestinationFiles="$(BepInExConfigPath)\Bluelock\glow_zones.json" SkipUnchangedFiles="true" />
     <Message Text="Copied $(TargetPath) to $(BepInExPluginsPath)" Importance="high" />
   </Target>
 
 </Project>
+
