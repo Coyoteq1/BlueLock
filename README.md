@@ -8,9 +8,9 @@ Created by **Coyoteq1**
 
 ## Contributor
 
-Contributor: **Ace** (Contributor)
-Contributor: **Ray** (Contributor)
-Contributor: **9o** (Contributor)
+Contributor: **Ace** ()
+Contributor: **Ray** ()
+Contributor: **9o** ()
 
 ## Support
 
