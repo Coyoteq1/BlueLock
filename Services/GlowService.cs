@@ -75,9 +75,13 @@ namespace VAuto.Zone.Services
 
             if (!TryValidateNow())
             {
-                ZoneCore.LogWarning("[GlowService] Validation deferred: ECS world not ready. Returning no glow buffs for this request.");
-                // Do not force fallback glows here; caller can retry once world is ready.
-                return Array.Empty<PrefabGUID>();
+                if (_validatedGlowBuffs.Length > 0)
+                {
+                    return _validatedGlowBuffs;
+                }
+
+                ZoneCore.LogWarning($"[GlowService] Validation deferred: ECS world not ready. Returning DefaultGlow ({DefaultGlow.GuidHash}) as temporary fallback.");
+                return new[] { DefaultGlow };
             }
 
             return _validatedGlowBuffs;
@@ -244,12 +248,40 @@ namespace VAuto.Zone.Services
             }
 
             token = token.Trim();
+            if (_lastRefreshUtc == DateTime.MinValue)
+            {
+                RefreshGlowChoices();
+            }
+
+            if (_validatedChoicesByName.Count == 0)
+            {
+                // Best effort - if world is not ready, raw-choice fallback below still works.
+                _ = TryValidateNow();
+            }
+
+            if (token.Equals("default", StringComparison.OrdinalIgnoreCase))
+            {
+                guid = DefaultGlow;
+                return true;
+            }
 
             // KindredSchematics glow choice names (from glowChoices.txt + built-ins)
             if (_validatedChoicesByName.TryGetValue(token, out var choiceGuid) && choiceGuid != PrefabGUID.Empty)
             {
                 guid = choiceGuid;
                 return true;
+            }
+
+            if (TryResolveRawChoice(token, out var rawChoiceGuid))
+            {
+                if (IsValidGlowPrefab(rawChoiceGuid, allowWhenWorldUnavailable: true, out var reason))
+                {
+                    guid = rawChoiceGuid;
+                    return true;
+                }
+
+                ZoneCore.LogWarning($"[GlowService] Raw glow token '{token}' resolved to {rawChoiceGuid.GuidHash} but was rejected: {reason}.");
+                return false;
             }
 
             // Allow a single explicit numeric fallback (legacy token).
@@ -269,19 +301,83 @@ namespace VAuto.Zone.Services
             if (Glows.ByShortName.TryGetValue(token, out var prefabName) &&
                 PrefabResolver.TryResolve(prefabName, out var resolved))
             {
-                guid = resolved;
-                return true;
+                if (IsValidGlowPrefab(resolved, allowWhenWorldUnavailable: true, out var reason))
+                {
+                    guid = resolved;
+                    return true;
+                }
+
+                ZoneCore.LogWarning($"[GlowService] Short-name glow token '{token}' resolved to {resolved.GuidHash} but was rejected: {reason}.");
+                return false;
             }
 
             // Allow full prefab names too, but only if they exist in the resolver.
             if (PrefabResolver.TryResolve(token, out resolved))
             {
-                guid = resolved;
-                return true;
+                if (IsValidGlowPrefab(resolved, allowWhenWorldUnavailable: true, out var reason))
+                {
+                    guid = resolved;
+                    return true;
+                }
+
+                ZoneCore.LogWarning($"[GlowService] Prefab glow token '{token}' resolved to {resolved.GuidHash} but was rejected: {reason}.");
+                return false;
             }
 
             ZoneCore.LogWarning($"[GlowService] Could not resolve glow token '{token}' to a valid prefab guid.");
             return false;
+        }
+
+        private static bool TryResolveRawChoice(string token, out PrefabGUID guid)
+        {
+            guid = PrefabGUID.Empty;
+            lock (Lock)
+            {
+                if (!_rawChoicesByName.TryGetValue(token, out var hash) || hash == 0)
+                {
+                    return false;
+                }
+
+                guid = new PrefabGUID(hash);
+                return true;
+            }
+        }
+
+        private static bool IsValidGlowPrefab(PrefabGUID guid, bool allowWhenWorldUnavailable, out string reason)
+        {
+            reason = string.Empty;
+            if (guid == PrefabGUID.Empty)
+            {
+                reason = "empty guid";
+                return false;
+            }
+
+            var em = ZoneCore.EntityManager;
+            if (em == default || em.World == null || !em.World.IsCreated)
+            {
+                reason = "world not ready";
+                return allowWhenWorldUnavailable;
+            }
+
+            if (!ZoneCore.TryGetPrefabEntity(guid, out var prefabEntity) || prefabEntity == Entity.Null)
+            {
+                reason = "prefab entity not found";
+                return false;
+            }
+
+            if (!em.Exists(prefabEntity))
+            {
+                reason = "prefab entity not tracked";
+                return false;
+            }
+
+            if (!em.HasComponent(prefabEntity, BuffType))
+            {
+                reason = "prefab has no Buff component";
+                return false;
+            }
+
+            return true;
         }
     }
 }

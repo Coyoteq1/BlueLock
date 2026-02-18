@@ -79,12 +79,15 @@ namespace VAuto.Zone.Services
         {
             public Entity Player { get; set; }
             public PrefabGUID[] Slots { get; set; } = Array.Empty<PrefabGUID>();
+            public string ZoneId { get; set; } = string.Empty;
+            public bool MergeWithCurrent { get; set; }
             public DateTime ExpiresUtc { get; set; }
         }
 
         // SteamId -> pending slot apply (when player entity isn't ready yet).
         private static readonly Dictionary<ulong, PendingSlotApply> _pendingSlotApplies = new();
         private static readonly Dictionary<ulong, DateTime> _lastDeferredSlotWarnUtc = new();
+        private static readonly Dictionary<int, ulong> _playerIndexToSteamId = new();
         private const int DeferredSlotWarnCooldownSeconds = 10;
 
         /// <summary>Where the zone ability configuration lives.</summary>
@@ -233,6 +236,7 @@ namespace VAuto.Zone.Services
                 state.SteamId = steamId;
                 state.CurrentZoneId = zoneId;
                 state.ZoneEnterTime = DateTime.UtcNow;
+                _playerIndexToSteamId[playerEntity.Index] = steamId;
                 var hotbarSnapshot = GetPlayerAbilitySlots(playerEntity, out _);
 
                 if (cfg.SaveAndRestoreSlots)
@@ -258,13 +262,13 @@ namespace VAuto.Zone.Services
                         if (!string.IsNullOrWhiteSpace(applyErr))
                         {
                             // If the player isn't fully initialized yet, defer until buffer exists.
-                            QueuePendingSlotApply(steamId, playerEntity, current, applyErr);
+                            QueuePendingSlotApply(steamId, playerEntity, zoneId, current, mergeWithCurrent: false, applyErr);
                         }
                     }
                     else
                     {
                         // Player entity not ready; defer.
-                        QueuePendingSlotApply(steamId, playerEntity, cfg.PresetSlots, "Ability slots not readable yet");
+                        QueuePendingSlotApply(steamId, playerEntity, zoneId, cfg.PresetSlots, mergeWithCurrent: true, "Ability slots not readable yet");
                     }
                 }
 
@@ -322,6 +326,7 @@ namespace VAuto.Zone.Services
 
                 _pendingSlotApplies.Remove(steamId);
                 _lastDeferredSlotWarnUtc.Remove(steamId);
+                _playerIndexToSteamId.Remove(playerEntity.Index);
 
                 LogInfo?.Invoke($"[OnZoneExit] Player {steamId} exited zone '{zoneId}'.");
             }
@@ -329,6 +334,42 @@ namespace VAuto.Zone.Services
             {
                 LogError?.Invoke($"[OnZoneExit] Unhandled error: {ex}");
             }
+        }
+
+        public static void ClearStateForDisconnectedPlayer(Entity playerEntity, EntityManager em = default)
+        {
+            if (!_initialized)
+            {
+                return;
+            }
+
+            var steamId = 0UL;
+            if (playerEntity != Entity.Null && _playerIndexToSteamId.TryGetValue(playerEntity.Index, out var tracked))
+            {
+                steamId = tracked;
+            }
+            else if (GetSteamId != null)
+            {
+                try
+                {
+                    steamId = GetSteamId(playerEntity);
+                }
+                catch
+                {
+                    steamId = 0;
+                }
+            }
+
+            if (steamId == 0)
+            {
+                return;
+            }
+
+            _playerStates.Remove(steamId);
+            _pendingSlotApplies.Remove(steamId);
+            _lastDeferredSlotWarnUtc.Remove(steamId);
+            _playerIndexToSteamId.Remove(playerEntity.Index);
+            LogInfo?.Invoke($"[ClearStateForDisconnectedPlayer] Cleared ability state for {steamId}.");
         }
 
         /// <summary>
@@ -368,10 +409,40 @@ namespace VAuto.Zone.Services
                     continue;
                 }
 
-                if (pending.Slots == null || pending.Slots.Length != SlotCount)
+                if (!_playerStates.TryGetValue(steamId, out var activeState) ||
+                    string.IsNullOrWhiteSpace(activeState.CurrentZoneId) ||
+                    (!string.IsNullOrWhiteSpace(pending.ZoneId) &&
+                     !string.Equals(activeState.CurrentZoneId, pending.ZoneId, StringComparison.OrdinalIgnoreCase)))
                 {
                     remove.Add(steamId);
                     continue;
+                }
+
+                if (pending.Slots == null || pending.Slots.Length == 0)
+                {
+                    remove.Add(steamId);
+                    continue;
+                }
+
+                PrefabGUID[] targetSlots;
+                if (pending.MergeWithCurrent || pending.Slots.Length != SlotCount)
+                {
+                    var current = GetPlayerAbilitySlots(pending.Player, out _);
+                    if (current.Length != SlotCount)
+                    {
+                        continue;
+                    }
+
+                    for (var i = 0; i < pending.Slots.Length && i < SlotCount; i++)
+                    {
+                        current[i] = pending.Slots[i];
+                    }
+
+                    targetSlots = current;
+                }
+                else
+                {
+                    targetSlots = pending.Slots;
                 }
 
                 // IMPORTANT: do not call EntityManager.HasComponent<T> here.
@@ -379,7 +450,7 @@ namespace VAuto.Zone.Services
                 // ApplySlots already wraps slot-buffer access in a try/catch, so we can use it as the probe.
                 try
                 {
-                    if (ApplySlots(pending.Player, pending.Slots, out var err) && string.IsNullOrWhiteSpace(err))
+                    if (ApplySlots(pending.Player, targetSlots, out var err) && string.IsNullOrWhiteSpace(err))
                     {
                         LogInfo?.Invoke($"[ProcessPendingSlotApplies] Applied deferred slots for {steamId}.");
                         remove.Add(steamId);
@@ -399,13 +470,15 @@ namespace VAuto.Zone.Services
             }
         }
 
-        private static void QueuePendingSlotApply(ulong steamId, Entity playerEntity, PrefabGUID[] slots, string reason)
+        private static void QueuePendingSlotApply(ulong steamId, Entity playerEntity, string zoneId, PrefabGUID[] slots, bool mergeWithCurrent, string reason)
         {
             // Only keep one pending apply per player.
             _pendingSlotApplies[steamId] = new PendingSlotApply
             {
                 Player = playerEntity,
                 Slots = slots,
+                ZoneId = zoneId ?? string.Empty,
+                MergeWithCurrent = mergeWithCurrent,
                 ExpiresUtc = DateTime.UtcNow.AddSeconds(45)
             };
 

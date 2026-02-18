@@ -7552,11 +7552,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\BlueLock\\VAutoZone.csproj",
+      "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
       "projectName": "BlueLock",
-      "projectPath": "D:\\VAutomationCore\\VAutomationCore\\BlueLock\\VAutoZone.csproj",
+      "projectPath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
       "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
-      "outputPath": "D:\\VAutomationCore\\VAutomationCore\\BlueLock\\obj\\",
+      "outputPath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "D:\\VAutomationCore\\NuGet.Config",

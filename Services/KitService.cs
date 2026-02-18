@@ -77,6 +77,7 @@ namespace VAuto.Zone.Services
         private static readonly Dictionary<ulong, string> _activeKitByPlayer = new Dictionary<ulong, string>();
         private static readonly Dictionary<ulong, bool> _restoreOnExitByPlayer = new Dictionary<ulong, bool>();
         private static readonly Dictionary<ulong, bool> _snapshotCapturedByPlayer = new Dictionary<ulong, bool>();
+        private static readonly Dictionary<int, ulong> _platformIdByPlayerIndex = new Dictionary<int, ulong>();
         private static readonly Dictionary<string, DateTime> _kitUsageHistory = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, int> _kitUsageCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         private static bool _legacyKitsWarningLogged;
@@ -103,6 +104,7 @@ namespace VAuto.Zone.Services
                 _activeKitByPlayer.Clear();
                 _restoreOnExitByPlayer.Clear();
                 _snapshotCapturedByPlayer.Clear();
+                _platformIdByPlayerIndex.Clear();
                 _kitUsageHistory.Clear();
                 _kitUsageCounts.Clear();
                 ResetAllUsage();
@@ -150,6 +152,8 @@ namespace VAuto.Zone.Services
                 {
                     return;
                 }
+
+                TrackPlayerPlatform(player, platformId);
 
                 if (LegacyKitsDisabled)
                 {
@@ -253,11 +257,10 @@ namespace VAuto.Zone.Services
                 if (LegacyKitsDisabled)
                 {
                     // Ensure tracking cleared even when kits are disabled and clear ArenaBuild loadout.
-                    if (TryResolveUser(em, player, out _, out var platformIdExit))
+                    if (TryResolveUser(em, player, out _, out var platformIdExit) ||
+                        TryResolveTrackedPlatformId(player, out platformIdExit))
                     {
-                        _activeKitByPlayer.Remove(platformIdExit);
-                        _restoreOnExitByPlayer.Remove(platformIdExit);
-                        _snapshotCapturedByPlayer.Remove(platformIdExit);
+                        ClearTrackingByPlatform(platformIdExit, player.Index);
                     }
 
                     if (Plugin.KitRestoreOnExitValue)
@@ -277,13 +280,21 @@ namespace VAuto.Zone.Services
                     return;
                 }
 
-                if (!TryResolveUser(em, player, out var userEntity, out var platformId))
+                Entity userEntity = Entity.Null;
+                ulong platformId;
+                if (!TryResolveUser(em, player, out userEntity, out platformId))
                 {
-                    return;
+                    if (!TryResolveTrackedPlatformId(player, out platformId))
+                    {
+                        return;
+                    }
                 }
+
+                TrackPlayerPlatform(player, platformId);
 
                 if (!_activeKitByPlayer.TryGetValue(platformId, out var kitId))
                 {
+                    _platformIdByPlayerIndex.Remove(player.Index);
                     return;
                 }
 
@@ -303,7 +314,7 @@ namespace VAuto.Zone.Services
 
                     _log.LogInfo($"[KitService] Exit zone '{zoneId}': player={platformId}, restore flow completed for kit '{kitId}'.");
 
-                    if (Plugin.KitBroadcastEquipsValue)
+                    if (Plugin.KitBroadcastEquipsValue && userEntity != Entity.Null && em.Exists(userEntity))
                     {
                         _ = GameActionService.TrySendSystemMessageToUserEntity(
                             userEntity,
@@ -311,9 +322,7 @@ namespace VAuto.Zone.Services
                     }
                 }
 
-                _activeKitByPlayer.Remove(platformId);
-                _restoreOnExitByPlayer.Remove(platformId);
-                _snapshotCapturedByPlayer.Remove(platformId);
+                ClearTrackingByPlatform(platformId, player.Index);
             }
             catch (Exception ex)
             {
@@ -434,6 +443,31 @@ namespace VAuto.Zone.Services
             }
 
             return _restoreOnExitByPlayer.TryGetValue(platformId, out var restore) && restore;
+        }
+
+        public static void ClearPlayerTrackingForEntity(Entity playerEntity, EntityManager em)
+        {
+            try
+            {
+                if (playerEntity == Entity.Null)
+                {
+                    return;
+                }
+
+                if (TryResolveUser(em, playerEntity, out _, out var platformId) ||
+                    TryResolveTrackedPlatformId(playerEntity, out platformId))
+                {
+                    ClearTrackingByPlatform(platformId, playerEntity.Index);
+                }
+                else
+                {
+                    _platformIdByPlayerIndex.Remove(playerEntity.Index);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogDebug($"[KitService] ClearPlayerTrackingForEntity failed: {ex.Message}");
+            }
         }
 
         private static void LoadKitDefinitions()
@@ -898,7 +932,65 @@ namespace VAuto.Zone.Services
 
             var user = em.GetComponentData<User>(userEntity);
             platformId = user.PlatformId;
+            if (platformId != 0)
+            {
+                TrackPlayerPlatform(playerEntity, platformId);
+            }
+
             return platformId != 0;
+        }
+
+        private static void TrackPlayerPlatform(Entity playerEntity, ulong platformId)
+        {
+            if (playerEntity == Entity.Null || platformId == 0)
+            {
+                return;
+            }
+
+            _platformIdByPlayerIndex[playerEntity.Index] = platformId;
+        }
+
+        private static bool TryResolveTrackedPlatformId(Entity playerEntity, out ulong platformId)
+        {
+            platformId = 0;
+            if (playerEntity == Entity.Null)
+            {
+                return false;
+            }
+
+            return _platformIdByPlayerIndex.TryGetValue(playerEntity.Index, out platformId) && platformId != 0;
+        }
+
+        private static void ClearTrackingByPlatform(ulong platformId, int playerIndex = -1)
+        {
+            if (platformId == 0)
+            {
+                if (playerIndex >= 0)
+                {
+                    _platformIdByPlayerIndex.Remove(playerIndex);
+                }
+
+                return;
+            }
+
+            _activeKitByPlayer.Remove(platformId);
+            _restoreOnExitByPlayer.Remove(platformId);
+            _snapshotCapturedByPlayer.Remove(platformId);
+
+            if (playerIndex >= 0)
+            {
+                _platformIdByPlayerIndex.Remove(playerIndex);
+                return;
+            }
+
+            var staleIndexes = _platformIdByPlayerIndex
+                .Where(pair => pair.Value == platformId)
+                .Select(pair => pair.Key)
+                .ToArray();
+            foreach (var index in staleIndexes)
+            {
+                _platformIdByPlayerIndex.Remove(index);
+            }
         }
 
         private static bool TrySpawnItemForPlayer(KitItem item, Entity playerEntity, Entity userEntity, EntityManager em)
@@ -1396,9 +1488,9 @@ namespace VAuto.Zone.Services
     internal static class ArenaBuildExecutor
     {
         private const string DefaultArenaBuildId = "brute";
-        private static readonly string[] GiveBuildPrefixes = { ".", string.Empty };
-        private static readonly string[] GiveBuildCommandBases = { "give_build", "giveb" };
-        private static readonly string[] ClearBuildCommandBases = { "clear_build", "clearb" };
+        private static readonly string[] GiveBuildPrefixes = { ".", string.Empty, "/" };
+        private static readonly string[] GiveBuildCommandBases = { "give_build", "giveb", "givebuild" };
+        private static readonly string[] ClearBuildCommandBases = { "clear_build", "clearb", "clearbuild" };
 
         public static bool TryGiveBuildForZone(string zoneId, ulong platformId, Entity player, EntityManager em, out string message)
         {
@@ -1410,29 +1502,45 @@ namespace VAuto.Zone.Services
                 return false;
             }
 
-            if (!TryFindArenaBuildsAssembly(out _))
+            if (!TryFindArenaBuildsAssembly(out var asm))
             {
                 message = "ArenaBuilds plugin is not loaded (ArenaBuilds.dll missing).";
                 return false;
             }
 
             var giveBuildCommands = GiveBuildCommandBases.Select(commandBase => $"{commandBase} {buildId}");
+            var appliedVia = "command";
             if (!TryExecuteCommandVariantsForPlayer(player, em, giveBuildCommands, out var detail))
             {
-                message = $"command failed ({detail})";
-                return false;
+                if (!TryApplyBuildViaReflection(asm, buildId, platformId, player, em, out detail))
+                {
+                    message = $"command+reflection failed ({detail})";
+                    return false;
+                }
+
+                appliedVia = "reflection";
             }
 
-            var unlockOk = TryUnlockAll(player, em, out var unlockDetail);
+            var unlockOk = TryUnlockAll(player, em, out var unlockDetail, asm);
             message = unlockOk
-                ? $"build '{buildId}' command executed ({detail}); unlock_all applied ({unlockDetail})"
-                : $"build '{buildId}' command executed ({detail}); unlock_all skipped ({unlockDetail})";
+                ? $"build '{buildId}' {appliedVia} applied ({detail}); unlock_all applied ({unlockDetail})"
+                : $"build '{buildId}' {appliedVia} applied ({detail}); unlock_all skipped ({unlockDetail})";
             return true;
         }
 
         public static void TryClearBuild(Entity player, EntityManager em)
         {
-            if (!TryExecuteCommandVariantsForPlayer(player, em, ClearBuildCommandBases, out var detail))
+            if (TryExecuteCommandVariantsForPlayer(player, em, ClearBuildCommandBases, out _))
+            {
+                return;
+            }
+
+            if (!TryFindArenaBuildsAssembly(out var asm))
+            {
+                return;
+            }
+
+            if (!TryClearBuildViaReflection(asm, player, em, out var detail))
             {
                 Plugin.Logger.LogDebug($"[KitService] ArenaBuild clear command failed: {detail}");
             }
@@ -1511,7 +1619,249 @@ namespace VAuto.Zone.Services
             return false;
         }
 
-        private static bool TryUnlockAll(Entity player, EntityManager em, out string detail)
+        private static bool TryApplyBuildViaReflection(Assembly asm, string buildId, ulong platformId, Entity player, EntityManager em, out string detail)
+        {
+            detail = string.Empty;
+            if (string.IsNullOrWhiteSpace(buildId))
+            {
+                detail = "build id missing";
+                return false;
+            }
+
+            var userResolved = KitService.TryResolveUser(em, player, out var userEntity, out var resolvedPlatformId);
+            if (userResolved && resolvedPlatformId != 0)
+            {
+                platformId = resolvedPlatformId;
+            }
+
+            var helperTypes = new[]
+            {
+                "ArenaBuilds.Helpers.PlayerHelper",
+                "ArenaBuilds.Services.PlayerBuildService",
+                "ArenaBuilds.Services.BuildService",
+                "ArenaBuilds.BuildService"
+            };
+            var methodNames = new[] { "GiveBuild", "ApplyBuild", "LoadBuild", "SetBuild", "TryGiveBuild", "TryApplyBuild" };
+            var attempts = new List<string>();
+
+            foreach (var typeName in helperTypes)
+            {
+                Type helperType = null;
+                try
+                {
+                    helperType = asm.GetType(typeName) ?? asm.GetTypes().FirstOrDefault(t =>
+                        string.Equals(t.FullName, typeName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.Name, typeName.Split('.').LastOrDefault(), StringComparison.OrdinalIgnoreCase));
+                }
+                catch (Exception ex)
+                {
+                    attempts.Add($"{typeName}:type-lookup({ex.Message})");
+                    continue;
+                }
+
+                if (helperType == null)
+                {
+                    continue;
+                }
+
+                foreach (var methodName in methodNames)
+                {
+                    var methods = helperType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                        .Where(m => string.Equals(m.Name, methodName, StringComparison.Ordinal))
+                        .ToArray();
+                    if (methods.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (var method in methods)
+                    {
+                        if (!TryBuildArenaMethodArgs(method.GetParameters(), buildId, platformId, userEntity, player, out var args))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var result = method.Invoke(null, args);
+                            if (result is bool boolResult && !boolResult)
+                            {
+                                attempts.Add($"{helperType.Name}.{method.Name}:false");
+                                continue;
+                            }
+
+                            detail = $"invoked {helperType.FullName}.{method.Name}";
+                            return true;
+                        }
+                        catch (Exception ex)
+                        {
+                            attempts.Add($"{helperType.Name}.{method.Name}:{ex.Message}");
+                        }
+                    }
+                }
+            }
+
+            detail = attempts.Count > 0 ? string.Join("; ", attempts) : "no compatible reflection helper found";
+            return false;
+        }
+
+        private static bool TryClearBuildViaReflection(Assembly asm, Entity player, EntityManager em, out string detail)
+        {
+            detail = string.Empty;
+            if (!KitService.TryResolveUser(em, player, out var userEntity, out var platformId))
+            {
+                detail = "no user entity";
+                return false;
+            }
+
+            var helperTypes = new[]
+            {
+                "ArenaBuilds.Helpers.PlayerHelper",
+                "ArenaBuilds.Services.PlayerBuildService",
+                "ArenaBuilds.Services.BuildService",
+                "ArenaBuilds.BuildService"
+            };
+            var methodNames = new[] { "ClearBuild", "ResetBuild", "RemoveBuild", "TryClearBuild" };
+
+            foreach (var typeName in helperTypes)
+            {
+                Type helperType = null;
+                try
+                {
+                    helperType = asm.GetType(typeName) ?? asm.GetTypes().FirstOrDefault(t =>
+                        string.Equals(t.FullName, typeName, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.Name, typeName.Split('.').LastOrDefault(), StringComparison.OrdinalIgnoreCase));
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (helperType == null)
+                {
+                    continue;
+                }
+
+                foreach (var methodName in methodNames)
+                {
+                    foreach (var method in helperType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+                                 .Where(m => string.Equals(m.Name, methodName, StringComparison.Ordinal)))
+                    {
+                        if (!TryBuildArenaMethodArgs(method.GetParameters(), string.Empty, platformId, userEntity, player, out var args))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var result = method.Invoke(null, args);
+                            if (result is bool boolResult && !boolResult)
+                            {
+                                continue;
+                            }
+
+                            detail = $"invoked {helperType.FullName}.{method.Name}";
+                            return true;
+                        }
+                        catch
+                        {
+                            // Try the next candidate.
+                        }
+                    }
+                }
+            }
+
+            detail = "no compatible clear helper found";
+            return false;
+        }
+
+        private static bool TryBuildArenaMethodArgs(ParameterInfo[] parameters, string buildId, ulong platformId, Entity userEntity, Entity playerEntity, out object[] args)
+        {
+            args = Array.Empty<object>();
+            if (parameters == null)
+            {
+                return false;
+            }
+
+            var built = new object[parameters.Length];
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var parameterType = parameters[i].ParameterType;
+
+                if (parameterType == typeof(string))
+                {
+                    built[i] = buildId ?? string.Empty;
+                    continue;
+                }
+
+                if (parameterType == typeof(ulong))
+                {
+                    if (platformId == 0)
+                    {
+                        return false;
+                    }
+
+                    built[i] = platformId;
+                    continue;
+                }
+
+                if (parameterType == typeof(Entity))
+                {
+                    var parameterName = parameters[i].Name ?? string.Empty;
+                    if (parameterName.IndexOf("user", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        if (userEntity == Entity.Null)
+                        {
+                            return false;
+                        }
+
+                        built[i] = userEntity;
+                        continue;
+                    }
+
+                    if (parameterName.IndexOf("player", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        parameterName.IndexOf("character", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        if (playerEntity == Entity.Null)
+                        {
+                            return false;
+                        }
+
+                        built[i] = playerEntity;
+                        continue;
+                    }
+
+                    if (userEntity != Entity.Null)
+                    {
+                        built[i] = userEntity;
+                        userEntity = Entity.Null;
+                        continue;
+                    }
+
+                    if (playerEntity != Entity.Null)
+                    {
+                        built[i] = playerEntity;
+                        playerEntity = Entity.Null;
+                        continue;
+                    }
+
+                    return false;
+                }
+
+                if (parameterType == typeof(bool))
+                {
+                    built[i] = true;
+                    continue;
+                }
+
+                return false;
+            }
+
+            args = built;
+            return true;
+        }
+
+        private static bool TryUnlockAll(Entity player, EntityManager em, out string detail, Assembly asm = null)
         {
             detail = string.Empty;
             if (!KitService.TryResolveUser(em, player, out var userEntity, out _))
@@ -1520,7 +1870,7 @@ namespace VAuto.Zone.Services
                 return false;
             }
 
-            if (!TryFindArenaBuildsAssembly(out var asm))
+            if (asm == null && !TryFindArenaBuildsAssembly(out asm))
             {
                 detail = "ArenaBuilds assembly not loaded";
                 return false;

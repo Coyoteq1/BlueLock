@@ -1,3 +1,0 @@
-d:\VAutomationCore\VAutomationCore\Bluelock\_build\obj\VAutoZone\Release\net6.0\VAutoZone.csproj.AssemblyReference.cache
-d:\VAutomationCore\VAutomationCore\Bluelock\_build\obj\VAutoZone\Release\net6.0\VAutoZone.GeneratedMSBuildEditorConfig.editorconfig
-d:\VAutomationCore\VAutomationCore\Bluelock\_build\obj\VAutoZone\Release\net6.0\VAutoZone.csproj.CoreCompileInputs.cache

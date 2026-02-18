@@ -60,6 +60,9 @@ namespace VAuto.Zone
         public static ConfigEntry<float> ZoneDetectionPositionThreshold;
         public static ConfigEntry<float> MapIconSpawnRefreshIntervalSeconds;
         public static ConfigEntry<bool> ZoneDetectionDebugMode;
+        public static ConfigEntry<double> ZoneDetectionEnterConfirmSeconds;
+        public static ConfigEntry<double> ZoneDetectionExitConfirmSeconds;
+        public static ConfigEntry<double> ZoneDetectionTransitionCooldownSeconds;
         
         // Glow System
         public static ConfigEntry<bool> GlowSystemEnabled;
@@ -137,9 +140,9 @@ namespace VAuto.Zone
             public DateTime FirstSeenUtc { get; set; }
         }
 
-        private const double ZoneEnterTransitionConfirmSeconds = 0.35d;
-        private const double ZoneExitTransitionConfirmSeconds = 0.75d;
-        private const double ZoneTransitionCooldownSeconds = 1.25d;
+        private const double DefaultZoneEnterTransitionConfirmSeconds = 0.35d;
+        private const double DefaultZoneExitTransitionConfirmSeconds = 0.75d;
+        private const double DefaultZoneTransitionCooldownSeconds = 1.25d;
         private static int _glowRotationOffset;
         private static DateTime _nextGlowRotationUtc = DateTime.MinValue;
         private static Entity _lastKnownUserEntity = Entity.Null;
@@ -225,6 +228,8 @@ namespace VAuto.Zone
                 // Initialize CoreLogger and services
                 CoreLog = new CoreLogger("BlueLock");
                 _arenaLifecycleManager = new ArenaLifecycleManager(CoreLog);
+                VAutomationCore.Services.ZoneEventBridge.Initialize();
+                _arenaLifecycleManager.Initialize();
                 
                 // Initialize all services using ServiceInitializer
                 var servicesInitialized = ServiceInitializer.InitializeAll(CoreLog);
@@ -370,6 +375,9 @@ namespace VAuto.Zone
             ZoneDetectionPositionThreshold = configFile.Bind("ZoneDetection", "PositionChangeThreshold", 1.0f, "Minimum position change to trigger zone check (units)");
             MapIconSpawnRefreshIntervalSeconds = configFile.Bind("ZoneDetection", "MapIconSpawnRefreshIntervalSeconds", 10.0f, "Interval for refreshing map icon spawns (seconds)");
             ZoneDetectionDebugMode = configFile.Bind("ZoneDetection", "DebugMode", false, "Enable zone detection debug logging");
+            ZoneDetectionEnterConfirmSeconds = configFile.Bind("ZoneDetection", "EnterConfirmSeconds", DefaultZoneEnterTransitionConfirmSeconds, "Seconds a player must remain in a candidate zone before enter is committed.");
+            ZoneDetectionExitConfirmSeconds = configFile.Bind("ZoneDetection", "ExitConfirmSeconds", DefaultZoneExitTransitionConfirmSeconds, "Seconds a player must remain outside a zone before exit is committed.");
+            ZoneDetectionTransitionCooldownSeconds = configFile.Bind("ZoneDetection", "TransitionCooldownSeconds", DefaultZoneTransitionCooldownSeconds, "Minimum seconds between committed zone transitions for the same player.");
 
             // Glow System
             GlowSystemEnabled = configFile.Bind("GlowSystem", "Enabled", true, "Enable the zone glow system");
@@ -606,6 +614,9 @@ namespace VAuto.Zone
         public static bool IsEnabled => GeneralEnabled?.Value ?? true;
         public static int CheckIntervalMs => ZoneDetectionCheckIntervalMs?.Value ?? 100;
         public static float PositionChangeThreshold => ZoneDetectionPositionThreshold?.Value ?? 1.0f;
+        public static double ZoneEnterTransitionConfirmSecondsValue => Math.Max(0.05d, ZoneDetectionEnterConfirmSeconds?.Value ?? DefaultZoneEnterTransitionConfirmSeconds);
+        public static double ZoneExitTransitionConfirmSecondsValue => Math.Max(0.05d, ZoneDetectionExitConfirmSeconds?.Value ?? DefaultZoneExitTransitionConfirmSeconds);
+        public static double ZoneTransitionCooldownSecondsValue => Math.Max(0.0d, ZoneDetectionTransitionCooldownSeconds?.Value ?? DefaultZoneTransitionCooldownSeconds);
         public static float MapIconSpawnRefreshIntervalSecondsValue => MapIconSpawnRefreshIntervalSeconds?.Value ?? 10.0f;
         public static bool ZoneDetectionDebug => ZoneDetectionDebugMode?.Value ?? false;
         public static bool GlowSystemEnabledValue => GlowSystemEnabled?.Value ?? true;
@@ -785,6 +796,13 @@ namespace VAuto.Zone
         {
             _hotReloadTimer?.Dispose();
             _hotReloadTimer = null;
+            try
+            {
+                _arenaLifecycleManager?.Shutdown();
+            }
+            catch
+            {
+            }
             try
             {
                 _autoZonePlayerQuery.Dispose();
@@ -1556,9 +1574,18 @@ namespace VAuto.Zone
 
                 foreach (var stale in stalePlayers)
                 {
+                    if (_playerZoneStates.TryGetValue(stale, out var staleZoneId) &&
+                        !string.IsNullOrWhiteSpace(staleZoneId) &&
+                        em.Exists(stale))
+                    {
+                        TryRunZoneExitStep("HandleZoneExit(StalePlayer)", () => HandleZoneExit(stale, staleZoneId));
+                    }
+
                     _playerZoneStates.Remove(stale);
                     _pendingZoneTransitions.Remove(stale);
                     _lastCommittedZoneTransitions.Remove(stale);
+                    KitService.ClearPlayerTrackingForEntity(stale, em);
+                    AbilityUi.ClearStateForDisconnectedPlayer(stale, em);
                     VAutomationCore.Services.ZoneEventBridge.RemovePlayerZoneState(stale);
                 }
             }
@@ -1571,8 +1598,8 @@ namespace VAuto.Zone
         private static bool ShouldCommitZoneTransition(Entity player, string previousZoneId, string candidateZoneId, DateTime nowUtc)
         {
             var requiredSeconds = string.IsNullOrWhiteSpace(candidateZoneId)
-                ? ZoneExitTransitionConfirmSeconds
-                : ZoneEnterTransitionConfirmSeconds;
+                ? ZoneExitTransitionConfirmSecondsValue
+                : ZoneEnterTransitionConfirmSecondsValue;
 
             if (!_pendingZoneTransitions.TryGetValue(player, out var pending) ||
                 !string.Equals(pending.PreviousZoneId, previousZoneId, StringComparison.OrdinalIgnoreCase) ||
@@ -1594,7 +1621,7 @@ namespace VAuto.Zone
             }
 
             if (_lastCommittedZoneTransitions.TryGetValue(player, out var lastCommittedUtc) &&
-                (nowUtc - lastCommittedUtc).TotalSeconds < ZoneTransitionCooldownSeconds)
+                (nowUtc - lastCommittedUtc).TotalSeconds < ZoneTransitionCooldownSecondsValue)
             {
                 return false;
             }
@@ -1877,6 +1904,11 @@ namespace VAuto.Zone
                 if (!em.Exists(player))
                 {
                     return;
+                }
+
+                if (IsSandboxZone(zoneId))
+                {
+                    TryRunZoneEnterStep("DebugEventBridge.OnZoneEnterStart", () => TryInvokeDebugEventBridgeZoneEnterStart(player, zoneId));
                 }
 
                 var actionOrder = ResolveLifecycleActionsForZone(zoneId, isEnter: true);
@@ -2454,9 +2486,7 @@ namespace VAuto.Zone
                     return;
                 }
 
-                var position = em.HasComponent<LocalTransform>(characterEntity)
-                    ? em.GetComponentData<LocalTransform>(characterEntity).Position
-                    : float3.zero;
+                var position = GetEntityPosition(em, characterEntity);
 
                 var lifecycleType = ResolveLifecycleType("VAuto.Core.Lifecycle.ArenaLifecycleManager");
                 if (lifecycleType == null)
@@ -2479,25 +2509,76 @@ namespace VAuto.Zone
                     return;
                 }
 
-                var method = lifecycleType.GetMethod(
-                    methodName,
-                    BindingFlags.Public | BindingFlags.Instance,
-                    null,
-                    new[] { typeof(Entity), typeof(Entity), typeof(string), typeof(float3) },
-                    null);
-
-                if (method == null)
+                if (!TryInvokeLifecycleMethod(lifecycleType, lifecycleInstance, methodName, userEntity, characterEntity, zoneId, position))
                 {
-                    Logger.LogWarning($"[BlueLock] Lifecycle method '{methodName}' not found on type '{lifecycleType.Name}'");
-                    return;
+                    Logger.LogWarning($"[BlueLock] Lifecycle method '{methodName}' not found or failed on type '{lifecycleType.Name}'");
                 }
-
-                method.Invoke(lifecycleInstance, new object[] { userEntity, characterEntity, zoneId, position });
             }
             catch (Exception ex)
             {
                 Logger.LogWarning($"[BlueLock] Lifecycle reflection invoke failed ({methodName}): {ex.Message}");
             }
+        }
+
+        private static bool TryInvokeLifecycleMethod(Type lifecycleType, object lifecycleInstance, string methodName, Entity userEntity, Entity characterEntity, string zoneId, float3 position)
+        {
+            var candidates = new[]
+            {
+                new object[] { userEntity, characterEntity, zoneId, position },
+                new object[] { userEntity, characterEntity, zoneId },
+                new object[] { characterEntity, zoneId, position },
+                new object[] { characterEntity, zoneId }
+            };
+
+            foreach (var args in candidates)
+            {
+                var argTypes = args.Select(a => a.GetType()).ToArray();
+                var method = lifecycleType.GetMethod(
+                    methodName,
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null,
+                    argTypes,
+                    null);
+
+                if (method == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    method.Invoke(lifecycleInstance, args);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogDebug($"[BlueLock] Lifecycle method '{methodName}' invoke failed for signature ({string.Join(", ", argTypes.Select(t => t.Name))}): {ex.Message}");
+                }
+            }
+
+            return false;
+        }
+
+        private static float3 GetEntityPosition(EntityManager em, Entity entity)
+        {
+            try
+            {
+                if (em.HasComponent<LocalTransform>(entity))
+                {
+                    return em.GetComponentData<LocalTransform>(entity).Position;
+                }
+
+                if (em.HasComponent<Translation>(entity))
+                {
+                    return em.GetComponentData<Translation>(entity).Value;
+                }
+            }
+            catch
+            {
+                // Position is best-effort only for lifecycle context.
+            }
+
+            return float3.zero;
         }
 
         private static void TryTriggerCoreLifecycleEvent(string eventName, Entity characterEntity, string zoneId, EntityManager em)
@@ -2693,6 +2774,58 @@ namespace VAuto.Zone
             }
 
             return null;
+        }
+
+        private static void TryInvokeDebugEventBridgeZoneEnterStart(Entity characterEntity, string zoneId)
+        {
+            try
+            {
+                var em = UnifiedCore.EntityManager;
+                if (!em.Exists(characterEntity))
+                {
+                    return;
+                }
+
+                var bridgeType = Type.GetType("VAuto.Core.Services.DebugEventBridge, VAutomationCore");
+                if (bridgeType == null)
+                {
+                    Logger.LogDebug($"[BlueLock] DebugEventBridge type not found for OnZoneEnterStart (zone='{zoneId}')");
+                    return;
+                }
+
+                var zoneUnlockEnabled = ZoneConfigService.IsSandboxUnlockEnabled(zoneId, SandboxProgressionDefaultZoneUnlockEnabledValue);
+
+                var method = bridgeType.GetMethod(
+                    "OnZoneEnterStart",
+                    BindingFlags.Public | BindingFlags.Static,
+                    null,
+                    new[] { typeof(Entity), typeof(string), typeof(bool) },
+                    null);
+
+                if (method != null)
+                {
+                    Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnZoneEnterStart(entity={characterEntity.Index}:{characterEntity.Version}, zone='{zoneId}', enableUnlock={zoneUnlockEnabled})");
+                    method.Invoke(null, new object[] { characterEntity, zoneId, zoneUnlockEnabled });
+                    return;
+                }
+
+                method = bridgeType.GetMethod(
+                    "OnZoneEnterStart",
+                    BindingFlags.Public | BindingFlags.Static,
+                    null,
+                    new[] { typeof(Entity), typeof(string) },
+                    null);
+
+                if (method != null)
+                {
+                    Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnZoneEnterStart(entity={characterEntity.Index}:{characterEntity.Version}, zone='{zoneId}')");
+                    method.Invoke(null, new object[] { characterEntity, zoneId });
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"[BlueLock] DebugEventBridge reflection invoke failed (OnZoneEnterStart, zone='{zoneId}'): {ex}");
+            }
         }
 
         private static void TryInvokeDebugEventBridge(bool isEnter, Entity characterEntity, string zoneId)

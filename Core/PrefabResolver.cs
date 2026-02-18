@@ -178,19 +178,27 @@ namespace VAuto.Zone.Core
                 return;
             }
 
-            if (ByAlias.ContainsKey(alias))
-            {
-                ZoneCore.LogWarning($"[PrefabResolver] Alias '{alias}' duplicated from {sourceTag}; keeping first value.");
-                return;
-            }
+            var normalizedAlias = alias.Trim();
 
             if (!TryResolveTarget(target, out var guid))
             {
-                ZoneCore.LogWarning($"[PrefabResolver] Alias '{alias}' points to unknown prefab '{target}' (source {sourceTag}).");
+                ZoneCore.LogWarning($"[PrefabResolver] Alias '{normalizedAlias}' points to unknown prefab '{target}' (source {sourceTag}).");
                 return;
             }
 
-            ByAlias[alias.Trim()] = guid;
+            if (ByAlias.TryGetValue(normalizedAlias, out var existingGuid))
+            {
+                // Duplicate alias that resolves to the same prefab is harmless; ignore silently.
+                if (existingGuid.GuidHash == guid.GuidHash)
+                {
+                    return;
+                }
+
+                ZoneCore.LogWarning($"[PrefabResolver] Alias '{normalizedAlias}' duplicated from {sourceTag} with different target; keeping first value ({existingGuid.GuidHash}) over new ({guid.GuidHash}).");
+                return;
+            }
+
+            ByAlias[normalizedAlias] = guid;
         }
 
         private static bool TryResolveTarget(string token, out PrefabGUID guid)
