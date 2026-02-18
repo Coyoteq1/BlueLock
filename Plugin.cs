@@ -3388,6 +3388,15 @@ namespace VAuto.Zone
             {
                 Plugin.Logger.LogWarning($"[BlueLock] Failed to persist kit usage data on save: {ex.Message}");
             }
+
+            try
+            {
+                VAuto.Core.Services.DebugEventBridge.FlushSnapshotsToDisk();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogWarning($"[BlueLock] Failed to flush sandbox progression snapshots on save: {ex.Message}");
+            }
         }
 
         [HarmonyPatch(typeof(ServerBootstrapSystem), nameof(ServerBootstrapSystem.OnUserConnected))]

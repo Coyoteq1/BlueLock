@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "P0d8tJk5cl6JQr7IV/QRNIIu+k8ULBzKs3X6vIx02+ZyO6cj+1Rtc5/UxvbXPbmoqB9hCC0R1syfrmrVTeGb1Q==",
+  "dgSpecHash": "I6rOU4zWCzH8P/4IxkhDFkXapwbsfsdZKcYVWNa/rSDZ3zTpBgP44c+8gNYupPd3hEBE/Z2dV3mMR+oUkTOiMA==",
   "success": true,
-  "projectFilePath": "D:\\VAutomationCore\\VAutomationCore\\BlueLock\\VAutoZone.csproj",
+  "projectFilePath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\coyot.RWE\\.nuget\\packages\\asmresolver\\6.0.0-beta.1\\asmresolver.6.0.0-beta.1.nupkg.sha512",
     "C:\\Users\\coyot.RWE\\.nuget\\packages\\asmresolver.dotnet\\6.0.0-beta.1\\asmresolver.dotnet.6.0.0-beta.1.nupkg.sha512",
