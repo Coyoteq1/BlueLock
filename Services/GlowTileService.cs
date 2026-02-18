@@ -60,8 +60,8 @@ namespace VAuto.Zone.Services
             }
 
             var spacing = zone.GlowTileSpacing > 0 ? zone.GlowTileSpacing : 3f;
-            var borderPoints = GlowTileGeometry.GetZoneBorderPoints(zone, spacing);
-            if (borderPoints.Count == 0)
+            var borderNodes = GlowTileGeometry.GetZoneBorderNodes(zone, spacing);
+            if (borderNodes.Count == 0)
             {
                 return TemplateFailure(zone.Id, "No border points generated");
             }
@@ -70,7 +70,7 @@ namespace VAuto.Zone.Services
             ClearZoneGlow(zone.Id, em);
 
             var spawned = new List<Entity>();
-            foreach (var point in borderPoints)
+            foreach (var node in borderNodes)
             {
                 try
                 {
@@ -80,7 +80,7 @@ namespace VAuto.Zone.Services
                         continue;
                     }
 
-                    SetTranslation(em, entity, new float3(point.x, height, point.y));
+                    SetTranslation(em, entity, new float3(node.Position.x, height, node.Position.y));
                     spawned.Add(entity);
                 }
                 catch

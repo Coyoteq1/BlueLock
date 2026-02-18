@@ -1,158 +1,283 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using Unity.Collections;
 using Unity.Entities;
 using VAuto.Zone.Core;
-using VAuto.Zone.Models;
+using VAuto.Zone.Core.Components;
 
 namespace VAuto.Zone.Services
 {
-    public class ArenaMatchManager
+    /// <summary>
+    /// Configuration data used when starting a match.
+    /// </summary>
+    public sealed class MatchConfig
     {
-        private static ArenaMatchManager _instance;
-        public static ArenaMatchManager Instance => _instance ??= new ArenaMatchManager();
+        private int _durationSeconds = DefaultDurationSeconds;
 
-        private readonly Dictionary<string, MatchState> _matchStates = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, List<Entity>> _matchParticipants = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// Default duration applied when the caller does not override it.
+        /// </summary>
+        public const int DefaultDurationSeconds = 300;
 
-        public MatchStartResult StartMatch(string zoneId, MatchConfig config)
+        /// <summary>
+        /// The minimum duration allowed to keep matches from expiring immediately.
+        /// </summary>
+        public const int MinimumDurationSeconds = 5;
+
+        /// <summary>
+        /// Duration of the match in seconds. Values below <see cref="MinimumDurationSeconds"/> are clamped.
+        /// </summary>
+        public int DurationSeconds
         {
-            if (string.IsNullOrWhiteSpace(zoneId))
-            {
-                return new MatchStartResult { Success = false, Error = "Zone identifier required" };
-            }
-
-            if (_matchStates.TryGetValue(zoneId, out var existing) && existing.Phase == MatchPhase.Active)
-            {
-                return new MatchStartResult { Success = false, Error = "Match already active" };
-            }
-
-            var em = ZoneCore.EntityManager;
-            var reset = ResetArena(zoneId, em);
-
-            var state = new MatchState
-            {
-                ZoneId = zoneId,
-                Config = config ?? new MatchConfig(),
-                Phase = MatchPhase.Active,
-                StartedAt = DateTime.UtcNow
-            };
-
-            _matchStates[zoneId] = state;
-            return new MatchStartResult
-            {
-                Success = reset.Success,
-                ResetResult = reset,
-                Error = reset.Success ? string.Empty : reset.Error
-            };
+            get => _durationSeconds;
+            set => _durationSeconds = Math.Max(MinimumDurationSeconds, value);
         }
 
-        public MatchEndResult EndMatch(string zoneId, MatchEndReason reason)
-        {
-            if (!_matchStates.TryGetValue(zoneId, out var state))
-            {
-                return new MatchEndResult { Success = false, Error = "No active match" };
-            }
+        /// <summary>
+        /// When true, players may respawn while the match is running.
+        /// </summary>
+        public bool AllowRespawn { get; set; } = true;
 
-            state.Phase = MatchPhase.Ending;
-            state.EndedAt = DateTime.UtcNow;
-            state.Phase = MatchPhase.Cooldown;
-
-            return new MatchEndResult { Success = true };
-        }
-
-        public ResetResult ResetArena(string zoneId, EntityManager em)
-        {
-            var result = new ResetResult
-            {
-                ZoneId = zoneId
-            };
-
-            try
-            {
-                var clearedTemplates = ZoneTemplateService.ClearAllZoneTemplates(zoneId, em);
-                var clearedGlow = GlowTileService.ClearGlowTiles(zoneId, em);
-                var templateResults = ZoneTemplateService.SpawnAllZoneTemplates(zoneId, em);
-                var spawnedTemplates = templateResults.Sum(r => r.EntityCount);
-                var glowSpawn = GlowTileService.SpawnGlowTiles(zoneId, em);
-                var spawnedGlow = glowSpawn.Success ? glowSpawn.EntityCount : 0;
-
-                result.EntitiesCleared = clearedTemplates + clearedGlow;
-                result.EntitiesSpawned = spawnedTemplates + spawnedGlow;
-                result.SpawnResults = templateResults;
-                result.GlowResult = glowSpawn;
-                result.Success = templateResults.Count > 0 || glowSpawn.Success;
-                result.Error = glowSpawn.Success ? string.Empty : glowSpawn.Error;
-            }
-            catch (Exception ex)
-            {
-                result.Success = false;
-                result.Error = ex.Message;
-            }
-            finally
-            {
-                _matchStates.Remove(zoneId);
-                _matchParticipants.Remove(zoneId);
-            }
-
-            return result;
-        }
+        /// <summary>
+        /// Optional human-readable label describing the match.
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
     }
 
-    public class MatchStartResult
-    {
-        public bool Success { get; set; }
-        public string Error { get; set; }
-        public ResetResult ResetResult { get; set; }
-    }
-
-    public class MatchEndResult
-    {
-        public bool Success { get; set; }
-        public string Error { get; set; }
-    }
-
-    public class ResetResult
-    {
-        public string ZoneId { get; set; }
-        public bool Success { get; set; }
-        public string Error { get; set; }
-        public int EntitiesCleared { get; set; }
-        public int EntitiesSpawned { get; set; }
-        public List<TemplateSpawnResult> SpawnResults { get; set; } = new();
-        public TemplateSpawnResult GlowResult { get; set; }
-    }
-
-    public enum MatchPhase
-    {
-        Idle,
-        Starting,
-        Active,
-        Ending,
-        Cooldown
-    }
-
+    /// <summary>
+    /// Controls why a match was ended.
+    /// </summary>
     public enum MatchEndReason
     {
         AdminEnded,
-        TimeExpired,
-        ManualReset
+        Timeout,
+        ManualReset,
+        SystemError,
+        Unknown
     }
 
-    public class MatchState
+    /// <summary>
+    /// Result returned by most arena match operations.
+    /// </summary>
+    public class MatchOperationResult
     {
-        public string ZoneId { get; set; }
-        public MatchPhase Phase { get; set; }
-        public DateTime StartedAt { get; set; }
-        public DateTime EndedAt { get; set; }
-        public MatchConfig Config { get; set; }
+        public bool Success { get; init; }
+
+        public string Error { get; init; } = string.Empty;
+
+        public static MatchOperationResult SuccessResult(string detail = null)
+            => new() { Success = true, Error = detail ?? string.Empty };
+
+        public static MatchOperationResult FailureResult(string error)
+            => new() { Success = false, Error = error ?? string.Empty };
     }
 
-    public class MatchConfig
+    /// <summary>
+    /// Extended reset information for calls that inspect spawned/cleared counts.
+    /// </summary>
+    public class ArenaResetResult : MatchOperationResult
     {
-        public int DurationSeconds { get; set; } = 300;
-        public int MaxParticipants { get; set; } = 10;
-        public bool AutoReset { get; set; } = true;
-        public List<string> TemplateTypesToReset { get; set; } = new() { "arenaTM", "trapTM" };
+        public int MatchesCleared { get; init; }
+
+        public int TemplateEntitiesRemoved { get; init; }
+
+        public int GlowEntitiesRemoved { get; init; }
+
+        public int DamageStatesRemoved { get; init; }
+
+        public string Status { get; init; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Lightweight service that tracks basic arena match state for admin commands.
+    /// </summary>
+    public sealed class ArenaMatchManager
+    {
+        private static readonly Lazy<ArenaMatchManager> LazyInstance = new(() => new ArenaMatchManager());
+
+        public static ArenaMatchManager Instance => LazyInstance.Value;
+
+        private readonly Dictionary<string, ArenaMatchState> _activeMatches = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _sync = new();
+
+        private ArenaMatchManager() { }
+
+        public MatchOperationResult StartMatch(string zoneId, MatchConfig config)
+        {
+            if (string.IsNullOrWhiteSpace(zoneId))
+            {
+                return MatchOperationResult.FailureResult("Zone identifier is required.");
+            }
+
+            config ??= new MatchConfig();
+
+            lock (_sync)
+            {
+                if (_activeMatches.TryGetValue(zoneId, out var existing) && existing.IsActive)
+                {
+                    return MatchOperationResult.FailureResult(
+                        $"A match is already running in '{zoneId}' (started at {existing.StartedAt:O}).");
+                }
+
+                var state = new ArenaMatchState(zoneId, config);
+                _activeMatches[zoneId] = state;
+                ZoneCore.LogInfo($"Started arena match in '{zoneId}' for {config.DurationSeconds} seconds.");
+                return MatchOperationResult.SuccessResult();
+            }
+        }
+
+        public MatchOperationResult EndMatch(string zoneId, MatchEndReason reason)
+        {
+            if (string.IsNullOrWhiteSpace(zoneId))
+            {
+                return MatchOperationResult.FailureResult("Zone identifier is required.");
+            }
+
+            lock (_sync)
+            {
+                if (!_activeMatches.TryGetValue(zoneId, out var state))
+                {
+                    return MatchOperationResult.FailureResult($"No active arena match found for '{zoneId}'.");
+                }
+
+                state.MarkEnded(reason);
+                _activeMatches.Remove(zoneId);
+            }
+
+            ZoneCore.LogInfo($"Ended arena match in '{zoneId}' (reason={reason}).");
+            return MatchOperationResult.SuccessResult();
+        }
+
+        public ArenaResetResult ResetArena(string zoneId, EntityManager entityManager)
+        {
+            if (entityManager == default)
+            {
+                ZoneCore.LogWarning($"Cannot reset arena '{zoneId}': EntityManager is unavailable.");
+                return new ArenaResetResult
+                {
+                    Success = false,
+                    Error = "EntityManager is not available.",
+                    MatchesCleared = 0,
+                    TemplateEntitiesRemoved = 0,
+                    GlowEntitiesRemoved = 0,
+                    DamageStatesRemoved = 0,
+                    Status = "EntityManager is not available."
+                };
+            }
+
+            var cleared = 0;
+            var targetDescription = string.IsNullOrWhiteSpace(zoneId) ? "all arenas" : $"arena '{zoneId}'";
+
+            lock (_sync)
+            {
+                if (string.IsNullOrWhiteSpace(zoneId))
+                {
+                    cleared = _activeMatches.Count;
+                    _activeMatches.Clear();
+                }
+                else if (_activeMatches.Remove(zoneId))
+                {
+                    cleared = 1;
+                }
+            }
+
+            ZoneCore.LogInfo($"Reset {targetDescription}. Cleared {cleared} tracked match(es).");
+            var templateEntitiesRemoved = ZoneTemplateService.ClearAllZoneTemplates(zoneId, entityManager);
+            var glowEntitiesRemoved = GlowTileService.ClearGlowTiles(zoneId, entityManager);
+            var damageStatesRemoved = CleanupArenaDamageStates(zoneId, entityManager);
+            var status = $"Reset {targetDescription}: cleared {cleared} active match(es), removed {templateEntitiesRemoved} template entity(ies), cleaned {glowEntitiesRemoved} glow tiles, reset {damageStatesRemoved} damage states.";
+
+            return new ArenaResetResult
+            {
+                Success = true,
+                Error = string.Empty,
+                MatchesCleared = cleared,
+                TemplateEntitiesRemoved = templateEntitiesRemoved,
+                GlowEntitiesRemoved = glowEntitiesRemoved,
+                DamageStatesRemoved = damageStatesRemoved,
+                Status = status
+            };
+        }
+
+        internal IReadOnlyCollection<string> GetActiveArenaIds()
+        {
+            lock (_sync)
+            {
+                return new List<string>(_activeMatches.Keys);
+            }
+        }
+
+        private static int CleanupArenaDamageStates(string zoneId, EntityManager entityManager)
+        {
+            if (entityManager == default)
+            {
+                return 0;
+            }
+
+            var query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<ArenaDamageState>());
+            if (query.IsEmptyIgnoreFilter)
+            {
+                query.Dispose();
+                return 0;
+            }
+
+            var targetHash = string.IsNullOrWhiteSpace(zoneId) ? null : (int?)ArenaMatchUtilities.StableHash(zoneId);
+            var removed = 0;
+            var entities = query.ToEntityArray(Allocator.Temp);
+            foreach (var entity in entities)
+            {
+                if (!entityManager.Exists(entity))
+                {
+                    continue;
+                }
+
+                var damageState = entityManager.GetComponentData<ArenaDamageState>(entity);
+                if (targetHash.HasValue && damageState.ZoneIdHash != targetHash.Value)
+                {
+                    continue;
+                }
+
+                entityManager.RemoveComponent<ArenaDamageState>(entity);
+                removed++;
+            }
+
+            entities.Dispose();
+            query.Dispose();
+            return removed;
+        }
+    }
+
+    internal sealed class ArenaMatchState
+    {
+        public string ZoneId { get; }
+
+        public MatchConfig Config { get; }
+
+        public DateTime StartedAt { get; }
+
+        public DateTime EndsAt { get; }
+
+        public bool IsActive { get; private set; } = true;
+
+        public MatchEndReason EndReason { get; private set; }
+
+        public ArenaMatchState(string zoneId, MatchConfig config)
+        {
+            ZoneId = zoneId;
+            Config = config;
+            StartedAt = DateTime.UtcNow;
+            EndsAt = StartedAt.AddSeconds(Math.Max(MatchConfig.MinimumDurationSeconds, config.DurationSeconds));
+        }
+
+        public void MarkEnded(MatchEndReason reason)
+        {
+            if (!IsActive)
+            {
+                return;
+            }
+
+            IsActive = false;
+            EndReason = reason;
+        }
     }
 }

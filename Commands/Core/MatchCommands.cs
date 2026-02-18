@@ -43,11 +43,13 @@ namespace VAuto.Zone.Commands
         public static void ResetArena(ChatCommandContext ctx, string zoneId)
         {
             var result = ArenaMatchManager.Instance.ResetArena(zoneId, EntityManager);
-            var status = result.Success ? "<color=#00FF00>success</color>" : "<color=#FF0000>failed</color>";
-            ctx.Reply($"<color=#00FFFF>Reset arena '{zoneId}': {status}. Cleared {result.EntitiesCleared}, spawned {result.EntitiesSpawned}.</color>");
-            if (!result.Success && !string.IsNullOrWhiteSpace(result.Error))
+            if (result.Success)
             {
-                ctx.Reply($"<color=#FF0000>Error: {result.Error}</color>");
+                ctx.Reply($"<color=#00FFFF>{result.Status}</color>");
+            }
+            else
+            {
+                ctx.Reply($"<color=#FF0000>Failed to reset arena '{zoneId}': {result.Error}</color>");
             }
         }
     }

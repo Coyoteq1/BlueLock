@@ -249,31 +249,10 @@ namespace VAuto.Zone.Services
                     state.SavedCooldowns = GetPlayerCooldowns(playerEntity, trackedSlots);
                 }
 
-                // Apply preset slots if provided (only overwrites indices provided)
+                // Do not apply presets during enter; ability buffers may not yet be initialized.
+                // Queue a post-unlock apply and let ProcessPendingSlotApplies handle fallback retries.
                 if (cfg.PresetSlots != null && cfg.PresetSlots.Length > 0)
-                {
-                    var current = GetPlayerAbilitySlots(playerEntity, out _);
-                    if (current.Length == SlotCount)
-                    {
-                        for (int i = 0; i < cfg.PresetSlots.Length && i < SlotCount; i++)
-                            current[i] = cfg.PresetSlots[i];
-
-                        ApplySlots(playerEntity, current, out var applyErr);
-                        if (!string.IsNullOrWhiteSpace(applyErr))
-                        {
-                            // If the player isn't fully initialized yet, defer until buffer exists.
-                            QueuePendingSlotApply(steamId, playerEntity, zoneId, current, mergeWithCurrent: false, applyErr);
-                        }
-                    }
-                    else
-                    {
-                        // Player entity not ready; defer.
-                        QueuePendingSlotApply(steamId, playerEntity, zoneId, cfg.PresetSlots, mergeWithCurrent: true, "Ability slots not readable yet");
-                    }
-                }
-
-                if (cfg.ResetCooldownsOnEnter)
-                    ResetAbilityCooldowns(playerEntity);
+                    QueuePendingSlotApply(steamId, playerEntity, zoneId, cfg.PresetSlots, mergeWithCurrent: true, "Awaiting post-unlock ability buffers");
 
                 LogInfo?.Invoke($"[OnZoneEnter] Player {steamId} entered zone '{zoneId}'.");
             }
@@ -324,8 +303,8 @@ namespace VAuto.Zone.Services
                     _playerStates.Remove(steamId);
                 }
 
-                _pendingSlotApplies.Remove(steamId);
-                _lastDeferredSlotWarnUtc.Remove(steamId);
+                // Keep pending applies across transient enter/exit churn.
+                // Pending state is cleared on successful apply, timeout, or disconnect cleanup.
                 _playerIndexToSteamId.Remove(playerEntity.Index);
 
                 LogInfo?.Invoke($"[OnZoneExit] Player {steamId} exited zone '{zoneId}'.");
@@ -333,6 +312,59 @@ namespace VAuto.Zone.Services
             catch (Exception ex)
             {
                 LogError?.Invoke($"[OnZoneExit] Unhandled error: {ex}");
+            }
+        }
+
+        public static void TryApplyPresetForPlayer(Entity playerEntity)
+        {
+            try
+            {
+                if (!_initialized) Initialize();
+
+                if (!TryGetCore(playerEntity, out var em, out var steamId, out _))
+                    return;
+
+                if (!_playerStates.TryGetValue(steamId, out var state))
+                    return;
+
+                if (string.IsNullOrWhiteSpace(state.CurrentZoneId) ||
+                    !TryGetZoneConfig(state.CurrentZoneId, out var cfg) ||
+                    cfg.PresetSlots == null ||
+                    cfg.PresetSlots.Length == 0)
+                {
+                    return;
+                }
+
+                if (!em.HasComponent<ProjectM.AbilitySlotBuffer>(playerEntity))
+                {
+                    QueuePendingSlotApply(steamId, playerEntity, state.CurrentZoneId, cfg.PresetSlots, mergeWithCurrent: true, "AbilitySlotBuffer not ready after unlock");
+                    return;
+                }
+
+                var current = GetPlayerAbilitySlots(playerEntity, out _);
+                if (current.Length != SlotCount)
+                    return;
+
+                for (int i = 0; i < cfg.PresetSlots.Length && i < SlotCount; i++)
+                    current[i] = cfg.PresetSlots[i];
+
+                if (ApplySlots(playerEntity, current, out var applyErr) && string.IsNullOrWhiteSpace(applyErr))
+                {
+                    if (cfg.ResetCooldownsOnEnter)
+                        ResetAbilityCooldowns(playerEntity);
+
+                    _pendingSlotApplies.Remove(steamId);
+                    _lastDeferredSlotWarnUtc.Remove(steamId);
+                    LogInfo?.Invoke($"[TryApplyPresetForPlayer] Applied preset slots for {steamId} in zone '{state.CurrentZoneId}'.");
+                }
+                else if (!string.IsNullOrWhiteSpace(applyErr))
+                {
+                    QueuePendingSlotApply(steamId, playerEntity, state.CurrentZoneId, cfg.PresetSlots, mergeWithCurrent: true, applyErr);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError?.Invoke($"[TryApplyPresetForPlayer] Unhandled error: {ex}");
             }
         }
 
@@ -445,20 +477,16 @@ namespace VAuto.Zone.Services
                     targetSlots = pending.Slots;
                 }
 
-                // IMPORTANT: do not call EntityManager.HasComponent<T> here.
-                // On some IL2CPP builds, the generic HasComponent trampoline can throw TypeInitializationException.
-                // ApplySlots already wraps slot-buffer access in a try/catch, so we can use it as the probe.
-                try
+                if (!em.HasComponent(pending.Player, ComponentType.ReadOnly<ProjectM.AbilitySlotBuffer>()))
+                    continue;
+
+                if (ApplySlots(pending.Player, targetSlots, out var err) && string.IsNullOrWhiteSpace(err))
                 {
-                    if (ApplySlots(pending.Player, targetSlots, out var err) && string.IsNullOrWhiteSpace(err))
-                    {
-                        LogInfo?.Invoke($"[ProcessPendingSlotApplies] Applied deferred slots for {steamId}.");
-                        remove.Add(steamId);
-                    }
-                }
-                catch
-                {
-                    // If any unexpected IL2CPP trampoline throws here, keep pending until it expires.
+                    if (TryGetZoneConfig(activeState.CurrentZoneId, out var cfg) && cfg.ResetCooldownsOnEnter)
+                        ResetAbilityCooldowns(pending.Player);
+
+                    LogInfo?.Invoke($"[ProcessPendingSlotApplies] Applied deferred slots for {steamId}.");
+                    remove.Add(steamId);
                 }
             }
 

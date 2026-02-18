@@ -9,7 +9,7 @@ namespace VAuto.Zone.Models
     /// Tracks a player's ability state for zone lifecycle management.
     /// Used to save and restore abilities when entering/exiting zones.
     /// </summary>
-    public struct PlayerAbilityState
+    public partial struct PlayerAbilityState
     {
         /// <summary>
         /// The player's Steam ID (or unique identifier).
