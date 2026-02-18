@@ -28,6 +28,7 @@ using VAuto.Zone.Models;
 using VAutomationCore.Core;
 using VAutomationCore.Core.Arena;
 using VAutomationCore.Core.Config;
+using VAutomationCore.Core.Lifecycle;
 using VAutomationCore.Core.Services;
 using VAutomationCore.Core.Logging;
 
@@ -124,6 +125,7 @@ namespace VAuto.Zone
         private static readonly Dictionary<ulong, float3> _zoneReturnPositions = new();
         private static readonly Dictionary<ulong, PendingZoneTeleport> _pendingZoneEnterTeleports = new();
         private static readonly Dictionary<string, Dictionary<string, List<Entity>>> _zoneTemplateEntities = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly PluginZoneLifecycleStepRegistry _zoneLifecycleStepRegistry = new();
 
         private struct PendingZoneTeleport
         {
@@ -131,6 +133,101 @@ namespace VAuto.Zone
             public string ZoneId;
             public float3 TargetPos;
             public int Attempts;
+        }
+
+        private sealed class PluginZoneLifecycleContext : IZoneLifecycleContext
+        {
+            public Entity Player { get; }
+            public string ZoneId { get; }
+            public EntityManager EntityManager { get; }
+
+            public PluginZoneLifecycleContext(Entity player, string zoneId, EntityManager entityManager)
+            {
+                Player = player;
+                ZoneId = zoneId ?? string.Empty;
+                EntityManager = entityManager;
+            }
+        }
+
+        private sealed class ActionTokenEnterStep : IZoneEnterStep
+        {
+            private readonly string _actionToken;
+
+            public string Name => _actionToken;
+            public int Order { get; }
+
+            public ActionTokenEnterStep(string actionToken, int order)
+            {
+                _actionToken = actionToken ?? string.Empty;
+                Order = order;
+            }
+
+            public void Execute(IZoneLifecycleContext context)
+            {
+                if (context is PluginZoneLifecycleContext pluginContext)
+                {
+                    ExecuteEnterLifecycleAction(_actionToken, pluginContext.Player, pluginContext.ZoneId, pluginContext.EntityManager);
+                }
+            }
+        }
+
+        private sealed class ActionTokenExitStep : IZoneExitStep
+        {
+            private readonly string _actionToken;
+
+            public string Name => _actionToken;
+            public int Order { get; }
+
+            public ActionTokenExitStep(string actionToken, int order)
+            {
+                _actionToken = actionToken ?? string.Empty;
+                Order = order;
+            }
+
+            public void Execute(IZoneLifecycleContext context)
+            {
+                if (context is PluginZoneLifecycleContext pluginContext)
+                {
+                    ExecuteExitLifecycleAction(_actionToken, pluginContext.Player, pluginContext.ZoneId, pluginContext.EntityManager);
+                }
+            }
+        }
+
+        private sealed class PluginZoneLifecycleStepRegistry : IZoneLifecycleStepRegistry
+        {
+            public IReadOnlyList<IZoneEnterStep> GetEnterSteps()
+            {
+                return BuildEnterSteps(DefaultEnterLifecycleActions);
+            }
+
+            public IReadOnlyList<IZoneExitStep> GetExitSteps()
+            {
+                return BuildExitSteps(DefaultExitLifecycleActions);
+            }
+
+            public IReadOnlyList<IZoneEnterStep> BuildEnterSteps(IEnumerable<string> actionTokens)
+            {
+                var steps = new List<IZoneEnterStep>();
+                var order = 0;
+                foreach (var token in actionTokens ?? Array.Empty<string>())
+                {
+                    steps.Add(new ActionTokenEnterStep(token, order++));
+                }
+
+                return steps;
+            }
+
+            public IReadOnlyList<IZoneExitStep> BuildExitSteps(IEnumerable<string> actionTokens)
+            {
+                var steps = new List<IZoneExitStep>();
+                var order = 0;
+                foreach (var token in actionTokens ?? Array.Empty<string>())
+                {
+                    steps.Add(new ActionTokenExitStep(token, order++));
+                }
+
+                return steps;
+            }
         }
 
         private sealed class PendingZoneTransition
@@ -269,7 +366,7 @@ namespace VAuto.Zone
                     Logger.LogInfo("AbilityUi initialized");
 
                     // Queue border build to run on server update thread when world is ready.
-                    RequestZoneBorderRebuild();
+                    ZoneGlowBorderService.QueueRebuild("startup");
                 }
                 catch (Exception ex)
                 {
@@ -553,7 +650,7 @@ namespace VAuto.Zone
                         _lastZonesConfigCheck = zonesLastModified;
                         ZoneConfigService.Reload();
                         _zoneGlowAutoSpawnDisabled.Clear();
-                        RequestZoneBorderRebuild();
+                        ZoneGlowBorderService.QueueRebuild("zones-config-hot-reload");
                         Logger.LogInfo("[BlueLock] Zones config hot-reloaded and border rebuild queued");
                     }
                 }
@@ -751,17 +848,17 @@ namespace VAuto.Zone
             }
         }
 
-        public static void ForceGlowRebuild()
+        public static void RebuildZoneBordersNow(string reason = "manual")
         {
-            RequestZoneBorderRebuild();
+            RequestZoneBorderRebuild(reason, bypassCooldown: true);
             ProcessPendingZoneBorderRebuild();
         }
 
-        public static void RotateGlowNow()
+        public static void RotateZoneBorderGlowNow()
         {
             _glowRotationOffset++;
             _nextGlowRotationUtc = DateTime.UtcNow.AddMinutes(Math.Max(1, GlowSystemAutoRotateIntervalMinutesValue));
-            RequestZoneBorderRebuild();
+            RequestZoneBorderRebuild("manual-rotate", bypassCooldown: true);
             ProcessPendingZoneBorderRebuild();
         }
 
@@ -779,9 +876,14 @@ namespace VAuto.Zone
             RequestZoneBorderRebuild("approved-user-connect");
         }
 
-        public static void ClearGlowBordersNow()
+        public static void ClearZoneBordersNow()
         {
             ClearAllZoneBorders();
+        }
+
+        public static void QueueZoneBorderRebuild(string reason = "service", bool bypassCooldown = false)
+        {
+            RequestZoneBorderRebuild(reason, bypassCooldown);
         }
 
         public static int GetPlayersInZoneCount(string zoneId)
@@ -1007,7 +1109,7 @@ namespace VAuto.Zone
                             }
                         }
 
-                        var zoneSeed = StableHash(zone.Id);
+                        var zoneSeed = ArenaMatchUtilities.StableHash(zone.Id);
                         var selectedFallbackGlowGuid = PrefabGUID.Empty;
                         if (applyZoneGlow && !hasConfiguredZoneGlow && glowBuffs.Length > 0)
                         {
@@ -1144,72 +1246,10 @@ namespace VAuto.Zone
         private static List<float3> GetZoneBorderPoints(ZoneDefinition zone, float spacing)
         {
             var points = new List<float3>();
-            var safeSpacing = Math.Max(1f, spacing);
-            var shape = (zone.Shape ?? string.Empty).Trim();
-
-            if (shape.Equals("Circle", StringComparison.OrdinalIgnoreCase))
+            var nodes = GlowTileGeometry.GetZoneBorderNodes(zone, spacing);
+            foreach (var node in nodes)
             {
-                var radius = Math.Max(1f, zone.Radius);
-                var circumference = Math.Max(8f, 2f * (float)Math.PI * radius);
-                var pointCount = Math.Max(12, (int)(circumference / safeSpacing));
-
-                for (var i = 0; i < pointCount; i++)
-                {
-                    var angle = (i / (float)pointCount) * 2f * (float)Math.PI;
-                points.Add(new float3(
-                        zone.CenterX + (float)Math.Cos(angle) * radius,
-                        zone.GlowSpawnHeight,
-                        zone.CenterZ + (float)Math.Sin(angle) * radius));
-                }
-                return points;
-            }
-
-            var isRectLike =
-                shape.Equals("Rectangle", StringComparison.OrdinalIgnoreCase) ||
-                shape.Equals("Rect", StringComparison.OrdinalIgnoreCase) ||
-                shape.Equals("Square", StringComparison.OrdinalIgnoreCase) ||
-                shape.Equals("Box", StringComparison.OrdinalIgnoreCase);
-
-            if (!isRectLike)
-            {
-                return points;
-            }
-
-            var hasExplicitBounds = !(Math.Abs(zone.MinX) < 0.001f &&
-                                      Math.Abs(zone.MaxX) < 0.001f &&
-                                      Math.Abs(zone.MinZ) < 0.001f &&
-                                      Math.Abs(zone.MaxZ) < 0.001f);
-
-            float minX;
-            float maxX;
-            float minZ;
-            float maxZ;
-            if (hasExplicitBounds)
-            {
-                minX = Math.Min(zone.MinX, zone.MaxX);
-                maxX = Math.Max(zone.MinX, zone.MaxX);
-                minZ = Math.Min(zone.MinZ, zone.MaxZ);
-                maxZ = Math.Max(zone.MinZ, zone.MaxZ);
-            }
-            else
-            {
-                var half = Math.Max(1f, zone.Radius);
-                minX = zone.CenterX - half;
-                maxX = zone.CenterX + half;
-                minZ = zone.CenterZ - half;
-                maxZ = zone.CenterZ + half;
-            }
-
-            for (var x = minX; x <= maxX; x += safeSpacing)
-            {
-                points.Add(new float3(x, zone.GlowSpawnHeight, minZ));
-                points.Add(new float3(x, zone.GlowSpawnHeight, maxZ));
-            }
-
-            for (var z = minZ + safeSpacing; z < maxZ; z += safeSpacing)
-            {
-                points.Add(new float3(minX, zone.GlowSpawnHeight, z));
-                points.Add(new float3(maxX, zone.GlowSpawnHeight, z));
+                points.Add(new float3(node.Position.x, zone.GlowSpawnHeight, node.Position.y));
             }
 
             return points;
@@ -1309,25 +1349,6 @@ namespace VAuto.Zone
             catch
             {
                 return false;
-            }
-        }
-
-        private static int StableHash(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return 0;
-            }
-
-            unchecked
-            {
-                uint hash = 2166136261;
-                for (var i = 0; i < value.Length; i++)
-                {
-                    hash ^= char.ToLowerInvariant(value[i]);
-                    hash *= 16777619;
-                }
-                return (int)hash;
             }
         }
 
@@ -1932,9 +1953,10 @@ namespace VAuto.Zone
 
                 var actionOrder = ResolveLifecycleActionsForZone(zoneId, isEnter: true);
                 Logger.LogDebug($"[BlueLock] Zone '{zoneId}' enter actions: {string.Join(", ", actionOrder)}");
-                foreach (var action in actionOrder)
+                var context = new PluginZoneLifecycleContext(player, zoneId, em);
+                foreach (var step in _zoneLifecycleStepRegistry.BuildEnterSteps(actionOrder))
                 {
-                    ExecuteEnterLifecycleAction(action, player, zoneId, em);
+                    step.Execute(context);
                 }
             }
             catch (Exception ex)
@@ -2204,9 +2226,10 @@ namespace VAuto.Zone
 
                 var actionOrder = ResolveLifecycleActionsForZone(zoneId, isEnter: false);
                 Logger.LogDebug($"[BlueLock] Zone '{zoneId}' exit actions: {string.Join(", ", actionOrder)}");
-                foreach (var action in actionOrder)
+                var context = new PluginZoneLifecycleContext(player, zoneId, em);
+                foreach (var step in _zoneLifecycleStepRegistry.BuildExitSteps(actionOrder))
                 {
-                    ExecuteExitLifecycleAction(action, player, zoneId, em);
+                    step.Execute(context);
                 }
             }
             catch (Exception ex)
@@ -2816,6 +2839,13 @@ namespace VAuto.Zone
 
         private static void TryInvokeDebugEventBridgeZoneEnterStart(Entity characterEntity, string zoneId)
         {
+            // Disabled to prevent duplicate DebugEventBridge.OnZoneEnterStart execution.
+            // The typed invocation is performed later in the integration enter step
+            // (see: TryRunZoneEnterStep within the lifecycle integration pipeline).
+            // Keeping this as a no-op preserves binary compatibility.
+            return;
+
+#if false
             try
             {
                 var em = UnifiedCore.EntityManager;
@@ -2864,6 +2894,7 @@ namespace VAuto.Zone
             {
                 Logger.LogWarning($"[BlueLock] DebugEventBridge reflection invoke failed (OnZoneEnterStart, zone='{zoneId}'): {ex}");
             }
+#endif
         }
 
         private static void TryInvokeDebugEventBridge(bool isEnter, Entity characterEntity, string zoneId)
@@ -2951,6 +2982,9 @@ namespace VAuto.Zone
                 Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnPlayerIsInZone(entity={characterEntity.Index}:{characterEntity.Version}, zone='{zoneId}', enableUnlock={zoneUnlockEnabled})");
                 method.Invoke(null, new object[] { characterEntity, zoneId, zoneUnlockEnabled });
                 Logger.LogInfo($"[BlueLock] DebugEventBridge.OnPlayerIsInZone completed");
+
+                // Post-unlock ability apply: execute after DebugEventBridge unlock pipeline.
+                TryRunZoneEnterStep("AbilityUi.TryApplyPresetForPlayer", () => AbilityUi.TryApplyPresetForPlayer(characterEntity));
             }
             catch (Exception ex)
             {
@@ -3260,7 +3294,7 @@ namespace VAuto.Zone
                                         CurrentDamage = 20f,
                                         InitialDamage = 20f,
                                         LastTickTime = now,
-                                        ZoneIdHash = StableHash(zoneState.CurrentZoneId)
+                            ZoneIdHash = ArenaMatchUtilities.StableHash(zoneState.CurrentZoneId)
                                     });
                                 }
                                 continue;
@@ -3269,7 +3303,7 @@ namespace VAuto.Zone
                             var damageState = em.GetComponentData<ArenaDamageState>(playerEntity);
 
                             // Check zone hasn't changed
-                            if (damageState.ZoneIdHash != StableHash(zoneState.CurrentZoneId))
+                            if (damageState.ZoneIdHash != ArenaMatchUtilities.StableHash(zoneState.CurrentZoneId))
                             {
                                 em.RemoveComponent<ArenaDamageState>(playerEntity);
                                 continue;
