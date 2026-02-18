@@ -1,0 +1,18 @@
+{
+  "zones": [
+    {
+      "zoneId": "*",
+      "resetCooldownsOnEnter": true,
+      "resetCooldownsOnExit": false,
+      "saveAndRestoreSlots": true,
+      "saveAndRestoreCooldowns": true,
+      "presetSlots": [
+        "AB_Vampire_VeilOfBlood_Group",
+        "AB_Vampire_VeilOfBlood_Group",
+        "AB_Blood_BloodRite_AbilityGroup",
+        "AB_Vampire_VeilOfBlood_Group"
+      ],
+      "restrictedAbilities": []
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj": {}
+  },
+  "projects": {
+    "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
+        "projectName": "BlueLock",
+        "projectPath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\VAutoZone.csproj",
+        "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
+        "outputPath": "D:\\VAutomationCore\\VAutomationCore\\Bluelock\\_build\\obj\\VAutoZone\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "D:\\VAutomationCore\\NuGet.Config",
+          "D:\\NuGet.Config",
+          "C:\\Users\\coyot.RWE\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Users\\coyot.RWE\\OneDrive\\Documents\\Vauto (4)\\VProgress\\All projects\\VAutomationCore\\libs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {
+              "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj": {
+                "projectPath": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj"
+              },
+              "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
+                "projectPath": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "Lib.Harmony": {
+              "target": "Package",
+              "version": "[2.2.2, )"
+            },
+            "VRising.VampireCommandFramework": {
+              "target": "Package",
+              "version": "[0.10.4, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.428\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj",
+        "projectName": "Cycleborn",
+        "projectPath": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\Vlifecycle.csproj",
+        "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
+        "outputPath": "d:\\VAutomationCore\\VAutomationCore\\CycleBorn\\_build\\obj\\Vlifecycle\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "d:\\VAutomationCore\\NuGet.Config",
+          "d:\\NuGet.Config",
+          "C:\\Users\\coyot.RWE\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Users\\coyot.RWE\\OneDrive\\Documents\\Vauto (4)\\VProgress\\All projects\\VAutomationCore\\libs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {
+              "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
+                "projectPath": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "BepInEx.Unity.IL2CPP": {
+              "include": "Compile",
+              "target": "Package",
+              "version": "[6.0.0-be.733, )"
+            },
+            "Lib.Harmony": {
+              "target": "Package",
+              "version": "[2.2.2, )"
+            },
+            "RisingV.Scripting": {
+              "target": "Package",
+              "version": "[0.1.2, )"
+            },
+            "RisingV.Shared": {
+              "target": "Package",
+              "version": "[0.1.3, )"
+            },
+            "VRising.VampireCommandFramework": {
+              "target": "Package",
+              "version": "[0.10.4, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.428\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj",
+        "projectName": "VAutomationCore",
+        "projectPath": "D:\\VAutomationCore\\VAutomationCore\\VAutomationCore.csproj",
+        "packagesPath": "C:\\Users\\coyot.RWE\\.nuget\\packages\\",
+        "outputPath": "D:\\VAutomationCore\\VAutomationCore\\_build\\obj\\VAutomationCore\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "D:\\VAutomationCore\\NuGet.Config",
+          "D:\\NuGet.Config",
+          "C:\\Users\\coyot.RWE\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net6.0"
+        ],
+        "sources": {
+          "C:\\Users\\coyot.RWE\\OneDrive\\Documents\\Vauto (4)\\VProgress\\All projects\\VAutomationCore\\libs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "BepInEx.Unity.IL2CPP": {
+              "include": "Compile",
+              "target": "Package",
+              "version": "[6.0.0-be.733, )"
+            },
+            "Il2CppInterop.Runtime": {
+              "target": "Package",
+              "version": "[1.4.6-ci.426, )"
+            },
+            "Lib.Harmony": {
+              "target": "Package",
+              "version": "[2.2.2, )"
+            },
+            "RisingV.Shared": {
+              "target": "Package",
+              "version": "[0.1.3, )"
+            },
+            "VRising.VAMP": {
+              "target": "Package",
+              "version": "[1.3.3, )"
+            },
+            "VRising.VampireCommandFramework": {
+              "target": "Package",
+              "version": "[0.10.4, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.428\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

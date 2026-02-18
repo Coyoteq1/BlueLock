@@ -1,0 +1,12 @@
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\bin\Debug\net6.0\PrefabsCatalog.deps.json
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\bin\Debug\net6.0\PrefabsCatalog.dll
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\bin\Debug\net6.0\PrefabsCatalog.pdb
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.csproj.AssemblyReference.cache
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.GeneratedMSBuildEditorConfig.editorconfig
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.AssemblyInfoInputs.cache
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.AssemblyInfo.cs
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.csproj.CoreCompileInputs.cache
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.dll
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\refint\PrefabsCatalog.dll
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\PrefabsCatalog.pdb
+d:\VAutomationCore\VAutomationCore\Bluelock\PrefabsCatalog\obj\Debug\net6.0\ref\PrefabsCatalog.dll

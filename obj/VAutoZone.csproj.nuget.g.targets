@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)system.collections.immutable\9.0.0\buildTransitive\netcoreapp2.0\System.Collections.Immutable.targets" Condition="Exists('$(NuGetPackageRoot)system.collections.immutable\9.0.0\buildTransitive\netcoreapp2.0\System.Collections.Immutable.targets')" />
+    <Import Project="$(NuGetPackageRoot)system.reflection.metadata\9.0.0\buildTransitive\netcoreapp2.0\System.Reflection.Metadata.targets" Condition="Exists('$(NuGetPackageRoot)system.reflection.metadata\9.0.0\buildTransitive\netcoreapp2.0\System.Reflection.Metadata.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.11.0\buildTransitive\Microsoft.CodeAnalysis.Analyzers.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.codeanalysis.analyzers\3.11.0\buildTransitive\Microsoft.CodeAnalysis.Analyzers.targets')" />
+  </ImportGroup>
+</Project>

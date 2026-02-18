@@ -1,0 +1,1008 @@
+{
+    "schemaVersion":  2,
+    "maxEntries":  200,
+    "source":  "temp_reference/KindredSchematics/Services/GlowService.cs + temp_reference/KindredCommands/Data/Prefabs.cs",
+    "count":  200,
+    "choices":  [
+                    {
+                        "name":  "InkShadow",
+                        "prefab":  "Buff_Militia_InkCrawler_TrailEffect",
+                        "prefabGuid":  -1124645803
+                    },
+                    {
+                        "name":  "Cursed",
+                        "prefab":  "AB_Wolf_Cursed_Howl_Buff",
+                        "prefabGuid":  1425734039
+                    },
+                    {
+                        "name":  "Howl",
+                        "prefab":  "AB_WinterWolf_Howl_Buff",
+                        "prefabGuid":  -91451769
+                    },
+                    {
+                        "name":  "Chaos",
+                        "prefab":  "AB_Purifier_ChaosVolley_BurnDebuff",
+                        "prefabGuid":  1163490655
+                    },
+                    {
+                        "name":  "Emerald",
+                        "prefab":  "Buff_Undead_FlyingSkull_LivingMaterial",
+                        "prefabGuid":  -1559874083
+                    },
+                    {
+                        "name":  "Poison",
+                        "prefab":  "Buff_General_Sludge_Poison",
+                        "prefabGuid":  -1965215729
+                    },
+                    {
+                        "name":  "Agony",
+                        "prefab":  "Unholy_Vampire_Buff_Agony",
+                        "prefabGuid":  1025643444
+                    },
+                    {
+                        "name":  "Light",
+                        "prefab":  "AB_Nun_AoE_Light_Debuff",
+                        "prefabGuid":  178225731
+                    },
+                    {
+                        "name":  "CarpetRoyal",
+                        "prefab":  "PurpleCarpetsBuildMenuGroup01",
+                        "prefabGuid":  1144832236
+                    },
+                    {
+                        "name":  "CarpetLegacyFallback",
+                        "prefab":  "BlackCarpetsBuildMenuGroup01",
+                        "prefabGuid":  -298064854
+                    },
+                    {
+                        "name":  "_10x6RectangularTablesModularBuildMenuGroup",
+                        "prefab":  "_10x6RectangularTablesModularBuildMenuGroup",
+                        "prefabGuid":  -375280343
+                    },
+                    {
+                        "name":  "_3x3RoundTablesModularBuildMenuGroup",
+                        "prefab":  "_3x3RoundTablesModularBuildMenuGroup",
+                        "prefabGuid":  -1226637162
+                    },
+                    {
+                        "name":  "_3x6RectangularTablesBuildMenuGroup",
+                        "prefab":  "_3x6RectangularTablesBuildMenuGroup",
+                        "prefabGuid":  -1058166909
+                    },
+                    {
+                        "name":  "_6x6RoundTablesModularBuildMenuGroup",
+                        "prefab":  "_6x6RoundTablesModularBuildMenuGroup",
+                        "prefabGuid":  -1428481029
+                    },
+                    {
+                        "name":  "AB_AmbientLightning_Light",
+                        "prefab":  "AB_AmbientLightning_Light",
+                        "prefabGuid":  589474506
+                    },
+                    {
+                        "name":  "AB_AmbientLightning_Light_GameplayStrike",
+                        "prefab":  "AB_AmbientLightning_Light_GameplayStrike",
+                        "prefabGuid":  -2094079027
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_AbilityGroup",
+                        "prefabGuid":  1327173823
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Activate",
+                        "prefabGuid":  -578949147
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Blood_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_Blood_AbilityGroup",
+                        "prefabGuid":  -1007451621
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Blood_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Blood_Activate",
+                        "prefabGuid":  1186329047
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Blood_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Blood_Cast",
+                        "prefabGuid":  765001445
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Cast",
+                        "prefabGuid":  1271061994
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Chaos_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_Chaos_AbilityGroup",
+                        "prefabGuid":  -1706926836
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Chaos_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Chaos_Activate",
+                        "prefabGuid":  -1012725577
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Chaos_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Chaos_Cast",
+                        "prefabGuid":  1273123129
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Frost_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_Frost_AbilityGroup",
+                        "prefabGuid":  2110406288
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Frost_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Frost_Activate",
+                        "prefabGuid":  -1250180678
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Frost_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Frost_Cast",
+                        "prefabGuid":  -346833706
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Illusion_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_Illusion_AbilityGroup",
+                        "prefabGuid":  -1063090297
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Illusion_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Illusion_Activate",
+                        "prefabGuid":  1197567253
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Illusion_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Illusion_Cast",
+                        "prefabGuid":  -237809887
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Storm_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_Storm_AbilityGroup",
+                        "prefabGuid":  419215380
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Storm_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Storm_Activate",
+                        "prefabGuid":  655641197
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Storm_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Storm_Cast",
+                        "prefabGuid":  1215462047
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Unholy_AbilityGroup",
+                        "prefab":  "AB_ApplyWeaponCoating_Unholy_AbilityGroup",
+                        "prefabGuid":  1293762372
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Unholy_Activate",
+                        "prefab":  "AB_ApplyWeaponCoating_Unholy_Activate",
+                        "prefabGuid":  1932625569
+                    },
+                    {
+                        "name":  "AB_ApplyWeaponCoating_Unholy_Cast",
+                        "prefab":  "AB_ApplyWeaponCoating_Unholy_Cast",
+                        "prefabGuid":  -2088804628
+                    },
+                    {
+                        "name":  "AB_Archer_Projectile_Cast",
+                        "prefab":  "AB_Archer_Projectile_Cast",
+                        "prefabGuid":  1106195644
+                    },
+                    {
+                        "name":  "AB_Archer_Projectile_Group",
+                        "prefab":  "AB_Archer_Projectile_Group",
+                        "prefabGuid":  -751119210
+                    },
+                    {
+                        "name":  "AB_Archer_Projectile01",
+                        "prefab":  "AB_Archer_Projectile01",
+                        "prefabGuid":  -1423243724
+                    },
+                    {
+                        "name":  "AB_ArchMage_ArcaneImprisonment_AbilityGroup",
+                        "prefab":  "AB_ArchMage_ArcaneImprisonment_AbilityGroup",
+                        "prefabGuid":  91941562
+                    },
+                    {
+                        "name":  "AB_ArchMage_ArcaneImprisonment_Cast",
+                        "prefab":  "AB_ArchMage_ArcaneImprisonment_Cast",
+                        "prefabGuid":  1965996833
+                    },
+                    {
+                        "name":  "AB_ArchMage_ArcaneImprisonment_ImprisonBuff",
+                        "prefab":  "AB_ArchMage_ArcaneImprisonment_ImprisonBuff",
+                        "prefabGuid":  2007858431
+                    },
+                    {
+                        "name":  "AB_ArchMage_ArcaneImprisonment_MoveBehaviourBuff",
+                        "prefab":  "AB_ArchMage_ArcaneImprisonment_MoveBehaviourBuff",
+                        "prefabGuid":  1099681289
+                    },
+                    {
+                        "name":  "AB_ArchMage_ArcaneImprisonment_RingArea",
+                        "prefab":  "AB_ArchMage_ArcaneImprisonment_RingArea",
+                        "prefabGuid":  -1952370580
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_AbilityGroup",
+                        "prefab":  "AB_ArchMage_CrystalLance_AbilityGroup",
+                        "prefabGuid":  1520734123
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_AggroBuff",
+                        "prefab":  "AB_ArchMage_CrystalLance_AggroBuff",
+                        "prefabGuid":  -967628321
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Cast_01",
+                        "prefab":  "AB_ArchMage_CrystalLance_Cast_01",
+                        "prefabGuid":  -88630604
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Cast_02",
+                        "prefab":  "AB_ArchMage_CrystalLance_Cast_02",
+                        "prefabGuid":  1895752824
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Cast_03",
+                        "prefab":  "AB_ArchMage_CrystalLance_Cast_03",
+                        "prefabGuid":  -518248879
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Charged_AbilityGroup",
+                        "prefab":  "AB_ArchMage_CrystalLance_Charged_AbilityGroup",
+                        "prefabGuid":  1187623532
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Charged_Cast",
+                        "prefab":  "AB_ArchMage_CrystalLance_Charged_Cast",
+                        "prefabGuid":  -1536831420
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Charged_HitBuff",
+                        "prefab":  "AB_ArchMage_CrystalLance_Charged_HitBuff",
+                        "prefabGuid":  1237316881
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Charged_Projectile",
+                        "prefab":  "AB_ArchMage_CrystalLance_Charged_Projectile",
+                        "prefabGuid":  -1385969356
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Charged_SplinterProjectile",
+                        "prefab":  "AB_ArchMage_CrystalLance_Charged_SplinterProjectile",
+                        "prefabGuid":  -485680280
+                    },
+                    {
+                        "name":  "AB_ArchMage_CrystalLance_Projectile",
+                        "prefab":  "AB_ArchMage_CrystalLance_Projectile",
+                        "prefabGuid":  826214455
+                    },
+                    {
+                        "name":  "AB_ArchMage_Emote_Aggro_AbilityGroup",
+                        "prefab":  "AB_ArchMage_Emote_Aggro_AbilityGroup",
+                        "prefabGuid":  -139137314
+                    },
+                    {
+                        "name":  "AB_ArchMage_Emote_Aggro_Buff",
+                        "prefab":  "AB_ArchMage_Emote_Aggro_Buff",
+                        "prefabGuid":  -1161618215
+                    },
+                    {
+                        "name":  "AB_ArchMage_Emote_Aggro_Buff_ALREADY_EXISTS_2",
+                        "prefab":  "AB_ArchMage_Emote_Aggro_Buff_ALREADY_EXISTS_2",
+                        "prefabGuid":  -1748472670
+                    },
+                    {
+                        "name":  "AB_ArchMage_Emote_Aggro_Cast",
+                        "prefab":  "AB_ArchMage_Emote_Aggro_Cast",
+                        "prefabGuid":  -2059383344
+                    },
+                    {
+                        "name":  "AB_ArchMage_FireSpinner_AbilityGroup",
+                        "prefab":  "AB_ArchMage_FireSpinner_AbilityGroup",
+                        "prefabGuid":  1217615468
+                    },
+                    {
+                        "name":  "AB_ArchMage_FireSpinner_Cast",
+                        "prefab":  "AB_ArchMage_FireSpinner_Cast",
+                        "prefabGuid":  -1997201513
+                    },
+                    {
+                        "name":  "AB_ArchMage_FireSpinner_Projectile",
+                        "prefab":  "AB_ArchMage_FireSpinner_Projectile",
+                        "prefabGuid":  612861780
+                    },
+                    {
+                        "name":  "AB_ArchMage_FireSpinner_Spinner",
+                        "prefab":  "AB_ArchMage_FireSpinner_Spinner",
+                        "prefabGuid":  -1672727739
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_AggroBuff",
+                        "prefab":  "AB_ArchMage_FlameSphere_AggroBuff",
+                        "prefabGuid":  -240922728
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_AreaDamageBuff",
+                        "prefab":  "AB_ArchMage_FlameSphere_AreaDamageBuff",
+                        "prefabGuid":  -1640482518
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_AreaEffectBuff",
+                        "prefab":  "AB_ArchMage_FlameSphere_AreaEffectBuff",
+                        "prefabGuid":  -139562596
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_AreaInitBuff",
+                        "prefab":  "AB_ArchMage_FlameSphere_AreaInitBuff",
+                        "prefabGuid":  451676082
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_Dash_AbilityGroup",
+                        "prefab":  "AB_ArchMage_FlameSphere_Dash_AbilityGroup",
+                        "prefabGuid":  -1754787506
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_Dash_Cast",
+                        "prefab":  "AB_ArchMage_FlameSphere_Dash_Cast",
+                        "prefabGuid":  2138663579
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_Dash_Trigger",
+                        "prefab":  "AB_ArchMage_FlameSphere_Dash_Trigger",
+                        "prefabGuid":  1679920133
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_Projectile",
+                        "prefab":  "AB_ArchMage_FlameSphere_Projectile",
+                        "prefabGuid":  269193311
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlameSphere_ShouldDestroyBuff",
+                        "prefab":  "AB_ArchMage_FlameSphere_ShouldDestroyBuff",
+                        "prefabGuid":  299001257
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlamingIce_AbilityGroup",
+                        "prefab":  "AB_ArchMage_FlamingIce_AbilityGroup",
+                        "prefabGuid":  -2025881745
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlamingIce_Area",
+                        "prefab":  "AB_ArchMage_FlamingIce_Area",
+                        "prefabGuid":  379217467
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlamingIce_Cast",
+                        "prefab":  "AB_ArchMage_FlamingIce_Cast",
+                        "prefabGuid":  1890249378
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlamingIce_Channel",
+                        "prefab":  "AB_ArchMage_FlamingIce_Channel",
+                        "prefabGuid":  -920928426
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlamingIce_FreezeBuff",
+                        "prefab":  "AB_ArchMage_FlamingIce_FreezeBuff",
+                        "prefabGuid":  821255111
+                    },
+                    {
+                        "name":  "AB_ArchMage_FlamingIce_Trigger",
+                        "prefab":  "AB_ArchMage_FlamingIce_Trigger",
+                        "prefabGuid":  -1488767962
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningArc_AbilityGroup",
+                        "prefab":  "AB_ArchMage_LightningArc_AbilityGroup",
+                        "prefabGuid":  -1232816408
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningArc_Cast",
+                        "prefab":  "AB_ArchMage_LightningArc_Cast",
+                        "prefabGuid":  -1524769526
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningArc_Projectile",
+                        "prefab":  "AB_ArchMage_LightningArc_Projectile",
+                        "prefabGuid":  1211897000
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningCurse_AbilityGroup",
+                        "prefab":  "AB_ArchMage_LightningCurse_AbilityGroup",
+                        "prefabGuid":  1365358996
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningCurse_Cast",
+                        "prefab":  "AB_ArchMage_LightningCurse_Cast",
+                        "prefabGuid":  1142315183
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningCurse_Projectile",
+                        "prefab":  "AB_ArchMage_LightningCurse_Projectile",
+                        "prefabGuid":  -1317668918
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningCurse_ProjectileSpawnerBuff",
+                        "prefab":  "AB_ArchMage_LightningCurse_ProjectileSpawnerBuff",
+                        "prefabGuid":  2089605812
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningCurse_ProjectileTrigger",
+                        "prefab":  "AB_ArchMage_LightningCurse_ProjectileTrigger",
+                        "prefabGuid":  390853496
+                    },
+                    {
+                        "name":  "AB_ArchMage_LightningCurse_Trigger",
+                        "prefab":  "AB_ArchMage_LightningCurse_Trigger",
+                        "prefabGuid":  -988990419
+                    },
+                    {
+                        "name":  "AB_ArchMage_MirrorImage_AbilityGroup",
+                        "prefab":  "AB_ArchMage_MirrorImage_AbilityGroup",
+                        "prefabGuid":  -1897317770
+                    },
+                    {
+                        "name":  "AB_ArchMage_MirrorImage_Cast",
+                        "prefab":  "AB_ArchMage_MirrorImage_Cast",
+                        "prefabGuid":  -1714013936
+                    },
+                    {
+                        "name":  "AB_ArchMage_MirrorImage_EndPhase",
+                        "prefab":  "AB_ArchMage_MirrorImage_EndPhase",
+                        "prefabGuid":  262354515
+                    },
+                    {
+                        "name":  "AB_ArchMage_MirrorImage_MoveBehaviourBuff",
+                        "prefab":  "AB_ArchMage_MirrorImage_MoveBehaviourBuff",
+                        "prefabGuid":  -1099792891
+                    },
+                    {
+                        "name":  "AB_ArchMage_MirrorImage_Phase",
+                        "prefab":  "AB_ArchMage_MirrorImage_Phase",
+                        "prefabGuid":  30325069
+                    },
+                    {
+                        "name":  "AB_ArchMage_MirrorImage_Trigger",
+                        "prefab":  "AB_ArchMage_MirrorImage_Trigger",
+                        "prefabGuid":  292114817
+                    },
+                    {
+                        "name":  "AB_ArchMage_Teleport_AbilityGroup",
+                        "prefab":  "AB_ArchMage_Teleport_AbilityGroup",
+                        "prefabGuid":  886063983
+                    },
+                    {
+                        "name":  "AB_ArchMage_Teleport_Cast",
+                        "prefab":  "AB_ArchMage_Teleport_Cast",
+                        "prefabGuid":  484270946
+                    },
+                    {
+                        "name":  "AB_ArchMage_Teleport_EndPhase",
+                        "prefab":  "AB_ArchMage_Teleport_EndPhase",
+                        "prefabGuid":  56049482
+                    },
+                    {
+                        "name":  "AB_ArchMage_Teleport_Phase",
+                        "prefab":  "AB_ArchMage_Teleport_Phase",
+                        "prefabGuid":  -723899936
+                    },
+                    {
+                        "name":  "AB_Bandit_Ambush_Buff",
+                        "prefab":  "AB_Bandit_Ambush_Buff",
+                        "prefabGuid":  614276301
+                    },
+                    {
+                        "name":  "AB_Bandit_Ambush_RevealBuff",
+                        "prefab":  "AB_Bandit_Ambush_RevealBuff",
+                        "prefabGuid":  -1076678456
+                    },
+                    {
+                        "name":  "AB_Bandit_Bomber_Elite_Roll",
+                        "prefab":  "AB_Bandit_Bomber_Elite_Roll",
+                        "prefabGuid":  -2048180340
+                    },
+                    {
+                        "name":  "AB_Bandit_Bomber_Elite_Roll_Group",
+                        "prefab":  "AB_Bandit_Bomber_Elite_Roll_Group",
+                        "prefabGuid":  192866635
+                    },
+                    {
+                        "name":  "AB_Bandit_BombThrow_AbilityGroup",
+                        "prefab":  "AB_Bandit_BombThrow_AbilityGroup",
+                        "prefabGuid":  -1743551272
+                    },
+                    {
+                        "name":  "AB_Bandit_BombThrow_Cast",
+                        "prefab":  "AB_Bandit_BombThrow_Cast",
+                        "prefabGuid":  -733996338
+                    },
+                    {
+                        "name":  "AB_Bandit_BombThrow_Throw",
+                        "prefab":  "AB_Bandit_BombThrow_Throw",
+                        "prefabGuid":  746729709
+                    },
+                    {
+                        "name":  "AB_Bandit_ClusterBombThrow_AbilityGroup",
+                        "prefab":  "AB_Bandit_ClusterBombThrow_AbilityGroup",
+                        "prefabGuid":  -444905742
+                    },
+                    {
+                        "name":  "AB_Bandit_ClusterBombThrow_Cast",
+                        "prefab":  "AB_Bandit_ClusterBombThrow_Cast",
+                        "prefabGuid":  -1999880094
+                    },
+                    {
+                        "name":  "AB_Bandit_ClusterBombThrow_Throw_A",
+                        "prefab":  "AB_Bandit_ClusterBombThrow_Throw_A",
+                        "prefabGuid":  -2120057081
+                    },
+                    {
+                        "name":  "AB_Bandit_ClusterBombThrow_Throw_B",
+                        "prefab":  "AB_Bandit_ClusterBombThrow_Throw_B",
+                        "prefabGuid":  1077321307
+                    },
+                    {
+                        "name":  "AB_Bandit_ClusterBombThrow_Throw_C",
+                        "prefab":  "AB_Bandit_ClusterBombThrow_Throw_C",
+                        "prefabGuid":  -1517314668
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Camouflage_AbilityGroup",
+                        "prefab":  "AB_Bandit_Deadeye_Camouflage_AbilityGroup",
+                        "prefabGuid":  403340165
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Camouflage_Buff",
+                        "prefab":  "AB_Bandit_Deadeye_Camouflage_Buff",
+                        "prefabGuid":  -1494713411
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Camouflage_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_Camouflage_Cast",
+                        "prefabGuid":  1619421912
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Area",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Area",
+                        "prefabGuid":  -2085683744
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Cast",
+                        "prefabGuid":  -425480162
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Channel_Buff",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Channel_Buff",
+                        "prefabGuid":  -1024366257
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Group",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Group",
+                        "prefabGuid":  1996370390
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Area",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Area",
+                        "prefabGuid":  318586876
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Cast",
+                        "prefabGuid":  646697719
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Channel_Buff",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Channel_Buff",
+                        "prefabGuid":  1894913654
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Group",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Group",
+                        "prefabGuid":  642767950
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Throw",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Hard_Throw",
+                        "prefabGuid":  -1052631664
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosbarrage_Throw",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosbarrage_Throw",
+                        "prefabGuid":  1552667718
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Area",
+                        "prefab":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Area",
+                        "prefabGuid":  1433173866
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Cast",
+                        "prefabGuid":  -538723780
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Group",
+                        "prefab":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Group",
+                        "prefabGuid":  -1181691042
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_ChaosNuke_Hard_ProjectileDown",
+                        "prefab":  "AB_Bandit_Deadeye_ChaosNuke_Hard_ProjectileDown",
+                        "prefabGuid":  -1181723749
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_ChaosNuke_Hard_ProjectileUp",
+                        "prefab":  "AB_Bandit_Deadeye_ChaosNuke_Hard_ProjectileUp",
+                        "prefabGuid":  -2066463501
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Spawner",
+                        "prefab":  "AB_Bandit_Deadeye_ChaosNuke_Hard_Spawner",
+                        "prefabGuid":  516139794
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Cast",
+                        "prefabGuid":  -2024307089
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Channel_Buff",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Channel_Buff",
+                        "prefabGuid":  -1625210735
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Group",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Group",
+                        "prefabGuid":  -1230681995
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Cast",
+                        "prefabGuid":  -549357932
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Channel_Buff",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Channel_Buff",
+                        "prefabGuid":  -381215490
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Group",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Group",
+                        "prefabGuid":  -836774616
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Projectile",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Hard_Projectile",
+                        "prefabGuid":  338969973
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Chaosstorm_Projectile",
+                        "prefab":  "AB_Bandit_Deadeye_Chaosstorm_Projectile",
+                        "prefabGuid":  659256615
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Idle_Buff",
+                        "prefab":  "AB_Bandit_Deadeye_Idle_Buff",
+                        "prefabGuid":  -881914431
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_RangedAttack_Cast",
+                        "prefab":  "AB_Bandit_Deadeye_RangedAttack_Cast",
+                        "prefabGuid":  1015300268
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_RangedAttack_Group",
+                        "prefab":  "AB_Bandit_Deadeye_RangedAttack_Group",
+                        "prefabGuid":  1336193986
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_RangedAttack_Projectile",
+                        "prefab":  "AB_Bandit_Deadeye_RangedAttack_Projectile",
+                        "prefabGuid":  1262043059
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Roll_AbilityGroup",
+                        "prefab":  "AB_Bandit_Deadeye_Roll_AbilityGroup",
+                        "prefabGuid":  -912372242
+                    },
+                    {
+                        "name":  "AB_Bandit_Deadeye_Roll_CastAndRoll",
+                        "prefab":  "AB_Bandit_Deadeye_Roll_CastAndRoll",
+                        "prefabGuid":  -1983337096
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_01_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_01_AbilityGroup",
+                        "prefabGuid":  -1601441951
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_02_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_02_AbilityGroup",
+                        "prefabGuid":  -1657698157
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_03_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_03_AbilityGroup",
+                        "prefabGuid":  -228936316
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_Cast",
+                        "prefabGuid":  16980588
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_AbilityGroup",
+                        "prefabGuid":  514628041
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_Cast",
+                        "prefabGuid":  1621374433
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_ReachPos",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_ReachPos",
+                        "prefabGuid":  -2128770207
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_TargetSerpentSlotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_TargetSerpentSlotBuff",
+                        "prefabGuid":  343491640
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_WalkToPosBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_Hard_WalkToPosBuff",
+                        "prefabGuid":  -352192969
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_ReachPos",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_ReachPos",
+                        "prefabGuid":  145985534
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_TargetSerpentSlotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_TargetSerpentSlotBuff",
+                        "prefabGuid":  1018849261
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FeedSerpentLineup_WalkToPosBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FeedSerpentLineup_WalkToPosBuff",
+                        "prefabGuid":  424796826
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_AbilityGroup",
+                        "prefabGuid":  643209588
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_Buff",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_Buff",
+                        "prefabGuid":  1578560559
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_Cast",
+                        "prefabGuid":  1802235612
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_DownedStun",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_DownedStun",
+                        "prefabGuid":  -531963043
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_PullBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_PullBuff",
+                        "prefabGuid":  1511401953
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_Throw",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_Throw",
+                        "prefabGuid":  -406761191
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishHook_Travel",
+                        "prefab":  "AB_Bandit_Fisherman_FishHook_Travel",
+                        "prefabGuid":  -56609007
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_AbilityGroup",
+                        "prefabGuid":  -2096565232
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_Buff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_Buff",
+                        "prefabGuid":  -942168862
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_Cast",
+                        "prefabGuid":  2137527296
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_MinionSpawnPostTravel",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_MinionSpawnPostTravel",
+                        "prefabGuid":  2145493958
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_MinionSpawnTravel",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_MinionSpawnTravel",
+                        "prefabGuid":  796446287
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_MinionTrigger",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_MinionTrigger",
+                        "prefabGuid":  -263342865
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingBlowfish_TargetFishSpotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingBlowfish_TargetFishSpotBuff",
+                        "prefabGuid":  -1441774408
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingLineup_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FishingLineup_AbilityGroup",
+                        "prefabGuid":  -82547339
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingLineup_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FishingLineup_Cast",
+                        "prefabGuid":  -1677547928
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingLineup_TargetSerpentSlotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingLineup_TargetSerpentSlotBuff",
+                        "prefabGuid":  -459325308
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingLineup_WalkToPosBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingLineup_WalkToPosBuff",
+                        "prefabGuid":  1667669669
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingOldBoot_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FishingOldBoot_AbilityGroup",
+                        "prefabGuid":  396802528
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingOldBoot_Buff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingOldBoot_Buff",
+                        "prefabGuid":  1143164491
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingOldBoot_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FishingOldBoot_Cast",
+                        "prefabGuid":  1705082862
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingOldBoot_Object",
+                        "prefab":  "AB_Bandit_Fisherman_FishingOldBoot_Object",
+                        "prefabGuid":  1173936438
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingOldBoot_SpawnTravel",
+                        "prefab":  "AB_Bandit_Fisherman_FishingOldBoot_SpawnTravel",
+                        "prefabGuid":  -2113681866
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingOldBoot_TargetFishSpotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingOldBoot_TargetFishSpotBuff",
+                        "prefabGuid":  -588408781
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_AbilityGroup",
+                        "prefabGuid":  647582679
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_Buff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_Buff",
+                        "prefabGuid":  -1612091215
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_Cast",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_Cast",
+                        "prefabGuid":  -256287804
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_MinionSpawnPostTravel",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_MinionSpawnPostTravel",
+                        "prefabGuid":  1359094029
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_MinionSpawnTravel",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_MinionSpawnTravel",
+                        "prefabGuid":  -1957344524
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_MinionTrigger",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_MinionTrigger",
+                        "prefabGuid":  -1982947231
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_FishingPiranhas_TargetFishSpotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_FishingPiranhas_TargetFishSpotBuff",
+                        "prefabGuid":  -1108714409
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_AbilityGroup",
+                        "prefabGuid":  571532506
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Buff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Buff",
+                        "prefabGuid":  -515272712
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Cast_Throw",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Cast_Throw",
+                        "prefabGuid":  1184409626
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_DespawnBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_DespawnBuff",
+                        "prefabGuid":  -163781604
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_DespawnDelayBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_DespawnDelayBuff",
+                        "prefabGuid":  2141155864
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_AbilityGroup",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_AbilityGroup",
+                        "prefabGuid":  -405467076
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_Buff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_Buff",
+                        "prefabGuid":  -162196022
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_Cast_Throw",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_Cast_Throw",
+                        "prefabGuid":  -31935559
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_DespawnBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_DespawnBuff",
+                        "prefabGuid":  1573364739
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_DespawnDelayBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_DespawnDelayBuff",
+                        "prefabGuid":  1995307154
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_SpawnBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_SpawnBuff",
+                        "prefabGuid":  796768594
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_SpawnPosOccupiedBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_SpawnPosOccupiedBuff",
+                        "prefabGuid":  45227631
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_Summon",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_Summon",
+                        "prefabGuid":  -1203439535
+                    },
+                    {
+                        "name":  "AB_Bandit_Fisherman_SerpentFeed_Hard_TargetFishSpotBuff",
+                        "prefab":  "AB_Bandit_Fisherman_SerpentFeed_Hard_TargetFishSpotBuff",
+                        "prefabGuid":  -1067814600
+                    }
+                ]
+}

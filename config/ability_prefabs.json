@@ -1,0 +1,9 @@
+{
+  "aliases": {
+    "Spell_VeilOfBlood": "AB_Vampire_VeilOfBlood_Group",
+    "Spell_VeilOfChaos": "AB_Vampire_VeilOfChaos_Group",
+    "Spell_VeilOfFrost": "AB_Vampire_VeilOfFrost_Group",
+    "Spell_VeilOfBones": "AB_Vampire_VeilOfBones_AbilityGroup",
+    "AB_BloodRite_AbilityGroup": "AB_Blood_BloodRite_AbilityGroup"
+  }
+}

@@ -1,0 +1,115 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <OutputType>Library</OutputType>
+    <AssemblyName>BlueLock</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableImplicitNamespaceImports>true</DisableImplicitNamespaceImports>
+    <ImplicitUsings>false</ImplicitUsings>
+    <!-- Allow nullable annotations while keeping nullability analysis warnings off -->
+    <Nullable>annotations</Nullable>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.4" />
+    <PackageReference Include="Lib.Harmony" Version="2.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../VAutomationCore.csproj" />
+    <ProjectReference Include="../CycleBorn/Vlifecycle.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx.Unity.IL2CPP">
+      <HintPath>$(VAutoServerInteropPath)BepInEx.Unity.IL2CPP.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Entities">
+      <HintPath>$(VAutoServerInteropPath)Unity.Entities.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Collections">
+      <HintPath>$(VAutoServerInteropPath)Unity.Collections.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>$(VAutoServerInteropPath)Unity.Mathematics.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Transforms">
+      <HintPath>$(VAutoServerInteropPath)Unity.Transforms.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(VAutoServerInteropPath)UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM">
+      <HintPath>$(VAutoServerInteropPath)ProjectM.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.Gameplay.Systems">
+      <HintPath>$(VAutoServerInteropPath)ProjectM.Gameplay.Systems.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.Gameplay.Scripting">
+      <HintPath>$(VAutoServerInteropPath)ProjectM.Gameplay.Scripting.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.Shared">
+      <HintPath>$(VAutoServerInteropPath)ProjectM.Shared.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ProjectM.GeneratedNetCode">
+      <HintPath>$(VAutoServerInteropPath)ProjectM.GeneratedNetCode.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Stunlock.Core">
+      <HintPath>$(VAutoServerInteropPath)Stunlock.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ArenaBuilds" Condition="Exists('$(VAutoServerRoot)\plugins\ArenaBuilds\ArenaBuilds.dll')">
+      <HintPath>$(VAutoServerRoot)\plugins\ArenaBuilds\ArenaBuilds.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ArenaBuilds.Flat" Condition="!Exists('$(VAutoServerRoot)\plugins\ArenaBuilds\ArenaBuilds.dll') and Exists('$(VAutoServerRoot)\plugins\ArenaBuilds.dll')">
+      <HintPath>$(VAutoServerRoot)\plugins\ArenaBuilds.dll</HintPath>
+      <Private>false</Private>
+      <Aliases>ArenaBuilds</Aliases>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Core\PrefabGuidConverter.cs" />
+    <Compile Remove="Services\Interfaces\IService.cs" />
+    <Compile Remove="Plugin (2).cs" />
+  </ItemGroup>
+
+  <!-- Auto-deploy to BepInEx plugins folder -->
+  <PropertyGroup>
+    <BepInExPluginsPath>D:\DedicatedServerLauncher\VRisingServer\BepInEx\plugins</BepInExPluginsPath>
+    <BepInExConfigPath>D:\DedicatedServerLauncher\VRisingServer\BepInEx\config</BepInExConfigPath>
+    <DeployToServer Condition="'$(DeployToServer)' == ''">false</DeployToServer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="config\glow_zones.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target Name="CopyToBepInEx" AfterTargets="Build" Condition="'$(DeployToServer)' == 'true'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExPluginsPath)" SkipUnchangedFiles="true" />
+    <MakeDir Directories="$(BepInExConfigPath)\Bluelock" />
+    <Copy SourceFiles="config\glow_zones.json" DestinationFiles="$(BepInExConfigPath)\Bluelock\glow_zones.json" SkipUnchangedFiles="true" />
+    <Message Text="Copied $(TargetPath) to $(BepInExPluginsPath)" Importance="high" />
+  </Target>
+
+</Project>

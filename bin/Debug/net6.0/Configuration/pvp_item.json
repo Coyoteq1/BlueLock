@@ -1,0 +1,94 @@
+﻿{
+    "onUse":  {
+                  "actions":  [
+                                  {
+                                      "type":  "store",
+                                      "storeKey":  "playerState",
+                                      "message":  "active"
+                                  },
+                                  {
+                                      "type":  "message",
+                                      "message":  "PVP Item activated! Arena mode enabled."
+                                  },
+                                  {
+                                      "type":  "zone",
+                                      "zoneKey":  "main_arena"
+                                  },
+                                  {
+                                      "type":  "blood",
+                                      "bloodType":  "warrior"
+                                  },
+                                  {
+                                      "type":  "prefix",
+                                      "prefix":  "arena_"
+                                  },
+                                  {
+                                      "type":  "quality",
+                                      "quality":  5
+                                  },
+                                  {
+                                      "type":  "config",
+                                      "configId":  "arena_combat_config"
+                                  },
+                                  {
+                                      "type":  "command",
+                                      "commandId":  "projectm.repairvbloodprogressionssystem"
+                                  },
+                                  {
+                                      "type":  "command",
+                                      "commandId":  "enable_pvp_mode"
+                                  }
+                              ]
+              },
+    "onEnterArenaZone":  {
+                             "actions":  [
+                                             {
+                                                 "type":  "message",
+                                                 "message":  "You have entered the arena zone! PVP mode enabled."
+                                             },
+                                             {
+                                                 "type":  "store",
+                                                 "storeKey":  "arenaState",
+                                                 "message":  "inArena"
+                                             },
+                                             {
+                                                 "type":  "prefix",
+                                                 "prefix":  "[PVP]"
+                                             },
+                                             {
+                                                 "type":  "blood",
+                                                 "bloodType":  "warrior"
+                                             },
+                                             {
+                                                 "type":  "command",
+                                                 "commandId":  "projectm.repairvbloodprogressionssystem"
+                                             },
+                                             {
+                                                 "type":  "command",
+                                                 "commandId":  "enable_pvp_mode"
+                                             }
+                                        ]
+                         },
+    "onExitArenaZone":  {
+                            "actions":  [
+                                            {
+                                                "type":  "message",
+                                                "message":  "You have left the arena zone. PVP mode disabled."
+                                            },
+                                            {
+                                                "type":  "store",
+                                                "storeKey":  "playerState",
+                                                "message":  "inactive"
+                                            },
+                                            {
+                                                "type":  "command",
+                                                "commandId":  "cleanup_arena_effects"
+                                            },
+                                            {
+                                                "type":  "command",
+                                                "commandId":  "disable_pvp_mode"
+                                            },
+                                        ]
+                        }
+}
+
