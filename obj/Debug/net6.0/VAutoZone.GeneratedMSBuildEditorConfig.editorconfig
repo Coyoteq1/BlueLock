@@ -15,4 +15,4 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = VAutoZone
-build_property.ProjectDir = D:\VAutomationCore\VAutomationCore\Bluelock\
+build_property.ProjectDir = D:\VAutomationCore\VAutomationCore\BlueLock\
