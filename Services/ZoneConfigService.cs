@@ -841,7 +841,17 @@ namespace VAuto.Zone.Services
             }
 
             // Backward compatibility for older config naming.
-            return zone.Schematics ?? new List<string>();
+            if (zone.Schematics != null && zone.Schematics.Count > 0)
+            {
+                return zone.Schematics;
+            }
+
+            if (zone.LegacyTemplates != null && zone.LegacyTemplates.Count > 0)
+            {
+                return zone.LegacyTemplates;
+            }
+
+            return new List<string>();
         }
 
         public static bool TryGetTeleportPointForZone(string zoneId, out float x, out float y, out float z)

@@ -90,6 +90,37 @@ namespace VAuto.Zone.Services
         }
 
         /// <summary>
+        /// Consume (read + remove) a recent arena death entry.
+        /// Returns false if no valid non-expired arena death exists.
+        /// </summary>
+        public static bool TryConsumeRecentArenaDeath(Entity entity, out string zoneId)
+        {
+            zoneId = string.Empty;
+
+            try
+            {
+                if (!ArenaDeaths.TryGetValue(entity.Index, out var entry))
+                    return false;
+
+                var now = DateTime.UtcNow;
+                var age = now - entry.DeathTime;
+                if (age.TotalSeconds > DeathTTLSeconds)
+                {
+                    ArenaDeaths.Remove(entity.Index);
+                    return false;
+                }
+
+                zoneId = entry.ZoneId;
+                ArenaDeaths.Remove(entity.Index);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Clean up expired arena death records.
         /// Called periodically to prevent dictionary from growing unbounded.
         /// </summary>

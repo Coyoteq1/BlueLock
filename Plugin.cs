@@ -120,8 +120,11 @@ namespace VAuto.Zone
         private static readonly Dictionary<Entity, string> _playerZoneStates = new();
         private static readonly Dictionary<Entity, PendingZoneTransition> _pendingZoneTransitions = new();
         private static readonly Dictionary<Entity, DateTime> _lastCommittedZoneTransitions = new();
+        private static readonly Dictionary<Entity, string> _playerZoneLocks = new();
+        private static readonly Dictionary<Entity, string> _playerOriginalNames = new();
         private static readonly Dictionary<string, List<Entity>> _zoneBorderEntities = new(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> _zoneGlowAutoSpawnDisabled = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly bool TempDisableAbilityUiDuringZoneTransitions = true;
         private static readonly Dictionary<ulong, float3> _zoneReturnPositions = new();
         private static readonly Dictionary<ulong, PendingZoneTeleport> _pendingZoneEnterTeleports = new();
         private static readonly Dictionary<string, Dictionary<string, List<Entity>>> _zoneTemplateEntities = new(StringComparer.OrdinalIgnoreCase);
@@ -364,6 +367,10 @@ namespace VAuto.Zone
                     ConfigureAbilityUi();
                     AbilityUi.Initialize();
                     Logger.LogInfo("AbilityUi initialized");
+                    ZonePlayerTagService.Initialize(
+                        msg => Logger.LogInfo($"[ZonePlayerTagService] {msg}"),
+                        msg => Logger.LogWarning($"[ZonePlayerTagService] {msg}"));
+                    Logger.LogInfo("ZonePlayerTagService initialized");
 
                     // Queue border build to run on server update thread when world is ready.
                     ZoneGlowBorderService.QueueRebuild("startup");
@@ -1568,6 +1575,15 @@ namespace VAuto.Zone
                             continue;
                         }
 
+                        if (!string.IsNullOrWhiteSpace(previousZoneId) &&
+                            IsZoneLockedForPlayer(player, previousZoneId, em))
+                        {
+                            _pendingZoneTransitions.Remove(player);
+                            _playerZoneStates[player] = previousZoneId;
+                            TryTeleportPlayerToZoneCenter(player, previousZoneId, em);
+                            continue;
+                        }
+
                         if (!ShouldCommitZoneTransition(player, previousZoneId, newZoneId, nowUtc))
                         {
                             continue;
@@ -1624,6 +1640,7 @@ namespace VAuto.Zone
                     _playerZoneStates.Remove(stale);
                     _pendingZoneTransitions.Remove(stale);
                     _lastCommittedZoneTransitions.Remove(stale);
+                    _playerZoneLocks.Remove(stale);
                     KitService.ClearPlayerTrackingForEntity(stale, em);
                     AbilityUi.ClearStateForDisconnectedPlayer(stale, em);
                     VAutomationCore.Services.ZoneEventBridge.RemovePlayerZoneState(stale);
@@ -1946,10 +1963,18 @@ namespace VAuto.Zone
                     return;
                 }
 
+                ZoneNoDurabilityService.StartTracking(player, em);
+
                 if (IsSandboxZone(zoneId))
                 {
                     TryRunZoneEnterStep("DebugEventBridge.OnZoneEnterStart", () => TryInvokeDebugEventBridgeZoneEnterStart(player, zoneId));
                 }
+
+                if (!string.IsNullOrWhiteSpace(zoneId))
+                {
+                    _playerZoneLocks[player] = zoneId;
+                }
+                TryApplyZoneNameTag(player, zoneId, em);
 
                 var actionOrder = ResolveLifecycleActionsForZone(zoneId, isEnter: true);
                 Logger.LogDebug($"[BlueLock] Zone '{zoneId}' enter actions: {string.Join(", ", actionOrder)}");
@@ -2231,11 +2256,147 @@ namespace VAuto.Zone
                 {
                     step.Execute(context);
                 }
+
+                ZoneNoDurabilityService.StopTracking(player, em);
+                _playerZoneLocks.Remove(player);
+                TryRestoreOriginalPlayerName(player, em);
             }
             catch (Exception ex)
             {
                 Logger.LogError($"[BlueLock] HandleZoneExit failed: {ex.Message}");
             }
+        }
+
+        private static void TryApplyZoneNameTag(Entity player, string zoneId, EntityManager em)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(zoneId))
+                {
+                    return;
+                }
+
+                if (!em.HasComponent<PlayerCharacter>(player))
+                {
+                    return;
+                }
+
+                var pc = em.GetComponentData<PlayerCharacter>(player);
+                var userEntity = pc.UserEntity;
+                if (userEntity == Entity.Null || !em.Exists(userEntity) || !em.HasComponent<User>(userEntity))
+                {
+                    return;
+                }
+
+                var user = em.GetComponentData<User>(userEntity);
+                var currentName = user.CharacterName.ToString();
+                if (string.IsNullOrWhiteSpace(currentName))
+                {
+                    return;
+                }
+
+                if (!_playerOriginalNames.ContainsKey(player))
+                {
+                    _playerOriginalNames[player] = StripLeadingZoneTag(currentName);
+                }
+
+                var baseName = _playerOriginalNames[player];
+                var tagged = $"[{zoneId}] {baseName}";
+                if (string.Equals(currentName, tagged, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                user.CharacterName = tagged;
+                em.SetComponentData(userEntity, user);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug($"[BlueLock] Zone name tag apply failed: {ex.Message}");
+            }
+        }
+
+        private static void TryRestoreOriginalPlayerName(Entity player, EntityManager em)
+        {
+            try
+            {
+                if (!_playerOriginalNames.TryGetValue(player, out var original) || string.IsNullOrWhiteSpace(original))
+                {
+                    return;
+                }
+
+                if (!em.HasComponent<PlayerCharacter>(player))
+                {
+                    _playerOriginalNames.Remove(player);
+                    return;
+                }
+
+                var pc = em.GetComponentData<PlayerCharacter>(player);
+                var userEntity = pc.UserEntity;
+                if (userEntity == Entity.Null || !em.Exists(userEntity) || !em.HasComponent<User>(userEntity))
+                {
+                    _playerOriginalNames.Remove(player);
+                    return;
+                }
+
+                var user = em.GetComponentData<User>(userEntity);
+                user.CharacterName = original;
+                em.SetComponentData(userEntity, user);
+                _playerOriginalNames.Remove(player);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug($"[BlueLock] Zone name tag restore failed: {ex.Message}");
+            }
+        }
+
+        private static string StripLeadingZoneTag(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return string.Empty;
+            }
+
+            if (name.Length > 3 && name[0] == '[')
+            {
+                var close = name.IndexOf(']');
+                if (close > 0 && close + 2 <= name.Length && name[close + 1] == ' ')
+                {
+                    return name[(close + 2)..];
+                }
+            }
+
+            return name;
+        }
+
+        private static bool IsZoneLockedForPlayer(Entity player, string zoneId, EntityManager em)
+        {
+            if (!_playerZoneLocks.TryGetValue(player, out var lockedZoneId) ||
+                string.IsNullOrWhiteSpace(lockedZoneId) ||
+                !string.Equals(lockedZoneId, zoneId, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // Unlock on death.
+            if (em.HasComponent<Health>(player))
+            {
+                var health = em.GetComponentData<Health>(player);
+                if (health.Value <= 0f)
+                {
+                    _playerZoneLocks.Remove(player);
+                    return false;
+                }
+            }
+
+            // Unlock on win (zone boss no longer alive).
+            if (!ZoneBossSpawnerService.IsZoneBossAlive(zoneId))
+            {
+                _playerZoneLocks.Remove(player);
+                return false;
+            }
+
+            return true;
         }
 
         private static IReadOnlyList<string> ResolveLifecycleActionsForZone(string zoneId, bool isEnter)
@@ -2316,6 +2477,7 @@ namespace VAuto.Zone
                     "store" => "snapshot_save",
                     "snapshot" => "snapshot_save",
                     "message" => "zone_enter_message",
+                    "kit_apply" => "apply_kit",
                     "kit" => "apply_kit",
                     "abilities" => "apply_abilities",
                     "ability" => "apply_abilities",
@@ -2374,7 +2536,15 @@ namespace VAuto.Zone
                     TryRunZoneEnterStep("ApplyZoneTemplatesOnEnter", () => ApplyZoneTemplatesOnEnter(player, zoneId, em));
                     break;
                 case "apply_abilities":
-                    TryRunZoneEnterStep("AbilityUi.OnZoneEnter", () => AbilityUi.OnZoneEnter(player, zoneId));
+                    if (TempDisableAbilityUiDuringZoneTransitions)
+                    {
+                        TryRunZoneEnterStep("AbilityUi.OnZoneEnter(Skipped)", () =>
+                            Logger.LogInfo("[BlueLock] AbilityUi.OnZoneEnter skipped (temporary transition safeguard)."));
+                    }
+                    else
+                    {
+                        TryRunZoneEnterStep("AbilityUi.OnZoneEnter", () => AbilityUi.OnZoneEnter(player, zoneId));
+                    }
                     break;
                 case "glow_spawn":
                     TryRunZoneEnterStep("GlowTileService.AutoSpawn", () =>
@@ -2416,12 +2586,22 @@ namespace VAuto.Zone
                         _zoneGlowAutoSpawnDisabled.Remove(zoneId);
                     });
                     break;
+                case "player_tag":
+                    TryRunZoneEnterStep("ZonePlayerTagService.ApplyTag", () =>
+                    {
+                        var playerChar = em.GetComponentData<PlayerCharacter>(player);
+                        var playerName = playerChar.Name.ToString();
+                        var steamId = em.GetComponentData<User>(playerChar.UserEntity).PlatformId;
+                        ZonePlayerTagService.ApplyTag(steamId, zoneId, playerName, player, em);
+                    });
+                    break;
                 case "boss_enter":
                     TryRunZoneEnterStep("ZoneBossSpawnerService.TryHandlePlayerEnter", () =>
                     {
                         if (ZoneBossSpawnerService.TryHandlePlayerEnter(player, zoneId, out var bossSpawnMessage))
                         {
                             Logger.LogInfo($"[BlueLock] {bossSpawnMessage}");
+                            VAutomationCore.Core.Services.GameActionService.TrySendSystemMessageToAll($"[ZONE EVENT] {bossSpawnMessage}");
                         }
                     });
                     break;
@@ -2461,13 +2641,29 @@ namespace VAuto.Zone
                     }
                     break;
                 case "restore_abilities":
-                    TryRunZoneExitStep("AbilityUi.OnZoneExit", () => AbilityUi.OnZoneExit(player, zoneId));
+                    if (TempDisableAbilityUiDuringZoneTransitions)
+                    {
+                        TryRunZoneExitStep("AbilityUi.OnZoneExit(Skipped)", () =>
+                            Logger.LogInfo("[BlueLock] AbilityUi.OnZoneExit skipped (temporary transition safeguard)."));
+                    }
+                    else
+                    {
+                        TryRunZoneExitStep("AbilityUi.OnZoneExit", () => AbilityUi.OnZoneExit(player, zoneId));
+                    }
                     break;
                 case "boss_exit":
                     TryRunZoneExitStep("ZoneBossSpawnerService.HandlePlayerExit", () => ZoneBossSpawnerService.HandlePlayerExit(player, zoneId));
                     break;
                 case "teleport_return":
                     TryRunZoneExitStep("HandleZoneTeleportExit", () => HandleZoneTeleportExit(player, zoneId, em));
+                    break;
+                case "player_tag":
+                    TryRunZoneExitStep("ZonePlayerTagService.RemoveTag", () =>
+                    {
+                        var playerChar = em.GetComponentData<PlayerCharacter>(player);
+                        var steamId = em.GetComponentData<User>(playerChar.UserEntity).PlatformId;
+                        ZonePlayerTagService.RemoveTag(steamId, player, em);
+                    });
                     break;
                 case "glow_reset":
                     TryRunZoneExitStep("GlowTileService.ClearZoneGlow", () =>
@@ -2984,7 +3180,15 @@ namespace VAuto.Zone
                 Logger.LogInfo($"[BlueLock] DebugEventBridge.OnPlayerIsInZone completed");
 
                 // Post-unlock ability apply: execute after DebugEventBridge unlock pipeline.
-                TryRunZoneEnterStep("AbilityUi.TryApplyPresetForPlayer", () => AbilityUi.TryApplyPresetForPlayer(characterEntity));
+                if (TempDisableAbilityUiDuringZoneTransitions)
+                {
+                    TryRunZoneEnterStep("AbilityUi.TryApplyPresetForPlayer(Skipped)", () =>
+                        Logger.LogInfo("[BlueLock] AbilityUi.TryApplyPresetForPlayer skipped (temporary transition safeguard)."));
+                }
+                else
+                {
+                    TryRunZoneEnterStep("AbilityUi.TryApplyPresetForPlayer", () => AbilityUi.TryApplyPresetForPlayer(characterEntity));
+                }
             }
             catch (Exception ex)
             {
@@ -3106,6 +3310,7 @@ namespace VAuto.Zone
 
                 _pendingZoneTransitions.Remove(player);
                 _lastCommittedZoneTransitions.Remove(player);
+                _playerZoneLocks.Remove(player);
                 CaptureReturnPositionIfNeeded(player, zone.Id, em);
 
                 if (_playerZoneStates.TryGetValue(player, out var previousZoneId) &&
@@ -3159,6 +3364,7 @@ namespace VAuto.Zone
 
                 _pendingZoneTransitions.Remove(player);
                 _lastCommittedZoneTransitions.Remove(player);
+                _playerZoneLocks.Remove(player);
                 HandleZoneExit(player, zoneId);
                 _playerZoneStates.Remove(player);
                 ZoneEventBridge.RemovePlayerState(player);
@@ -3221,6 +3427,7 @@ namespace VAuto.Zone
         }
 
         private static DateTime _lastArenaCleanupTime;
+        private static readonly Dictionary<int, DateTime> _lastZoneReviveByPlayer = new();
 
         [HarmonyPatch(typeof(ProjectM.BacktraceSystem), nameof(ProjectM.BacktraceSystem.OnUpdate))]
         [HarmonyPostfix]
@@ -3229,6 +3436,9 @@ namespace VAuto.Zone
             try
             {
                 ApplyArenaDamageToPlayers();
+                ProcessArenaDeathRespawns();
+                ProcessZoneAutoRevives();
+                ZoneNoDurabilityService.Tick(ZoneCore.EntityManager);
 
                 // Periodic cleanup of expired arena death records (every 5 seconds)
                 var now = DateTime.UtcNow;
@@ -3241,6 +3451,159 @@ namespace VAuto.Zone
             catch (Exception ex)
             {
                 Logger.LogWarning($"[BlueLock] Arena damage postfix failed: {ex.Message}");
+            }
+        }
+
+        private static void ProcessZoneAutoRevives()
+        {
+            try
+            {
+                var server = ZoneCore.Server;
+                if (server == null || !server.IsCreated)
+                {
+                    return;
+                }
+
+                var em = server.EntityManager;
+                if (em == default)
+                {
+                    return;
+                }
+
+                var query = em.CreateEntityQuery(ComponentType.ReadOnly<User>());
+                try
+                {
+                    var players = query.ToEntityArray(Allocator.Temp);
+                    var now = DateTime.UtcNow;
+
+                    foreach (var player in players)
+                    {
+                        try
+                        {
+                            if (!em.Exists(player))
+                            {
+                                continue;
+                            }
+
+                            var zoneState = VAutomationCore.Services.ZoneEventBridge.GetPlayerZoneState(player);
+                            if (zoneState == null || string.IsNullOrWhiteSpace(zoneState.CurrentZoneId))
+                            {
+                                continue;
+                            }
+
+                            if (!em.HasComponent<Health>(player))
+                            {
+                                continue;
+                            }
+
+                            var health = em.GetComponentData<Health>(player);
+                            if (health.Value > 0)
+                            {
+                                continue;
+                            }
+
+                            if (_lastZoneReviveByPlayer.TryGetValue(player.Index, out var lastRevive) &&
+                                (now - lastRevive).TotalSeconds < 1.0)
+                            {
+                                continue;
+                            }
+
+                            health.Value = health.MaxHealth > 0 ? health.MaxHealth : 1f;
+                            em.SetComponentData(player, health);
+
+                            if (ArenaRespawnHelper.TeleportToArenaCenter(player, zoneState.CurrentZoneId))
+                            {
+                                _playerZoneStates[player] = zoneState.CurrentZoneId;
+                            }
+
+                            _lastZoneReviveByPlayer[player.Index] = now;
+                            Logger.LogInfo($"[BlueLock] Auto-revived player {player.Index} in zone '{zoneState.CurrentZoneId}'.");
+                        }
+                        catch
+                        {
+                            // Skip per-player errors.
+                        }
+                    }
+
+                    players.Dispose();
+                }
+                finally
+                {
+                    query.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"[BlueLock] Zone auto-revive processing failed: {ex.Message}");
+            }
+        }
+
+        private static void ProcessArenaDeathRespawns()
+        {
+            try
+            {
+                var server = ZoneCore.Server;
+                if (server == null || !server.IsCreated)
+                    return;
+
+                var em = server.EntityManager;
+                if (em == default)
+                    return;
+
+                var query = em.CreateEntityQuery(ComponentType.ReadOnly<User>());
+                try
+                {
+                    var playerEntities = query.ToEntityArray(Allocator.Temp);
+                    foreach (var playerEntity in playerEntities)
+                    {
+                        try
+                        {
+                            if (!em.Exists(playerEntity))
+                                continue;
+
+                            // Only process consumed arena deaths after player is alive again.
+                            if (!ArenaDeathTracker.IsArenaDeath(playerEntity, out _))
+                                continue;
+
+                            if (!em.HasComponent<Health>(playerEntity))
+                                continue;
+
+                            var health = em.GetComponentData<Health>(playerEntity);
+                            if (health.Value <= 0)
+                                continue;
+
+                            if (!ArenaDeathTracker.TryConsumeRecentArenaDeath(playerEntity, out var zoneId))
+                                continue;
+
+                            if (string.IsNullOrWhiteSpace(zoneId))
+                                continue;
+
+                            if (!ArenaRespawnHelper.TeleportToArenaCenter(playerEntity, zoneId))
+                            {
+                                Logger.LogDebug($"[BlueLock] Arena respawn teleport failed for player {playerEntity.Index} zone '{zoneId}'.");
+                                continue;
+                            }
+
+                            // Keep player zone state pinned to arena zone on death-respawn.
+                            _playerZoneStates[playerEntity] = zoneId;
+                            Logger.LogInfo($"[BlueLock] Arena respawn routed player {playerEntity.Index} back to zone '{zoneId}'.");
+                        }
+                        catch
+                        {
+                            // Skip individual player on error.
+                        }
+                    }
+
+                    playerEntities.Dispose();
+                }
+                finally
+                {
+                    query.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"[BlueLock] Arena respawn processing failed: {ex.Message}");
             }
         }
 
@@ -3325,13 +3688,31 @@ namespace VAuto.Zone
                             {
                                 var health = em.GetComponentData<Health>(playerEntity);
                                 health.Value -= (int)damageState.CurrentDamage;
-                                em.SetComponentData(playerEntity, health);
 
                                 // Register arena death if lethal
                                 if (health.Value <= 0)
                                 {
                                     ArenaDeathTracker.RegisterArenaDeath(playerEntity, zoneState.CurrentZoneId);
+
+                                    // Immediate in-zone revive: restore health and route player back to the same zone.
+                                    health.Value = health.MaxHealth > 0 ? health.MaxHealth : 1f;
+                                    em.SetComponentData(playerEntity, health);
+
+                                    if (ArenaRespawnHelper.TeleportToArenaCenter(playerEntity, zoneState.CurrentZoneId))
+                                    {
+                                        _playerZoneStates[playerEntity] = zoneState.CurrentZoneId;
+                                        Logger.LogInfo($"[BlueLock] Immediate arena revive for player {playerEntity.Index} in zone '{zoneState.CurrentZoneId}'.");
+                                    }
+
+                                    // Reset damage ramp after revive to avoid immediate chained lethal ticks.
+                                    damageState.CurrentDamage = 20f;
+                                    damageState.InitialDamage = 20f;
+                                    damageState.LastTickTime = now;
+                                    em.SetComponentData(playerEntity, damageState);
+                                    continue;
                                 }
+
+                                em.SetComponentData(playerEntity, health);
                             }
 
                             // Update damage (apply decay)

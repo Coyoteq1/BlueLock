@@ -51,6 +51,17 @@ namespace VAuto.Zone.ArenaPatches
                     // Cancel vanilla drop for arena-caused deaths.
                     return false;
                 }
+
+                // Cancel vanilla drop for any player currently inside a configured zone.
+                var zoneState = VAutomationCore.Services.ZoneEventBridge.GetPlayerZoneState(owner);
+                if (zoneState != null && !string.IsNullOrWhiteSpace(zoneState.CurrentZoneId))
+                {
+                    var zone = ZoneConfigService.GetZoneById(zoneState.CurrentZoneId);
+                    if (zone != null)
+                    {
+                        return false;
+                    }
+                }
             }
             catch (System.Exception ex)
             {

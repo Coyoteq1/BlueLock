@@ -41,23 +41,23 @@
           "amount": 1
         },
         {
-          "prefabName": "Item_Chest_T09_Dracula_Warrior",
+          "prefabName": "Item_Chest_T09_Dracula_Brute",
           "amount": 1
         },
         {
-          "prefabName": "Item_Legs_T09_Dracula_Warrior",
+          "prefabName": "Item_Legs_T09_Dracula_Brute",
           "amount": 1
         },
         {
-          "prefabName": "Item_Gloves_T09_Dracula_Warrior",
+          "prefabName": "Item_Gloves_T09_Dracula_Brute",
           "amount": 1
         },
         {
-          "prefabName": "Item_Boots_T09_Dracula_Warrior",
+          "prefabName": "Item_Boots_T09_Dracula_Brute",
           "amount": 1
         },
         {
-          "prefabName": "Item_Weapon_Spear_T09_ShadowMatter",
+          "prefabName": "Item_Weapon_Mace_T09_ShadowMatter",
           "amount": 1
         }
       ]
@@ -72,23 +72,85 @@
           "amount": 1
         },
         {
-          "prefabName": "Item_Chest_T09_Dracula_Warrior",
+          "prefabName": "Item_Chest_T09_Dracula_Rogue",
           "amount": 1
         },
         {
-          "prefabName": "Item_Legs_T09_Dracula_Warrior",
+          "prefabName": "Item_Legs_T09_Dracula_Rogue",
           "amount": 1
         },
         {
-          "prefabName": "Item_Gloves_T09_Dracula_Warrior",
+          "prefabName": "Item_Gloves_T09_Dracula_Rogue",
           "amount": 1
         },
         {
-          "prefabName": "Item_Boots_T09_Dracula_Warrior",
+          "prefabName": "Item_Boots_T09_Dracula_Rogue",
           "amount": 1
         },
         {
-          "prefabName": "Item_Weapon_Pistols_T09_ShadowMatter",
+          "prefabName": "Item_Weapon_Slashers_T09_ShadowMatter",
+          "amount": 1
+        }
+      ]
+    },
+    "Kit4": {
+      "restoreOnExit": true,
+      "broadcastOnEquip": false,
+      "captureSnapshot": true,
+      "items": [
+        {
+          "prefabName": "Item_Headgear_DraculaHelmet",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Chest_T09_Dracula_Scholar",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Legs_T09_Dracula_Scholar",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Gloves_T09_Dracula_Scholar",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Boots_T09_Dracula_Scholar",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Weapon_Reaper_T09_ShadowMatter",
+          "amount": 1
+        }
+      ]
+    },
+    "Kit5": {
+      "restoreOnExit": true,
+      "broadcastOnEquip": false,
+      "captureSnapshot": true,
+      "items": [
+        {
+          "prefabName": "Item_Headgear_DraculaHelmet",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Chest_T09_Dracula",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Legs_T09_Dracula",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Gloves_T09_Dracula",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Boots_T09_Dracula",
+          "amount": 1
+        },
+        {
+          "prefabName": "Item_Weapon_Whip_T09_ShadowMatter",
           "amount": 1
         }
       ]

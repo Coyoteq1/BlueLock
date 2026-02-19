@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using ProjectM;
 using ProjectM.Network;
 using Stunlock.Core;
@@ -9,6 +11,7 @@ using Unity.Transforms;
 using VAuto.Zone.Core;
 using VAuto.Zone.Models;
 using VAutomationCore;
+using VAutomationCore.Core;
 using VAutomationCore.Core.ECS;
 
 namespace VAuto.Zone.Services
@@ -20,6 +23,20 @@ namespace VAuto.Zone.Services
     /// </summary>
     public static class PlayerSnapshotService
     {
+        private static readonly string[] RestoreSystemTypeNames =
+        {
+            // Names taken from your shared systems list, focused on restore-critical paths.
+            "ProjectM.GameDataSystem",
+            "ProjectM.GiveInventoryItemCommandSystem",
+            "ProjectM.EquipItemFromInventorySystem",
+            "ProjectM.EquipItemSystem",
+            "ProjectM.BuffSystem_Spawn_Server",
+            "ProjectM.UpdateBuffsBuffer_Destroy",
+            "ProjectM.ReplaceAbilityOnSlotSystem",
+            "ProjectM.Update_ReplaceAbilityOnSlotSystem",
+            "ProjectM.Shared.SpellModCollectionSystem"
+        };
+
         private static readonly Dictionary<Entity, PlayerSnapshot> _snapshots = new Dictionary<Entity, PlayerSnapshot>();
         private static readonly object _lock = new object();
 
@@ -115,6 +132,8 @@ namespace VAuto.Zone.Services
                     return false;
                 }
 
+                LogRestoreSystemAvailability();
+
                 PlayerSnapshot snapshot;
                 lock (_lock)
                 {
@@ -204,6 +223,61 @@ namespace VAuto.Zone.Services
         public static int Count
         {
             get { lock (_lock) { return _snapshots.Count; } }
+        }
+
+        private static void LogRestoreSystemAvailability()
+        {
+            try
+            {
+                var world = UnifiedCore.Server;
+                if (world == null)
+                {
+                    ZoneCore.LogWarning("[Snapshot] Restore systems check: server world is null.");
+                    return;
+                }
+
+                var worldType = world.GetType();
+                var getSystemMethod = worldType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    .FirstOrDefault(m =>
+                        string.Equals(m.Name, "GetExistingSystemManaged", StringComparison.Ordinal) &&
+                        m.IsGenericMethodDefinition &&
+                        m.GetParameters().Length == 0);
+
+                if (getSystemMethod == null)
+                {
+                    ZoneCore.LogWarning("[Snapshot] Restore systems check: GetExistingSystemManaged<T>() not found.");
+                    return;
+                }
+
+                foreach (var typeName in RestoreSystemTypeNames)
+                {
+                    var systemType = AppDomain.CurrentDomain.GetAssemblies()
+                        .Select(a => a.GetType(typeName, false))
+                        .FirstOrDefault(t => t != null);
+
+                    if (systemType == null)
+                    {
+                        ZoneCore.LogWarning($"[Snapshot] Restore system missing type: {typeName}");
+                        continue;
+                    }
+
+                    try
+                    {
+                        var generic = getSystemMethod.MakeGenericMethod(systemType);
+                        var systemInstance = generic.Invoke(world, Array.Empty<object>());
+                        var state = systemInstance != null ? "OK" : "NULL";
+                        ZoneCore.LogInfo($"[Snapshot] Restore system {typeName}: {state}");
+                    }
+                    catch (Exception ex)
+                    {
+                        ZoneCore.LogWarning($"[Snapshot] Restore system {typeName}: ERROR ({ex.Message})");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ZoneCore.LogWarning($"[Snapshot] Restore systems check failed: {ex.Message}");
+            }
         }
     }
 

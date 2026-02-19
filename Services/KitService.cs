@@ -155,6 +155,10 @@ namespace VAuto.Zone.Services
 
                 TrackPlayerPlatform(player, platformId);
 
+                // Always clear current loadout on enter before applying zone kit/build.
+                // Snapshot capture (if enabled) has already occurred in caller flow.
+                TryClearPlayerState(player, em);
+
                 if (LegacyKitsDisabled)
                 {
                     if (ArenaBuildExecutor.TryGiveBuildForZone(zoneId, platformId, player, em, out var msg))
@@ -219,9 +223,6 @@ namespace VAuto.Zone.Services
                         }
                     }
                 }
-
-                // Optional: start from a clean slate before giving the kit.
-                TryClearPlayerState(player, em);
 
                 var spawnedCount = 0;
                 foreach (var item in kit.Items)
@@ -304,6 +305,10 @@ namespace VAuto.Zone.Services
 
                 if (shouldRestore)
                 {
+                    // Always clear current zone loadout first, then restore pre-zone snapshot.
+                    // This prevents zone kit leftovers from surviving exit transitions.
+                    TryClearPlayerState(player, em);
+
                     if (_snapshotCapturedByPlayer.TryGetValue(platformId, out var captured) && captured)
                     {
                         if (!PlayerSnapshotService.RestoreSnapshot(player, out var snapshotError))
@@ -1022,8 +1027,14 @@ namespace VAuto.Zone.Services
                 // Fallback: console give command path for compatibility.
                 _log.LogDebug($"[KitService] Resolved kit item via {resolution}: {itemGuid.GuidHash} x{item.Amount} to '{characterName}'");
                 _log.LogDebug($"[KitService] Direct add unavailable; fallback give command for {itemGuid.GuidHash} x{item.Amount} to '{characterName}'");
+                if (TryGiveItemViaChatCommand(playerEntity, userEntity, em, itemGuid, item.Amount, characterName, out var commandDetail))
+                {
+                    _log.LogDebug($"[KitService] Item grant command executed for {itemGuid.GuidHash} x{item.Amount} ({commandDetail})");
+                    return true;
+                }
+
                 GiveItemCommandUtility.RunGiveItemCommand(itemGuid, item.Amount, true, characterName);
-                _log.LogDebug($"[KitService] Item grant command executed for {itemGuid.GuidHash} x{item.Amount}");
+                _log.LogDebug($"[KitService] Item grant command executed via utility for {itemGuid.GuidHash} x{item.Amount}");
                 return true;
             }
             catch (Exception ex)
@@ -1038,8 +1049,14 @@ namespace VAuto.Zone.Services
                     try
                     {
                         _log.LogDebug($"[KitService] Retrying with fallback GUID {fallbackGuidFromName.GuidHash} x{item.Amount} for '{characterName}'");
+                        if (TryGiveItemViaChatCommand(playerEntity, userEntity, em, fallbackGuidFromName, item.Amount, characterName, out var fallbackCommandDetail))
+                        {
+                            _log.LogDebug($"[KitService] Fallback grant command executed for {fallbackGuidFromName.GuidHash} x{item.Amount} ({fallbackCommandDetail})");
+                            return true;
+                        }
+
                         GiveItemCommandUtility.RunGiveItemCommand(fallbackGuidFromName, item.Amount, false, characterName);
-                        _log.LogDebug($"[KitService] Fallback grant command executed for {fallbackGuidFromName.GuidHash} x{item.Amount}");
+                        _log.LogDebug($"[KitService] Fallback grant command executed via utility for {fallbackGuidFromName.GuidHash} x{item.Amount}");
                         return true;
                     }
                     catch (Exception nameFallbackEx)
@@ -1052,12 +1069,18 @@ namespace VAuto.Zone.Services
                 if (!string.IsNullOrWhiteSpace(characterName))
                 {
                     try
-                    {
-                        _log.LogDebug($"[KitService] Retrying without character name for {fallbackGuidFromName.GuidHash} x{item.Amount}");
-                        GiveItemCommandUtility.RunGiveItemCommand(fallbackGuidFromName, item.Amount, false, null);
-                        _log.LogDebug($"[KitService] Nameless grant command executed for {fallbackGuidFromName.GuidHash} x{item.Amount}");
-                        return true;
-                    }
+                        {
+                            _log.LogDebug($"[KitService] Retrying without character name for {fallbackGuidFromName.GuidHash} x{item.Amount}");
+                            if (TryGiveItemViaChatCommand(playerEntity, userEntity, em, fallbackGuidFromName, item.Amount, null, out var namelessCommandDetail))
+                            {
+                                _log.LogDebug($"[KitService] Nameless grant command executed for {fallbackGuidFromName.GuidHash} x{item.Amount} ({namelessCommandDetail})");
+                                return true;
+                            }
+
+                            GiveItemCommandUtility.RunGiveItemCommand(fallbackGuidFromName, item.Amount, false, null);
+                            _log.LogDebug($"[KitService] Nameless grant command executed via utility for {fallbackGuidFromName.GuidHash} x{item.Amount}");
+                            return true;
+                        }
                     catch (Exception fallbackEx)
                     {
                         _log.LogWarning($"[KitService] Give item failed for '{characterName}' ({item.PrefabGuid} x{item.Amount}): {fallbackEx.ToString()}");
@@ -1066,6 +1089,98 @@ namespace VAuto.Zone.Services
                 }
 
                 _log.LogWarning($"[KitService] Give item failed ({item.PrefabGuid} x{item.Amount}): {ex.ToString()}");
+                return false;
+            }
+        }
+
+        private static bool TryGiveItemViaChatCommand(
+            Entity playerEntity,
+            Entity userEntity,
+            EntityManager em,
+            PrefabGUID itemGuid,
+            int amount,
+            string? characterName,
+            out string detail)
+        {
+            detail = string.Empty;
+
+            if (playerEntity == Entity.Null || userEntity == Entity.Null || !em.Exists(userEntity) || !em.HasComponent<User>(userEntity))
+            {
+                detail = "user/player missing";
+                return false;
+            }
+
+            var user = em.GetComponentData<User>(userEntity);
+            var sanitizedName = SanitizeCharacterName(characterName ?? string.Empty);
+            var commands = new List<string>();
+            if (!string.IsNullOrWhiteSpace(sanitizedName))
+            {
+                commands.Add($"give \"{sanitizedName}\" {itemGuid.GuidHash} {amount}");
+            }
+
+            commands.Add($"give {itemGuid.GuidHash} {amount}");
+
+            foreach (var cmd in commands)
+            {
+                if (!TryCreateChatEvent(userEntity, playerEntity, cmd, user, out var chatEvent, out var chatError))
+                {
+                    detail = $"chat-event-failed: {chatError}";
+                    continue;
+                }
+
+                try
+                {
+                    var context = new ChatCommandContext(chatEvent);
+                    var result = CommandRegistry.Handle(context, cmd);
+                    if (result == CommandResult.Success)
+                    {
+                        detail = $"ok: {cmd}";
+                        return true;
+                    }
+
+                    detail = $"result={result}: {cmd}";
+                }
+                catch (Exception ex)
+                {
+                    detail = $"exception={ex.Message}: {cmd}";
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryCreateChatEvent(Entity userEntity, Entity playerEntity, string input, User user, out VChatEvent chatEvent, out string detail)
+        {
+            chatEvent = null!;
+            detail = string.Empty;
+
+            var ctorArgs = new object[] { userEntity, playerEntity, input, ChatMessageType.System, user };
+            var ctor = typeof(VChatEvent).GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .FirstOrDefault(c =>
+                {
+                    var p = c.GetParameters();
+                    return p.Length == ctorArgs.Length
+                        && p[0].ParameterType == typeof(Entity)
+                        && p[1].ParameterType == typeof(Entity)
+                        && p[2].ParameterType == typeof(string)
+                        && p[3].ParameterType == typeof(ChatMessageType)
+                        && p[4].ParameterType == typeof(User);
+                });
+
+            if (ctor == null)
+            {
+                detail = "constructor missing";
+                return false;
+            }
+
+            try
+            {
+                chatEvent = (VChatEvent)ctor.Invoke(ctorArgs);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                detail = ex.Message;
                 return false;
             }
         }
@@ -1081,6 +1196,23 @@ namespace VAuto.Zone.Services
 
             try
             {
+                // Primary path: use native server inventory utility directly.
+                var server = UnifiedCore.Server;
+                if (server != null)
+                {
+                    var gameData = server.GetExistingSystemManaged<GameDataSystem>();
+                    if (gameData != null)
+                    {
+                        var itemSettings = AddItemSettings.Create(UnifiedCore.EntityManager, gameData.ItemHashLookupMap);
+                        var addResult = InventoryUtilitiesServer.TryAddItem(itemSettings, characterEntity, itemGuid, amount);
+                        if (addResult.NewEntity != Entity.Null)
+                        {
+                            methodUsed = "InventoryUtilitiesServer.TryAddItem";
+                            return true;
+                        }
+                    }
+                }
+
                 // Most common location used by community mods.
                 var helperType = Type.GetType("VampireCommandFramework.Helper, VampireCommandFramework");
                 if (helperType == null)
