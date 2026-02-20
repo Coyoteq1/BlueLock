@@ -523,6 +523,10 @@ namespace VAuto.Zone.Commands
                 var hasReturnPos = Plugin.HasStoredReturnPosition(characterEntity);
                 var enterActionCount = GameActionService.GetRegisteredEventActionCount(GameActionService.EventPlayerEnter);
                 var exitActionCount = GameActionService.GetRegisteredEventActionCount(GameActionService.EventPlayerExit);
+                
+                // Sandbox progression info
+                var (sbActive, sbPending, sbDeltas, sbDirty) = VAuto.Core.Services.DebugEventBridge.GetSnapshotCounts();
+                var (sbZoneId, sbRows, sbCaptured) = VAuto.Core.Services.DebugEventBridge.GetBaselineInfo(platformId);
 
                 var msg = $"<color=#FFD700>[Zone Runtime Diag]</color>\n" +
                           $"Entity: {characterEntity.Index}:{characterEntity.Version}\n" +
@@ -537,7 +541,10 @@ namespace VAuto.Zone.Commands
                           $"ReturnPosStored: {hasReturnPos}\n" +
                           $"GlowEnabled: {Plugin.GlowSystemEnabledValue} (ActiveEntities={Plugin.ActiveGlowEntityCount})\n" +
                           $"LifecycleIntegration: {Plugin.IntegrationLifecycleEnabledValue}\n" +
-                          $"CoreLifecycleBindings: Enter={enterActionCount}, Exit={exitActionCount}";
+                          $"CoreLifecycleBindings: Enter={enterActionCount}, Exit={exitActionCount}\n" +
+                          $"<color=#00FFFF>--- Sandbox Progression ---</color>\n" +
+                          $"ActiveBaselines: {sbActive}, Pending: {sbPending}, Deltas: {sbDeltas}, Dirty: {sbDirty}\n" +
+                          $"YourBaseline: zone={sbZoneId ?? "none"}, rows={sbRows}, captured={sbCaptured?.ToString("HH:mm:ss") ?? "none"}";
 
                 ctx.Reply(msg);
             }
@@ -545,6 +552,68 @@ namespace VAuto.Zone.Commands
             {
                 ZoneCore.LogError($"[ArenaAdmin] diag failed: {ex.Message}");
                 ctx.Reply("<color=#FF0000>Error running diagnostics.</color>");
+            }
+        }
+
+        /// <summary>
+        /// Show global sandbox progression status.
+        /// </summary>
+        [Command("sandbox", shortHand: "sb", description: "Show sandbox progression status", adminOnly: true)]
+        public static void SandboxStatus(ChatCommandContext ctx)
+        {
+            try
+            {
+                var (active, pending, deltas, dirty) = VAuto.Core.Services.DebugEventBridge.GetSnapshotCounts();
+                
+                var msg = $"<color=#00FFFF>[Sandbox Progression]</color>\n" +
+                          $"Enabled: {Plugin.SandboxProgressionEnabledValue}\n" +
+                          $"Active Baselines: {active}\n" +
+                          $"Pending Contexts: {pending}\n" +
+                          $"Active Deltas: {deltas}\n" +
+                          $"Dirty (unsaved): {dirty}\n" +
+                          $"PersistSnapshots: {Plugin.SandboxProgressionPersistSnapshotsValue}";
+                
+                ctx.Reply(msg);
+            }
+            catch (Exception ex)
+            {
+                ZoneCore.LogError($"[SandboxStatus] failed: {ex.Message}");
+                ctx.Reply("<color=#FF0000>Error getting sandbox status.</color>");
+            }
+        }
+
+        /// <summary>
+        /// Force save progression snapshot (for testing).
+        /// </summary>
+        [Command("snap", shortHand: "sn", description: "Force save progression snapshot", adminOnly: true)]
+        public static void ForceSnapshot(ChatCommandContext ctx, string zoneId = "")
+        {
+            try
+            {
+                var em = ZoneCore.EntityManager;
+                var characterEntity = ctx.Event?.SenderCharacterEntity ?? Entity.Null;
+                if (characterEntity == Entity.Null || !em.Exists(characterEntity))
+                {
+                    ctx.Reply("<color=#FF0000>Error: Could not resolve your character.</color>");
+                    return;
+                }
+                
+                var targetZone = string.IsNullOrWhiteSpace(zoneId) ? "sandbox" : zoneId;
+                var enableUnlock = ZoneConfigService.IsSandboxUnlockEnabled(targetZone, Plugin.SandboxProgressionDefaultZoneUnlockEnabledValue);
+                
+                VAuto.Core.Services.DebugEventBridge.OnPlayerEnter(characterEntity, targetZone, enableUnlock);
+                
+                var (sbZoneId, sbRows, sbCaptured) = VAuto.Core.Services.DebugEventBridge.GetBaselineInfo(ctx.User.PlatformId);
+                
+                ctx.Reply($"<color=#00FF00>Snapshot saved!</color>\n" +
+                          $"Zone: {sbZoneId ?? targetZone}\n" +
+                          $"Components: {sbRows}\n" +
+                          $"Time: {sbCaptured?.ToString("HH:mm:ss") ?? "now"}");
+            }
+            catch (Exception ex)
+            {
+                ZoneCore.LogError($"[ForceSnapshot] failed: {ex.Message}");
+                ctx.Reply("<color=#FF0000>Error saving snapshot.</color>");
             }
         }
 

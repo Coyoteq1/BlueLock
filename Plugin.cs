@@ -257,6 +257,7 @@ namespace VAuto.Zone
         {
             "capture_return_position",
             "snapshot_save",
+            "set_blood",
             "zone_enter_message",
             "apply_kit",
             "teleport_enter",
@@ -2476,6 +2477,7 @@ namespace VAuto.Zone
                 {
                     "store" => "snapshot_save",
                     "snapshot" => "snapshot_save",
+                    "blood" => "set_blood",
                     "message" => "zone_enter_message",
                     "kit_apply" => "apply_kit",
                     "kit" => "apply_kit",
@@ -2517,6 +2519,62 @@ namespace VAuto.Zone
                         if (!PlayerSnapshotService.SaveSnapshot(player, out var snapshotError))
                         {
                             Logger.LogDebug($"[BlueLock] Snapshot save skipped/failed on enter for zone '{zoneId}': {snapshotError}");
+                        }
+                    });
+                    break;
+                case "set_blood":
+                    TryRunZoneEnterStep("SetRandomBloodType", () =>
+                    {
+                        try
+                        {
+                            // Get EntityManager from UnifiedCore
+                            var em = UnifiedCore.EntityManager;
+                            
+                            // Check if player has Blood component
+                            if (em.HasComponent<Blood>(player))
+                            {
+                                var blood = em.GetComponentData<Blood>(player);
+                                
+                                // Get available blood types (exclude VBlood, DraculaTheImmortal, GateBoss, None for playable types)
+                                var availableBloodTypes = new[]
+                                {
+                                    "BloodType_Warrior",
+                                    "BloodType_Rogue",
+                                    "BloodType_Scholar",
+                                    "BloodType_Brute",
+                                    "BloodType_Creature",
+                                    "BloodType_Mutant",
+                                    "BloodType_Draculin",
+                                    "BloodType_Worker"
+                                };
+                                
+                                // Pick two random blood types
+                                var random = new System.Random();
+                                var bloodType1 = availableBloodTypes[random.Next(availableBloodTypes.Length)];
+                                string bloodType2;
+                                do
+                                {
+                                    bloodType2 = availableBloodTypes[random.Next(availableBloodTypes.Length)];
+                                } while (bloodType2 == bloodType1);
+                                
+                                // Resolve the blood type prefab
+                                if (ZoneCore.TryResolvePrefabEntity(bloodType1, out var guid, out _))
+                                {
+                                    blood.BloodType = guid;
+                                    blood.Quality = 100f; // 100% quality
+                                    em.SetComponentData(player, blood);
+                                    
+                                    Logger.LogInfo($"[BlueLock] Blood set to {bloodType1} (100%) with alternate {bloodType2}");
+                                }
+                                else
+                                {
+                                    Logger.LogWarning($"[BlueLock] Could not resolve blood type prefab: {bloodType1}");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError($"[BlueLock] Failed to set blood type: {ex.Message}");
                         }
                     });
                     break;

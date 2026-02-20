@@ -1,0 +1,175 @@
+{
+  "version": "1.0.0",
+  "description": "Armor reference database for BlueLock",
+  "armors": [
+    {
+      "id": "Item_Chest_T09_Dracula_Warrior",
+      "name": "Dracula Warrior Chest",
+      "type": "Chest",
+      "slot": "Chest",
+      "tier": 9,
+      "prefabGuid": 1764193512,
+      "armor": 12.5,
+      "resistance": {
+        "physical": 0.15,
+        "fire": 0.0,
+        "holy": 0.0,
+        "silver": -0.1
+      },
+      "stats": {
+        "durability": 500,
+        "moveSpeed": -0.02
+      }
+    },
+    {
+      "id": "Item_Chest_T09_Dracula_Brute",
+      "name": "Dracula Brute Chest",
+      "type": "Chest",
+      "slot": "Chest",
+      "tier": 9,
+      "prefabGuid": 1764193513,
+      "armor": 14.2,
+      "resistance": {
+        "physical": 0.2,
+        "fire": 0.05,
+        "holy": 0.0,
+        "silver": -0.15
+      },
+      "stats": {
+        "durability": 600,
+        "moveSpeed": -0.05
+      }
+    },
+    {
+      "id": "Item_Chest_T09_Dracula_Rogue",
+      "name": "Dracula Rogue Chest",
+      "type": "Chest",
+      "slot": "Chest",
+      "tier": 9,
+      "prefabGuid": 1764193514,
+      "armor": 10.0,
+      "resistance": {
+        "physical": 0.1,
+        "fire": 0.0,
+        "holy": 0.0,
+        "silver": 0.0
+      },
+      "stats": {
+        "durability": 400,
+        "moveSpeed": 0.02
+      }
+    },
+    {
+      "id": "Item_Chest_T09_Dracula_Scholar",
+      "name": "Dracula Scholar Chest",
+      "type": "Chest",
+      "slot": "Chest",
+      "tier": 9,
+      "prefabGuid": 1764193515,
+      "armor": 8.5,
+      "resistance": {
+        "physical": 0.05,
+        "fire": 0.15,
+        "holy": 0.1,
+        "silver": 0.0
+      },
+      "stats": {
+        "durability": 350,
+        "moveSpeed": 0.0
+      }
+    },
+    {
+      "id": "Item_Chest_T09_Dracula",
+      "name": "Dracula Chest",
+      "type": "Chest",
+      "slot": "Chest",
+      "tier": 9,
+      "prefabGuid": 1764193516,
+      "armor": 11.0,
+      "resistance": {
+        "physical": 0.12,
+        "fire": 0.05,
+        "holy": 0.0,
+        "silver": -0.05
+      },
+      "stats": {
+        "durability": 450,
+        "moveSpeed": -0.01
+      }
+    },
+    {
+      "id": "Item_Headgear_DraculaHelmet",
+      "name": "Dracula Helmet",
+      "type": "Head",
+      "slot": "Head",
+      "tier": 9,
+      "prefabGuid": 1764193500,
+      "armor": 6.0,
+      "resistance": {
+        "physical": 0.08,
+        "fire": 0.0,
+        "holy": 0.0,
+        "silver": -0.05
+      },
+      "stats": {
+        "durability": 300
+      }
+    },
+    {
+      "id": "Item_Legs_T09_Dracula_Warrior",
+      "name": "Dracula Warrior Legs",
+      "type": "Legs",
+      "slot": "Legs",
+      "tier": 9,
+      "prefabGuid": 1764193520,
+      "armor": 8.0,
+      "resistance": {
+        "physical": 0.1,
+        "fire": 0.0,
+        "holy": 0.0,
+        "silver": -0.08
+      },
+      "stats": {
+        "durability": 350,
+        "moveSpeed": -0.02
+      }
+    },
+    {
+      "id": "Item_Gloves_T09_Dracula_Warrior",
+      "name": "Dracula Warrior Gloves",
+      "type": "Gloves",
+      "slot": "Gloves",
+      "tier": 9,
+      "prefabGuid": 1764193530,
+      "armor": 4.5,
+      "resistance": {
+        "physical": 0.05,
+        "fire": 0.0,
+        "holy": 0.0,
+        "silver": -0.03
+      },
+      "stats": {
+        "durability": 200
+      }
+    },
+    {
+      "id": "Item_Boots_T09_Dracula_Warrior",
+      "name": "Dracula Warrior Boots",
+      "type": "Boots",
+      "slot": "Feet",
+      "tier": 9,
+      "prefabGuid": 1764193540,
+      "armor": 5.0,
+      "resistance": {
+        "physical": 0.05,
+        "fire": 0.0,
+        "holy": 0.0,
+        "silver": -0.03
+      },
+      "stats": {
+        "durability": 250,
+        "moveSpeed": 0.01
+      }
+    }
+  ]
+}

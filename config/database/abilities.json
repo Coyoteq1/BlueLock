@@ -1,0 +1,126 @@
+{
+  "version": "1.0.0",
+  "description": "Ability reference database for BlueLock",
+  "abilities": [
+    {
+      "id": "AB_Vampire_VeilOfBlood_Group",
+      "name": "Veil of Blood",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741335,
+      "cooldown": 30.0,
+      "duration": 8.0,
+      "manaCost": 25.0,
+      "castTime": 0.0,
+      "interruptible": true,
+      "description": "Creates a protective blood shield that absorbs damage"
+    },
+    {
+      "id": "AB_Vampire_VeilOfChaos_Group",
+      "name": "Veil of Chaos",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741336,
+      "cooldown": 45.0,
+      "duration": 10.0,
+      "manaCost": 35.0,
+      "castTime": 0.0,
+      "interruptible": true,
+      "description": "Creates a chaotic aura that damages nearby enemies"
+    },
+    {
+      "id": "AB_Vampire_VeilOfFrost_Group",
+      "name": "Veil of Frost",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741337,
+      "cooldown": 35.0,
+      "duration": 6.0,
+      "manaCost": 28.0,
+      "castTime": 0.0,
+      "interruptible": true,
+      "description": "Creates a frost barrier that slows attackers"
+    },
+    {
+      "id": "AB_Vampire_VeilOfBones_AbilityGroup",
+      "name": "Veil of Bones",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741338,
+      "cooldown": 50.0,
+      "duration": 12.0,
+      "manaCost": 40.0,
+      "castTime": 0.0,
+      "interruptible": false,
+      "description": "Summons bone barriers that strike nearby enemies"
+    },
+    {
+      "id": "AB_Blood_BloodRite_AbilityGroup",
+      "name": "Blood Rite",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741339,
+      "cooldown": 60.0,
+      "duration": 0.0,
+      "manaCost": 50.0,
+      "castTime": 1.5,
+      "interruptible": false,
+      "description": "Sacrifices health to gain immense power"
+    },
+    {
+      "id": "AB_Vampire_Summon_Hunter_AbilityGroup",
+      "name": "Summon Hunter",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741340,
+      "cooldown": 120.0,
+      "duration": 30.0,
+      "manaCost": 75.0,
+      "castTime": 2.0,
+      "interruptible": false,
+      "description": "Summons a spectral hunter to fight for you"
+    },
+    {
+      "id": "AB_Vampire_ClaySol_Lightning_Strike_AbilityGroup",
+      "name": "Lightning Strike",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741341,
+      "cooldown": 25.0,
+      "duration": 0.0,
+      "manaCost": 30.0,
+      "castTime": 1.0,
+      "interruptible": true,
+      "description": "Calls down lightning to strike enemies"
+    },
+    {
+      "id": "AB_Vampire_Seismic_Shockwave_AbilityGroup",
+      "name": "Seismic Shockwave",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741342,
+      "cooldown": 40.0,
+      "duration": 0.0,
+      "manaCost": 45.0,
+      "castTime": 1.2,
+      "interruptible": true,
+      "description": "Creates a shockwave that knocks back enemies"
+    },
+    {
+      "id": "AB_Vampire_Dash_Attack_AbilityGroup",
+      "name": "Dash Attack",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741343,
+      "cooldown": 8.0,
+      "duration": 0.0,
+      "manaCost": 10.0,
+      "castTime": 0.0,
+      "interruptible": false,
+      "description": "Quickly dash forward and attack"
+    },
+    {
+      "id": "AB_Vampire_Spell_Shield_AbilityGroup",
+      "name": "Spell Shield",
+      "type": "AbilityGroup",
+      "prefabGuid": -1431741344,
+      "cooldown": 20.0,
+      "duration": 5.0,
+      "manaCost": 20.0,
+      "castTime": 0.0,
+      "interruptible": false,
+      "description": "Creates a magical barrier that blocks spells"
+    }
+  ]
+}

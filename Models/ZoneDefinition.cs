@@ -6,6 +6,17 @@ using Unity.Mathematics;
 namespace VAuto.Zone.Models
 {
     /// <summary>
+    /// Supported zone shape types resolved from <see cref="ZoneDefinition.Shape"/>.
+    /// </summary>
+    public enum ZoneShapeType
+    {
+        /// <summary>Circular zone defined by CenterX, CenterZ, and Radius.</summary>
+        Circle,
+        /// <summary>Rectangular zone defined by MinX, MaxX, MinZ, MaxZ.</summary>
+        Rectangle
+    }
+
+    /// <summary>
     /// Represents a zone definition for JSON configuration.
     /// </summary>
     public class ZoneDefinition
@@ -237,20 +248,41 @@ namespace VAuto.Zone.Models
         /// </summary>
         public bool IsArenaZone { get; set; }
 
+        // ── Shape constants ────────────────────────────────────────────────────
+        private const string ShapeCircle    = "Circle";
+        private const string ShapeRectangle = "Rectangle";
+
+        /// <summary>
+        /// Parsed shape type derived from the <see cref="Shape"/> string.
+        /// Null or unrecognised values resolve to <see cref="ZoneShapeType.Circle"/>.
+        /// </summary>
+        [JsonIgnore]
+        public ZoneShapeType ShapeType =>
+            string.Equals(Shape, ShapeRectangle, StringComparison.OrdinalIgnoreCase)
+                ? ZoneShapeType.Rectangle
+                : ZoneShapeType.Circle;
+
         /// <summary>
         /// Check if a position is inside this zone.
         /// </summary>
         public bool IsInside(float x, float z)
         {
-            if (Shape.Equals("Circle", StringComparison.OrdinalIgnoreCase))
+            return ShapeType switch
             {
-                var dx = x - CenterX;
-                var dz = z - CenterZ;
-                return (dx * dx + dz * dz) <= (Radius * Radius);
-            }
-            // Default to circle for unknown shapes
-            var dist = math.distance(new float2(x, z), new float2(CenterX, CenterZ));
-            return dist <= Radius;
+                ZoneShapeType.Rectangle => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ,
+                _                       => IsInsideCircle(x, z)
+            };
+        }
+
+        /// <summary>
+        /// Squared-distance circle containment — avoids the sqrt in
+        /// <c>math.distance</c> and is therefore faster for per-frame polling.
+        /// </summary>
+        private bool IsInsideCircle(float x, float z)
+        {
+            var dx = x - CenterX;
+            var dz = z - CenterZ;
+            return (dx * dx + dz * dz) <= (Radius * Radius);
         }
     }
 }

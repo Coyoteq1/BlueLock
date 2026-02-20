@@ -1,0 +1,158 @@
+{
+  "version": "1.0.0",
+  "description": "VBlood boss reference database for BlueLock",
+  "vbloods": [
+    {
+      "id": "CHAR_Vampire_Trent_01",
+      "name": "Trent",
+      "type": "VBlood",
+      "level": 62,
+      "prefabGuid": 1513824759,
+      "territory": "Dunley Farmlands",
+      "difficulty": "Normal",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_VeilOfBlood_Group" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Roxy_01",
+      "name": "Roxy",
+      "type": "VBlood",
+      "level": 65,
+      "prefabGuid": 1513824760,
+      "territory": "Dunley Farmlands",
+      "difficulty": "Normal",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_VeilOfChaos_Group" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Gordon_01",
+      "name": "Gordon",
+      "type": "VBlood",
+      "level": 70,
+      "prefabGuid": 1513824761,
+      "territory": "Dunley Farmlands",
+      "difficulty": "Veteran",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_VeilOfFrost_Group" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Necro_01",
+      "name": "The Necromancer",
+      "type": "VBlood",
+      "level": 75,
+      "prefabGuid": 1513824762,
+      "territory": "Farfield Woods",
+      "difficulty": "Veteran",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_Summon_Hunter_AbilityGroup" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Clive_01",
+      "name": "Clive",
+      "type": "VBlood",
+      "level": 50,
+      "prefabGuid": 1513824763,
+      "territory": "Cottonwood Fields",
+      "difficulty": "Normal",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Spell", "id": "Spell_Ivy_Thorn" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Gerard_01",
+      "name": "Gerard",
+      "type": "VBlood",
+      "level": 55,
+      "prefabGuid": 1513824764,
+      "territory": "Cottonwood Fields",
+      "difficulty": "Normal",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Spell", "id": "Spell_Ivy_Vine" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Baron_01",
+      "name": "Baron",
+      "type": "VBlood",
+      "level": 80,
+      "prefabGuid": 1513824765,
+      "territory": "Cursed Forest",
+      "difficulty": "Elite",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_VeilOfBones_AbilityGroup" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Mutation_Bear_01",
+      "name": "Frostmaw",
+      "type": "VBlood",
+      "level": 85,
+      "prefabGuid": 1513824766,
+      "territory": "Frostford",
+      "difficulty": "Elite",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_ClaySol_Lightning_Strike_AbilityGroup" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Mutation_Wolf_01",
+      "name": "Alpha Wolf",
+      "type": "VBlood",
+      "level": 60,
+      "prefabGuid": 1513824767,
+      "territory": "Silverlight Hills",
+      "difficulty": "Normal",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_Dash_Attack_AbilityGroup" }
+      ]
+    },
+    {
+      "id": "CHAR_Vampire_Dracula_01",
+      "name": "Dracula",
+      "type": "VBlood",
+      "level": 99,
+      "prefabGuid": 1513824768,
+      "territory": "Castle Dracula",
+      "difficulty": "Boss",
+      "drops": [
+        { "item": "Blood_Extract", "chance": 100, "guaranteed": true },
+        { "item": "Item_Legendary_Dracula_Crown", "chance": 100, "guaranteed": true }
+      ],
+      "unlocks": [
+        { "type": "Ability", "id": "AB_Vampire_Spell_Shield_AbilityGroup" },
+        { "type": "Weapon", "id": "Weapon_Legendary_Dracula_Sword" }
+      ]
+    }
+  ]
+}

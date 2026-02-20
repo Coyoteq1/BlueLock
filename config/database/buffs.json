@@ -1,0 +1,147 @@
+{
+  "version": "1.0.0",
+  "description": "Buff/Debuff reference database for BlueLock",
+  "buffs": [
+    {
+      "id": "v2_buffs_jail_dracula",
+      "name": "Dracula's Prison",
+      "type": "Debuff",
+      "prefabGuid": -1431741336,
+      "duration": 5.0,
+      "stackLimit": 1,
+      "removable": true,
+      "category": "Control",
+      "effects": {
+        "immobilized": true,
+        "silenced": false
+      }
+    },
+    {
+      "id": "v2_buffs_freeze",
+      "name": "Frozen",
+      "type": "Debuff",
+      "prefabGuid": -1431741337,
+      "duration": 3.0,
+      "stackLimit": 1,
+      "removable": true,
+      "category": "Control",
+      "effects": {
+        "immobilized": true,
+        "moveSpeedMultiplier": 0.0
+      }
+    },
+    {
+      "id": "v2_buffs_slow",
+      "name": "Slowed",
+      "type": "Debuff",
+      "prefabGuid": -1431741338,
+      "duration": 4.0,
+      "stackLimit": 5,
+      "removable": true,
+      "category": "Control",
+      "effects": {
+        "moveSpeedMultiplier": 0.5
+      }
+    },
+    {
+      "id": "v2_buffs_bleed",
+      "name": "Bleeding",
+      "type": "Debuff",
+      "prefabGuid": -1431741339,
+      "duration": 10.0,
+      "stackLimit": 3,
+      "removable": true,
+      "category": "Damage",
+      "effects": {
+        "damageOverTime": 5.0,
+        "damageInterval": 1.0
+      }
+    },
+    {
+      "id": "v2_buffs_burning",
+      "name": "Burning",
+      "type": "Debuff",
+      "prefabGuid": -1431741340,
+      "duration": 8.0,
+      "stackLimit": 1,
+      "removable": true,
+      "category": "Damage",
+      "effects": {
+        "damageOverTime": 8.0,
+        "damageInterval": 0.5,
+        "fireDamage": true
+      }
+    },
+    {
+      "id": "v2_buffs_poison",
+      "name": "Poisoned",
+      "type": "Debuff",
+      "prefabGuid": -1431741341,
+      "duration": 12.0,
+      "stackLimit": 5,
+      "removable": true,
+      "category": "Damage",
+      "effects": {
+        "damageOverTime": 3.0,
+        "damageInterval": 1.0
+      }
+    },
+    {
+      "id": "v2_buffs_sanctified",
+      "name": "Sanctified",
+      "type": "Buff",
+      "prefabGuid": -1431741342,
+      "duration": 30.0,
+      "stackLimit": 1,
+      "removable": false,
+      "category": "Resistance",
+      "effects": {
+        "holyResistance": 0.5,
+        "unholyResistance": -0.25
+      }
+    },
+    {
+      "id": "v2_buffs_blood_mirror",
+      "name": "Blood Mirror",
+      "type": "Buff",
+      "prefabGuid": -1431741343,
+      "duration": 15.0,
+      "stackLimit": 1,
+      "removable": true,
+      "category": "Defense",
+      "effects": {
+        "damageReflect": 0.3,
+        "spellReflect": 0.5
+      }
+    },
+    {
+      "id": "v2_buffs_frenzied",
+      "name": "Frenzied",
+      "type": "Buff",
+      "prefabGuid": -1431741344,
+      "duration": 20.0,
+      "stackLimit": 1,
+      "removable": true,
+      "category": "Offense",
+      "effects": {
+        "attackSpeedMultiplier": 1.5,
+        "moveSpeedMultiplier": 1.2,
+        "damageMultiplier": 1.3
+      }
+    },
+    {
+      "id": "v2_buffs_stealth",
+      "name": "Stealth",
+      "type": "Buff",
+      "prefabGuid": -1431741345,
+      "duration": 10.0,
+      "stackLimit": 1,
+      "removable": true,
+      "category": "Utility",
+      "effects": {
+        "invisible": true,
+        "untargetable": true
+      }
+    }
+  ]
+}

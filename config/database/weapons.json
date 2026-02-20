@@ -1,0 +1,125 @@
+{
+  "version": "1.0.0",
+  "description": "Weapon reference database for BlueLock",
+  "weapons": [
+    {
+      "id": "Item_Weapon_Sword_T09_ShadowMatter",
+      "name": "Shadow Matter Sword",
+      "type": "Sword",
+      "tier": 9,
+      "prefabGuid": 1688563035,
+      "damage": 45.2,
+      "attackSpeed": 1.15,
+      "range": 2.5,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 45.2,
+        "attackSpeed": 1.15,
+        "critChance": 0.05,
+        "critDamage": 1.5
+      }
+    },
+    {
+      "id": "Item_Weapon_Mace_T09_ShadowMatter",
+      "name": "Shadow Matter Mace",
+      "type": "Mace",
+      "tier": 9,
+      "prefabGuid": 1688563036,
+      "damage": 52.8,
+      "attackSpeed": 0.9,
+      "range": 2.0,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 52.8,
+        "attackSpeed": 0.9,
+        "critChance": 0.03,
+        "critDamage": 1.5
+      }
+    },
+    {
+      "id": "Item_Weapon_Slashers_T09_ShadowMatter",
+      "name": "Shadow Matter Slashers",
+      "type": "Slashers",
+      "tier": 9,
+      "prefabGuid": 1688563037,
+      "damage": 38.5,
+      "attackSpeed": 1.35,
+      "range": 2.2,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 38.5,
+        "attackSpeed": 1.35,
+        "critChance": 0.08,
+        "critDamage": 1.5
+      }
+    },
+    {
+      "id": "Item_Weapon_Reaper_T09_ShadowMatter",
+      "name": "Shadow Matter Reaper",
+      "type": "Reaper",
+      "tier": 9,
+      "prefabGuid": 1688563038,
+      "damage": 61.3,
+      "attackSpeed": 0.75,
+      "range": 3.0,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 61.3,
+        "attackSpeed": 0.75,
+        "critChance": 0.04,
+        "critDamage": 1.5
+      }
+    },
+    {
+      "id": "Item_Weapon_Whip_T09_ShadowMatter",
+      "name": "Shadow Matter Whip",
+      "type": "Whip",
+      "tier": 9,
+      "prefabGuid": 1688563039,
+      "damage": 42.1,
+      "attackSpeed": 1.25,
+      "range": 4.5,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 42.1,
+        "attackSpeed": 1.25,
+        "critChance": 0.06,
+        "critDamage": 1.5
+      }
+    },
+    {
+      "id": "Item_Weapon_Crossbow_T09_ShadowMatter",
+      "name": "Shadow Matter Crossbow",
+      "type": "Crossbow",
+      "tier": 9,
+      "prefabGuid": 1688563040,
+      "damage": 48.7,
+      "attackSpeed": 0.85,
+      "range": 25.0,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 48.7,
+        "attackSpeed": 0.85,
+        "critChance": 0.05,
+        "critDamage": 1.5
+      }
+    },
+    {
+      "id": "Item_Weapon_Spear_T09_ShadowMatter",
+      "name": "Shadow Matter Spear",
+      "type": "Spear",
+      "tier": 9,
+      "prefabGuid": 1688563041,
+      "damage": 44.3,
+      "attackSpeed": 1.1,
+      "range": 3.5,
+      "slots": ["MainHand"],
+      "stats": {
+        "physicalDamage": 44.3,
+        "attackSpeed": 1.1,
+        "critChance": 0.05,
+        "critDamage": 1.5
+      }
+    }
+  ]
+}

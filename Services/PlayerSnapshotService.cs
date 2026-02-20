@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -21,6 +22,10 @@ namespace VAuto.Zone.Services
     /// All snapshot data is stored as pure data types - Entity access only during save/restore.
     /// Captures: position, rotation, health, blood, inventory contents, and equipment.
     /// </summary>
+    /// <remarks>
+    /// Thread-safe implementation using ConcurrentDictionary for snapshot storage.
+    /// Component access uses TryGet pattern to avoid exceptions on missing components.
+    /// </remarks>
     public static class PlayerSnapshotService
     {
         private static readonly string[] RestoreSystemTypeNames =
@@ -37,193 +42,267 @@ namespace VAuto.Zone.Services
             "ProjectM.Shared.SpellModCollectionSystem"
         };
 
-        private static readonly Dictionary<Entity, PlayerSnapshot> _snapshots = new Dictionary<Entity, PlayerSnapshot>();
-        private static readonly object _lock = new object();
+        // Using ConcurrentDictionary eliminates need for manual locking
+        private static readonly ConcurrentDictionary<Entity, PlayerSnapshot> _snapshots = new ConcurrentDictionary<Entity, PlayerSnapshot>();
+
+        // Cache for reflection-based system lookups to avoid repeated expensive operations
+        private static readonly Dictionary<string, Type> _systemTypeCache = new Dictionary<string, Type>(RestoreSystemTypeNames.Length);
+        private static MethodInfo _getSystemMethod;
+        private static bool _reflectionInitialized;
+
+        /// <summary>
+        /// Result type for snapshot operations combining success state with error information.
+        /// </summary>
+        public readonly struct SnapshotResult
+        {
+            public bool Success { get; }
+            public string Error { get; }
+
+            private SnapshotResult(bool success, string error)
+            {
+                Success = success;
+                Error = error;
+            }
+
+            public static SnapshotResult Ok() => new SnapshotResult(true, string.Empty);
+            public static SnapshotResult Fail(string error) => new SnapshotResult(false, error);
+            
+            // Implicit conversion to bool for backward compatibility
+            public static implicit operator bool(SnapshotResult result) => result.Success;
+        }
 
         /// <summary>
         /// Stores all player data before arena entry.
         /// </summary>
+        /// <param name="playerEntity">The entity to snapshot.</param>
+        /// <param name="error">Error message if operation failed.</param>
+        /// <returns>True if snapshot was saved successfully.</returns>
         public static bool SaveSnapshot(Entity playerEntity, out string error)
         {
-            error = string.Empty;
+            var result = SaveSnapshotCore(playerEntity);
+            error = result.Error;
+            return result.Success;
+        }
+
+        /// <summary>
+        /// Stores all player data before arena entry using Result pattern.
+        /// </summary>
+        /// <param name="playerEntity">The entity to snapshot.</param>
+        /// <returns>Result indicating success or failure with error details.</returns>
+        public static SnapshotResult SaveSnapshot(Entity playerEntity)
+        {
+            return SaveSnapshotCore(playerEntity);
+        }
+
+        private static SnapshotResult SaveSnapshotCore(Entity playerEntity)
+        {
+            var em = ZoneCore.EntityManager;
             
+            if (!em.Exists(playerEntity))
+            {
+                var error = "Entity no longer exists";
+                ZoneCore.LogWarning($"[Snapshot] Save failed: {error}");
+                return SnapshotResult.Fail(error);
+            }
+
             try
             {
-                var em = ZoneCore.EntityManager;
-                
-                if (!em.Exists(playerEntity))
-                {
-                    error = "Entity no longer exists";
-                    ZoneCore.LogWarning($"[Snapshot] Save failed: {error}");
-                    return false;
-                }
-
                 var snapshot = new PlayerSnapshot
                 {
                     EntityIndex = playerEntity.Index,
                     Timestamp = DateTime.UtcNow
                 };
 
-                // Position: Support both LocalTransform and Translation
-                if (em.HasComponent<LocalTransform>(playerEntity))
+                // Position: Support both LocalTransform and Translation using TryGet for efficiency
+                // LocalTransform is the newer Unity ECS component, Translation is legacy
+                if (TryGetComponent(em, playerEntity, out LocalTransform transform))
                 {
-                    snapshot.Position = em.GetComponentData<LocalTransform>(playerEntity).Position;
-                    snapshot.Rotation = em.GetComponentData<LocalTransform>(playerEntity).Rotation;
+                    snapshot.Position = transform.Position;
+                    snapshot.Rotation = transform.Rotation;
                 }
-                else if (em.HasComponent<Translation>(playerEntity))
+                else if (TryGetComponent(em, playerEntity, out Translation translation))
                 {
-                    snapshot.Position = em.GetComponentData<Translation>(playerEntity).Value;
-                    if (em.HasComponent<Rotation>(playerEntity))
+                    snapshot.Position = translation.Value;
+                    if (TryGetComponent(em, playerEntity, out Rotation rotation))
                     {
-                        snapshot.Rotation = em.GetComponentData<Rotation>(playerEntity).Value;
+                        snapshot.Rotation = rotation.Value;
                     }
                 }
 
                 // Health: Capture current health value
-                if (em.HasComponent<Health>(playerEntity))
+                if (TryGetComponent(em, playerEntity, out Health health))
                 {
-                    var health = em.GetComponentData<Health>(playerEntity);
                     snapshot.Health = health.Value;
                 }
 
                 // Blood: Capture type and quality
-                if (em.HasComponent<Blood>(playerEntity))
+                if (TryGetComponent(em, playerEntity, out Blood blood))
                 {
-                    var blood = em.GetComponentData<Blood>(playerEntity);
                     snapshot.BloodType = blood.BloodType;
                     snapshot.BloodQuality = blood.Quality;
                 }
 
                 // Inventory: Future schema supports inventory snapshots via InventorySnapshot list
                 // Current implementation deferred to future enhancement pending inventory API surface changes
-                snapshot.InventoryItems = new List<InventorySnapshot>();
+                snapshot.InventoryItems = EmptyInventoryItems;
 
-                lock (_lock)
-                {
-                    _snapshots[playerEntity] = snapshot;
-                    ZoneCore.LogInfo($"[Snapshot] Saved for Entity {playerEntity.Index} at {snapshot.Position} (Inventory items: {snapshot.InventoryItems?.Count ?? 0})");
-                }
+                _snapshots[playerEntity] = snapshot;
+                ZoneCore.LogInfo($"[Snapshot] Saved for Entity {playerEntity.Index} at {snapshot.Position} (Inventory items: {snapshot.InventoryItems.Count})");
 
-                return true;
+                return SnapshotResult.Ok();
             }
             catch (Exception ex)
             {
-                error = ex.Message;
-                ZoneCore.LogError($"[Snapshot] Save failed: {ex.ToString()}");
-                return false;
+                ZoneCore.LogError($"[Snapshot] Save failed: {ex}");
+                return SnapshotResult.Fail(ex.Message);
             }
         }
 
         /// <summary>
         /// Restores player data after arena exit.
         /// </summary>
+        /// <param name="playerEntity">The entity to restore.</param>
+        /// <param name="error">Error message if operation failed.</param>
+        /// <returns>True if snapshot was restored successfully.</returns>
         public static bool RestoreSnapshot(Entity playerEntity, out string error)
         {
-            error = string.Empty;
+            var result = RestoreSnapshotCore(playerEntity);
+            error = result.Error;
+            return result.Success;
+        }
+
+        /// <summary>
+        /// Restores player data after arena exit using Result pattern.
+        /// </summary>
+        /// <param name="playerEntity">The entity to restore.</param>
+        /// <returns>Result indicating success or failure with error details.</returns>
+        public static SnapshotResult RestoreSnapshot(Entity playerEntity)
+        {
+            return RestoreSnapshotCore(playerEntity);
+        }
+
+        private static SnapshotResult RestoreSnapshotCore(Entity playerEntity)
+        {
+            var em = ZoneCore.EntityManager;
             
+            if (!em.Exists(playerEntity))
+            {
+                var error = "Entity no longer exists";
+                ZoneCore.LogWarning($"[Snapshot] Restore failed: {error}");
+                return SnapshotResult.Fail(error);
+            }
+
+            // Try to retrieve and remove snapshot atomically
+            if (!_snapshots.TryRemove(playerEntity, out var snapshot))
+            {
+                var error = "No snapshot found for this entity";
+                ZoneCore.LogWarning($"[Snapshot] Restore failed: {error} (Entity: {playerEntity.Index})");
+                return SnapshotResult.Fail(error);
+            }
+
             try
             {
-                var em = ZoneCore.EntityManager;
-                
-                if (!em.Exists(playerEntity))
-                {
-                    error = "Entity no longer exists";
-                    ZoneCore.LogWarning($"[Snapshot] Restore failed: {error}");
-                    return false;
-                }
-
                 LogRestoreSystemAvailability();
-
-                PlayerSnapshot snapshot;
-                lock (_lock)
-                {
-                    if (!_snapshots.TryGetValue(playerEntity, out snapshot))
-                    {
-                        error = "No snapshot found for this entity";
-                        ZoneCore.LogWarning($"[Snapshot] Restore failed: {error} (Entity: {playerEntity.Index})");
-                        return false;
-                    }
-
-                    _snapshots.Remove(playerEntity);
-                }
 
                 // Inventory: Future schema supports inventory snapshots
                 // Restoration deferred to future enhancement pending inventory API surface changes
-                var itemsRestored = 0;
-                if (snapshot.InventoryItems != null)
+                var itemsTracked = snapshot.InventoryItems.Count;
+                var positionRestored = false;
+
+                // Restore position using LocalTransform (newer) or Translation (legacy)
+                if (TryGetComponent(em, playerEntity, out LocalTransform transform))
                 {
-                    itemsRestored = snapshot.InventoryItems.Count;
-                }
-                bool positionRestored = false;
-                if (em.HasComponent<LocalTransform>(playerEntity))
-                {
-                    var transform = em.GetComponentData<LocalTransform>(playerEntity);
                     transform.Position = snapshot.Position;
                     transform.Rotation = snapshot.Rotation;
                     em.SetComponentData(playerEntity, transform);
                     positionRestored = true;
                 }
-                else if (em.HasComponent<Translation>(playerEntity))
+                else if (TryGetComponent(em, playerEntity, out Translation translation))
                 {
-                    var translation = em.GetComponentData<Translation>(playerEntity);
                     translation.Value = snapshot.Position;
                     em.SetComponentData(playerEntity, translation);
 
-                    if (em.HasComponent<Rotation>(playerEntity))
+                    if (TryGetComponent(em, playerEntity, out Rotation rotation))
                     {
-                        var rotation = em.GetComponentData<Rotation>(playerEntity);
                         rotation.Value = snapshot.Rotation;
                         em.SetComponentData(playerEntity, rotation);
                     }
                     positionRestored = true;
                 }
 
-
                 // Restore health (current value only - MaxHealth is determined by game state)
-                if (em.HasComponent<Health>(playerEntity))
+                if (TryGetComponent(em, playerEntity, out Health health))
                 {
-                    var health = em.GetComponentData<Health>(playerEntity);
                     health.Value = snapshot.Health;
                     em.SetComponentData(playerEntity, health);
                     ZoneCore.LogInfo($"[Snapshot] Health restored: {health.Value}");
                 }
 
                 // Restore blood type and quality
-                if (em.HasComponent<Blood>(playerEntity))
+                if (TryGetComponent(em, playerEntity, out Blood blood))
                 {
-                    var blood = em.GetComponentData<Blood>(playerEntity);
                     blood.BloodType = snapshot.BloodType;
                     blood.Quality = snapshot.BloodQuality;
                     em.SetComponentData(playerEntity, blood);
                     ZoneCore.LogInfo($"[Snapshot] Blood restored: {blood.BloodType} quality {blood.Quality}");
                 }
 
-
-                ZoneCore.LogInfo($"[Snapshot] Restored for Entity {playerEntity.Index} at {snapshot.Position} (Position: {positionRestored}, Inventory items tracked: {itemsRestored})");
-                return true;
+                ZoneCore.LogInfo($"[Snapshot] Restored for Entity {playerEntity.Index} at {snapshot.Position} (Position: {positionRestored}, Inventory items tracked: {itemsTracked})");
+                return SnapshotResult.Ok();
             }
             catch (Exception ex)
             {
-                error = ex.Message;
-                ZoneCore.LogError($"[Snapshot] Restore failed: {ex.ToString()}");
-                return false;
+                ZoneCore.LogError($"[Snapshot] Restore failed: {ex}");
+                return SnapshotResult.Fail(ex.Message);
             }
         }
 
+        /// <summary>
+        /// Clears all stored snapshots.
+        /// </summary>
         public static void ClearAll()
         {
-            lock (_lock)
+            int count = _snapshots.Count;
+            _snapshots.Clear();
+            if (count > 0)
             {
-                int count = _snapshots.Count;
-                _snapshots.Clear();
                 ZoneCore.LogInfo($"[Snapshot] All cleared ({count} snapshots removed)");
             }
         }
 
-        public static int Count
+        /// <summary>
+        /// Gets the current number of stored snapshots.
+        /// </summary>
+        public static int Count => _snapshots.Count;
+
+        /// <summary>
+        /// Gets the snapshot for a player entity if it exists.
+        /// </summary>
+        /// <param name="playerEntity">The entity to look up.</param>
+        /// <param name="snapshot">The snapshot if found.</param>
+        /// <returns>True if a snapshot exists for this entity.</returns>
+        public static bool TryGetSnapshot(Entity playerEntity, out PlayerSnapshot snapshot)
         {
-            get { lock (_lock) { return _snapshots.Count; } }
+            return _snapshots.TryGetValue(playerEntity, out snapshot);
         }
+
+        /// <summary>
+        /// Tries to get component data, returning false instead of throwing if component doesn't exist.
+        /// </summary>
+        private static bool TryGetComponent<T>(EntityManager em, Entity entity, out T component) where T : struct
+        {
+            if (em.HasComponent<T>(entity))
+            {
+                component = em.GetComponentData<T>(entity);
+                return true;
+            }
+            component = default;
+            return false;
+        }
+
+
+        // Pre-allocated empty list to avoid allocations for unused inventory
+        private static readonly List<InventorySnapshot> EmptyInventoryItems = new List<InventorySnapshot>(0);
 
         private static void LogRestoreSystemAvailability()
         {
@@ -236,14 +315,10 @@ namespace VAuto.Zone.Services
                     return;
                 }
 
-                var worldType = world.GetType();
-                var getSystemMethod = worldType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                    .FirstOrDefault(m =>
-                        string.Equals(m.Name, "GetExistingSystemManaged", StringComparison.Ordinal) &&
-                        m.IsGenericMethodDefinition &&
-                        m.GetParameters().Length == 0);
+                // Initialize reflection cache once
+                InitializeReflectionCache(world);
 
-                if (getSystemMethod == null)
+                if (_getSystemMethod == null)
                 {
                     ZoneCore.LogWarning("[Snapshot] Restore systems check: GetExistingSystemManaged<T>() not found.");
                     return;
@@ -251,9 +326,15 @@ namespace VAuto.Zone.Services
 
                 foreach (var typeName in RestoreSystemTypeNames)
                 {
-                    var systemType = AppDomain.CurrentDomain.GetAssemblies()
-                        .Select(a => a.GetType(typeName, false))
-                        .FirstOrDefault(t => t != null);
+                    // Use cached type lookup
+                    if (!_systemTypeCache.TryGetValue(typeName, out var systemType))
+                    {
+                        systemType = AppDomain.CurrentDomain.GetAssemblies()
+                            .Select(a => a.GetType(typeName, false))
+                            .FirstOrDefault(t => t != null);
+                        
+                        _systemTypeCache[typeName] = systemType;
+                    }
 
                     if (systemType == null)
                     {
@@ -263,8 +344,8 @@ namespace VAuto.Zone.Services
 
                     try
                     {
-                        var generic = getSystemMethod.MakeGenericMethod(systemType);
-                        var systemInstance = generic.Invoke(world, Array.Empty<object>());
+                        var generic = _getSystemMethod.MakeGenericMethod(systemType);
+                        var systemInstance = generic.Invoke(world, null);
                         var state = systemInstance != null ? "OK" : "NULL";
                         ZoneCore.LogInfo($"[Snapshot] Restore system {typeName}: {state}");
                     }
@@ -279,21 +360,40 @@ namespace VAuto.Zone.Services
                 ZoneCore.LogWarning($"[Snapshot] Restore systems check failed: {ex.Message}");
             }
         }
+
+        private static void InitializeReflectionCache(object world)
+        {
+            if (_reflectionInitialized) return;
+
+            var worldType = world.GetType();
+            _getSystemMethod = worldType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .FirstOrDefault(m =>
+                    string.Equals(m.Name, "GetExistingSystemManaged", StringComparison.Ordinal) &&
+                    m.IsGenericMethodDefinition &&
+                    m.GetParameters().Length == 0);
+
+            _reflectionInitialized = true;
+        }
     }
 
     /// <summary>
     /// Snapshot of a single inventory item.
     /// </summary>
-    public class InventorySnapshot
-    {
-        public int ItemGuid { get; set; }
-        public int StackSize { get; set; }
-    }
+    /// <remarks>
+    /// Using record type for immutability and value equality semantics.
+    /// </remarks>
+    public record InventorySnapshot(int ItemGuid, int StackSize);
 
+    /// <summary>
+    /// Complete snapshot of player state for save/restore operations.
+    /// </summary>
+    /// <remarks>
+    /// Using record type for immutability, value equality, and pattern matching support.
+    /// </remarks>
     public class PlayerSnapshot
     {
-        public int EntityIndex { get; set; }
-        public DateTime Timestamp { get; set; }
+        public int EntityIndex { get; init; }
+        public DateTime Timestamp { get; init; }
         public float3 Position { get; set; }
         public quaternion Rotation { get; set; }
         public float Health { get; set; }
