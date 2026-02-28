@@ -73,3 +73,32 @@ Bluelock/Systems/ECS/
   
 ### ZoneVisualSystem.cs  
 - Purpose: Manage visual entities (borders, glow tiles) 
+  
+## V Rising ECS Guidelines  
+  
+1. NativeArray Disposal: Use try-finally with Allocator.Temp  
+2. Component Checks: Verify HasComponent before GetComponentData  
+3. Entity Validation: Check EntityManager.Exists(entity)  
+4. Logging: Use ZoneCore.LogInfo/LogWarning with context  
+5. Query Usage: Use predefined queries when possible  
+  
+## Dependencies  
+  
+- Bluelock/Models/ZoneDefinition.cs - Zone config model  
+- Bluelock/Services/ZoneConfigService.cs - Zone loading  
+- Bluelock/Services/ZoneTemplateService.cs - Template operations  
+- Bluelock/Core/ZoneCore.cs - Logging and EntityManager  
+- Core/ECS/EntityExtensions.cs - ECS helper methods  
+- Core/Api/FlowService.cs - Flow execution  
+  
+## Implementation Order  
+  
+1. Create Components (ZoneComponent, PlayerZoneState, ZoneTransitionEvent)  
+2. Create ZoneHashUtility  
+3. Create ZoneBootstrapSystem  
+4. Create ZoneDetectionSystem  
+5. Create ZoneTemplateLifecycleSystem  
+6. Create FlowExecutionSystem  
+7. Create ZoneVisualSystem  
+8. Register systems in Plugin.Load()  
+9. Add backward compatibility layer 

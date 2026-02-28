@@ -1,8 +1,5 @@
 {
     "enabled":  true,
-    "checkIntervalMs":  100,
-    "positionChangeThreshold":  1.0,
-    "mapIconSpawnRefreshIntervalSeconds":  10.0,
     "mappings":  {
                      "1":  {
                                "flowId":  "A1",

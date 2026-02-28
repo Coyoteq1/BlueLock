@@ -128,6 +128,8 @@
     <Compile Include="Core\ECS\EntityQueryHelper.cs" />
     <Compile Include="Core\ECS\EntityExtensions.cs" />
     <Compile Include="Core\ECS\PrefabGUIDExtensions.cs" />
+    <Compile Include="Core\ECS\ZoneHashUtility.cs" />
+    <!-- <Compile Include="Core\ECS\Components\ZoneComponent.cs" /> -->
     <Compile Include="Core\Commands\CommandBase.cs" />
     <Compile Include="Core\Commands\CommandException.cs" />
     <Compile Include="Core\Commands\ChatColor.cs" />

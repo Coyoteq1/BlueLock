@@ -3136,57 +3136,6 @@ namespace VAuto.Zone
             // (see: TryRunZoneEnterStep within the lifecycle integration pipeline).
             // Keeping this as a no-op preserves binary compatibility.
             return;
-
-#if false
-            try
-            {
-                var em = UnifiedCore.EntityManager;
-                if (!em.Exists(characterEntity))
-                {
-                    return;
-                }
-
-                var bridgeType = Type.GetType("VAuto.Core.Services.DebugEventBridge, VAutomationCore");
-                if (bridgeType == null)
-                {
-                    Logger.LogDebug($"[BlueLock] DebugEventBridge type not found for OnZoneEnterStart (zone='{zoneId}')");
-                    return;
-                }
-
-                var zoneUnlockEnabled = ZoneConfigService.IsSandboxUnlockEnabled(zoneId, SandboxProgressionDefaultZoneUnlockEnabledValue);
-
-                var method = bridgeType.GetMethod(
-                    "OnZoneEnterStart",
-                    BindingFlags.Public | BindingFlags.Static,
-                    null,
-                    new[] { typeof(Entity), typeof(string), typeof(bool) },
-                    null);
-
-                if (method != null)
-                {
-                    Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnZoneEnterStart(entity={characterEntity.Index}:{characterEntity.Version}, zone='{zoneId}', enableUnlock={zoneUnlockEnabled})");
-                    method.Invoke(null, new object[] { characterEntity, zoneId, zoneUnlockEnabled });
-                    return;
-                }
-
-                method = bridgeType.GetMethod(
-                    "OnZoneEnterStart",
-                    BindingFlags.Public | BindingFlags.Static,
-                    null,
-                    new[] { typeof(Entity), typeof(string) },
-                    null);
-
-                if (method != null)
-                {
-                    Logger.LogDebug($"[BlueLock] Invoking DebugEventBridge.OnZoneEnterStart(entity={characterEntity.Index}:{characterEntity.Version}, zone='{zoneId}')");
-                    method.Invoke(null, new object[] { characterEntity, zoneId });
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning($"[BlueLock] DebugEventBridge reflection invoke failed (OnZoneEnterStart, zone='{zoneId}'): {ex}");
-            }
-#endif
         }
 
         private static void TryInvokeDebugEventBridge(bool isEnter, Entity characterEntity, string zoneId)

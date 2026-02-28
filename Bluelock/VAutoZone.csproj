@@ -90,6 +90,8 @@
     <Compile Remove="Core\PrefabGuidConverter.cs" />
     <Compile Remove="Services\Interfaces\IService.cs" />
     <Compile Remove="Plugin (2).cs" />
+    <Compile Remove="Systems\**\*.cs" />
+    <Compile Remove="Commands\Core\ArenaEcsCommands.cs" />
   </ItemGroup>
 
   <!-- Auto-deploy to BepInEx plugins folder -->
