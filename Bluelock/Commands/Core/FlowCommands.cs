@@ -1,3 +1,5 @@
+using System.IO;
+using BepInEx;
 using Unity.Entities;
 using VampireCommandFramework;
 using VAuto.Zone.Services;
@@ -62,6 +64,31 @@ namespace VAuto.Zone.Commands
             }
 
             ctx.Reply("<color=#00FF00>Exited zone.</color>");
+        }
+        [Command("seed", shortHand: "seed", description: "Reseed flow/database configs from embedded defaults", adminOnly: true)]
+        public static void SeedConfigs(ChatCommandContext ctx, string target = "flows", bool force = false)
+        {
+            target = target?.Trim().ToLowerInvariant() ?? "flows";
+            var baseConfigPath = Path.Combine(BepInEx.Paths.ConfigPath, "Bluelock");
+
+            VAuto.Zone.Services.ConfigSeedService.SeedSummary summary;
+            switch (target)
+            {
+                case "db":
+                case "database":
+                case "databases":
+                    summary = ConfigSeedService.EnsureDatabaseFiles(baseConfigPath, true, force);
+                    break;
+                case "flow":
+                case "flows":
+                    summary = ConfigSeedService.EnsureFlowFiles(baseConfigPath, true, force);
+                    break;
+                default:
+                    ctx.Reply("<color=#FF0000>Error: target must be 'flows' or 'database'.</color>");
+                    return;
+            }
+
+            ctx.Reply($"<color=#00FF00>Seeded {target} (Created={summary.Created} Upgraded={summary.Upgraded} Skipped={summary.Skipped} Failed={summary.Failed}). Force={force}</color>");
         }
     }
 }

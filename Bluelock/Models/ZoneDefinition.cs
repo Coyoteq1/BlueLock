@@ -245,6 +245,84 @@ namespace VAuto.Zone.Models
         /// </summary>
         public ZoneBorderConfig Border { get; set; }
 
+        // Shape and size extensions for border glows
+        /// <summary>
+        /// Half width for rectangular zones (optional, falls back to Radius).
+        /// </summary>
+        public float HalfWidth { get; set; } = 0f;
+
+        /// <summary>
+        /// Half height for rectangular zones (optional, falls back to Radius).
+        /// </summary>
+        public float HalfHeight { get; set; } = 0f;
+
+        // Border glow boundaries configuration
+        /// <summary>
+        /// Whether glow boundaries are enabled for this zone.
+        /// </summary>
+        public bool GlowBoundariesEnabled { get; set; } = false;
+
+        /// <summary>
+        /// Whether to auto-spawn glow boundaries on zone activation.
+        /// </summary>
+        public bool GlowBoundariesAutoSpawn { get; set; } = false;
+
+        /// <summary>
+        /// Spacing between glow entities along the border.
+        /// </summary>
+        public float GlowBoundariesSpacing { get; set; } = 3f;
+
+        /// <summary>
+        /// Height offset for glow boundary spawns above zone center.
+        /// </summary>
+        public float GlowBoundariesSpawnHeight { get; set; } = 25f;
+
+        /// <summary>
+        /// Whether to teleport player to view glow boundaries when spawned.
+        /// </summary>
+        public bool GlowBoundariesTeleportToLibrary { get; set; } = true;
+
+        /// <summary>
+        /// Whether to auto-cleanup glow boundaries on zone reset.
+        /// </summary>
+        public bool GlowBoundariesAutoCleanup { get; set; } = true;
+
+        /// <summary>
+        /// Zone-specific glow prefab name for border effects.
+        /// </summary>
+        public string GlowBoundariesPrefab { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Zone-specific glow prefab ID for border effects.
+        /// </summary>
+        public int GlowBoundariesPrefabId { get; set; } = 0;
+
+        // Border validation properties
+        /// <summary>
+        /// Whether glow boundaries have been validated for this zone.
+        /// </summary>
+        public bool GlowBoundariesValidated { get; set; } = false;
+
+        /// <summary>
+        /// Last validation error message for glow boundaries.
+        /// </summary>
+        public string GlowBoundariesValidationError { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Timestamp of last glow boundaries validation.
+        /// </summary>
+        public System.DateTime GlowBoundariesLastValidated { get; set; } = System.DateTime.MinValue;
+
+        /// <summary>
+        /// Number of positions from last glow boundaries spawn.
+        /// </summary>
+        public int GlowBoundariesLastPositionCount { get; set; } = 0;
+
+        /// <summary>
+        /// Spacing used in last glow boundaries spawn.
+        /// </summary>
+        public float GlowBoundariesLastSpacing { get; set; } = 3f;
+
         /// <summary>
         /// List of schematic IDs granted in this zone.
         /// </summary>

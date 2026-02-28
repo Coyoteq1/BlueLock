@@ -46,11 +46,22 @@ namespace VAuto.Zone.Services
 
         // Using ConcurrentDictionary eliminates need for manual locking
         private static readonly ConcurrentDictionary<Entity, PlayerSnapshot> _snapshots = new ConcurrentDictionary<Entity, PlayerSnapshot>();
+        private static readonly ConcurrentDictionary<Type, AddItemReflectionInfo> _addItemInfoCache = new();
+        private static readonly ConcurrentDictionary<Type, byte> _warnedUnknownAddItemTypes = new();
 
         // Cache for reflection-based system lookups to avoid repeated expensive operations
         private static readonly Dictionary<string, Type> _systemTypeCache = new Dictionary<string, Type>(RestoreSystemTypeNames.Length);
         private static MethodInfo _getSystemMethod;
         private static bool _reflectionInitialized;
+
+        private sealed class AddItemReflectionInfo
+        {
+            public Func<object, bool?> SuccessReader { get; init; }
+            public Func<object, bool?> FailureReader { get; init; }
+            public Func<object, int> AmountReader { get; init; }
+            public Func<object, Entity> EntityReader { get; init; }
+            public Func<object, string> ResultTextReader { get; init; }
+        }
 
         /// <summary>
         /// Result type for snapshot operations combining success state with error information.
@@ -197,7 +208,7 @@ namespace VAuto.Zone.Services
         private static SnapshotResult RestoreSnapshotCore(Entity playerEntity)
         {
             var em = ZoneCore.EntityManager;
-            
+
             if (!em.Exists(playerEntity))
             {
                 var error = "Entity no longer exists";
@@ -205,15 +216,7 @@ namespace VAuto.Zone.Services
                 return SnapshotResult.Fail(error);
             }
 
-            // Try to retrieve and remove snapshot atomically
-            if (!_snapshots.TryRemove(playerEntity, out var snapshot))
-            {
-                var error = "No snapshot found for this entity";
-                ZoneCore.LogWarning($"[Snapshot] Restore failed: {error} (Entity: {playerEntity.Index})");
-                return SnapshotResult.Fail(error);
-            }
-
-            try
+            return ExecuteWithRetention(playerEntity, snapshot =>
             {
                 LogRestoreSystemAvailability();
                 var itemsTracked = snapshot.InventoryItems.Count;
@@ -271,10 +274,32 @@ namespace VAuto.Zone.Services
                                  $"Equipment tracked/restored: {equipmentTracked}/{restoredEquipmentEntries}, " +
                                  $"Cleared inventory/equipment entities: {clearedInventoryItems}/{clearedEquipmentItems})");
                 return SnapshotResult.Ok();
+            }, message => ZoneCore.LogWarning(message));
+        }
+
+        internal static SnapshotResult ExecuteWithRetention(Entity playerEntity, Func<PlayerSnapshot, SnapshotResult> restoreFunc, Action<string> logWarn)
+        {
+            if (!_snapshots.TryGetValue(playerEntity, out var snapshot))
+            {
+                var error = "No snapshot found for this entity";
+                logWarn?.Invoke($"[Snapshot] Restore failed: {error} (Entity: {playerEntity.Index})");
+                return SnapshotResult.Fail(error);
+            }
+
+            try
+            {
+                var result = restoreFunc(snapshot);
+
+                if (result.Success)
+                {
+                    _snapshots.TryRemove(playerEntity, out _);
+                }
+
+                return result;
             }
             catch (Exception ex)
             {
-                ZoneCore.LogError($"[Snapshot] Restore failed: {ex}");
+                logWarn?.Invoke($"[Snapshot] Restore failed for entity {playerEntity.Index}: {ex.Message}");
                 return SnapshotResult.Fail(ex.Message);
             }
         }
@@ -654,28 +679,73 @@ namespace VAuto.Zone.Services
                 return false;
             }
 
-            var addResultType = addResult.GetType();
+            var info = _addItemInfoCache.GetOrAdd(addResult.GetType(), BuildAddItemReflectionInfo);
 
-            var success = TryReadBoolMember(addResultType, addResult, "Success", "Succeeded", "WasSuccessful");
+            var failed = info.FailureReader(addResult);
+            if (failed.HasValue && failed.Value)
+            {
+                return false;
+            }
+
+            var success = info.SuccessReader(addResult);
             if (success.HasValue)
             {
                 return success.Value;
             }
 
-            var addedAmount = TryReadIntMember(addResultType, addResult, "Amount", "AmountAdded", "AddedAmount", "Count");
-            if (addedAmount > 0)
+            var amount = info.AmountReader(addResult);
+            if (amount > 0)
             {
                 return true;
             }
 
-            var newEntity = TryReadEntityMember(addResultType, addResult, "NewEntity", "ItemEntity");
-            if (newEntity != Entity.Null)
+            var entity = info.EntityReader(addResult);
+            if (entity != Entity.Null)
             {
                 return true;
             }
 
-            // Fallback to optimistic success if method call did not throw.
-            return true;
+            // Unknown result type: warn once per type, pessimistic false.
+            if (_warnedUnknownAddItemTypes.TryAdd(addResult.GetType(), 1))
+            {
+                var resultText = info.ResultTextReader(addResult);
+                ZoneCore.LogWarning($"[Snapshot] Unknown add-item result type '{addResult.GetType().FullName}', treating as failure. Inspectable result: {resultText}");
+            }
+
+            return false;
+        }
+
+        private static AddItemReflectionInfo BuildAddItemReflectionInfo(Type type)
+        {
+            const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+            bool? SuccessReader(object value) => TryReadBoolMember(type, value, "Success", "Succeeded", "WasSuccessful", "Ok", "IsSuccess");
+            bool? FailureReader(object value) => TryReadBoolMember(type, value, "Failed", "Error", "IsError", "HasFailed");
+            int AmountReader(object value) => TryReadIntMember(type, value, "Amount", "AmountAdded", "AddedAmount", "Count");
+            Entity EntityReader(object value) => TryReadEntityMember(type, value, "NewEntity", "ItemEntity", "Entity");
+
+            string ResultTextReader(object value)
+            {
+                try
+                {
+                    var prop = type.GetProperty("Result", Flags);
+                    var val = prop?.GetValue(value);
+                    return val?.ToString() ?? string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+
+            return new AddItemReflectionInfo
+            {
+                SuccessReader = SuccessReader,
+                FailureReader = FailureReader,
+                AmountReader = AmountReader,
+                EntityReader = EntityReader,
+                ResultTextReader = ResultTextReader
+            };
         }
 
         private static bool TryGetInventoryItemEntity(InventoryItem entry, out Entity itemEntity)

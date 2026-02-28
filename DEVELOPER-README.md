@@ -161,7 +161,74 @@ finally
 - [Command API](./docs/api/Command-API.md)
 - [Templates and ECS Jobs API](./docs/api/Templates-and-ECS-Jobs-API.md)
 
-## Support
+## Changelog
 
-- Discord: [V Rising Mods Community](https://discord.gg/68JZU5zaq7)
-- Issues: https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore/issues
+### v1.0.1
+- **Features**: Added role-based auth and job flow APIs for developers
+- **Enhancements**: Added arena ECS commands and zone template management (Bluelock)
+- **Improvements**: Updated dependencies and plugin versions
+- **Documentation**: Added PR template, CI workflow, and comprehensive test suite
+
+### v1.0.0
+- **Initial Release**: Core framework with ECS access, commands, and shared services
+- **Features**: 
+  - Service registry and dependency injection system
+  - Flow and job execution framework with retry policies
+  - Entity mapping and alias management
+  - Role-based authentication (Admin/Developer)
+  - Built-in commands for auth and job management
+  - Configuration system with JSON serialization
+  - ECS integration helpers
+
+## Related Documentation
+
+- [Jobs and Flows API](./docs/api/Jobs-and-Flows-API.md)
+- [Server API](./docs/api/Server-API.md)
+- [Player API](./docs/api/Player-API.md)
+- [Command API](./docs/api/Command-API.md)
+- [Templates and ECS Jobs API](./docs/api/Templates-and-ECS-Jobs-API.md)
+- [Castle API](./docs/api/Castle-API.md)
+- [Teleport and Actions API](./docs/api/Teleport-and-Actions-API.md)
+- [Mount Chunk Template Notes](./docs/api/Mount-Chunk-Template-Notes.md)
+
+## Community and Support
+
+- **Discord**: [V Rising Mods Community](https://discord.gg/68JZU5zaq7)
+- **GitHub Issues**: https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore/issues
+- **NuGet Package**: https://www.nuget.org/packages/VAutomationCore
+- **Source Code**: https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore
+
+## Build and Development
+
+### Requirements
+- .NET 6.0 SDK or later
+- V Rising Dedicated Server files
+- BepInEx 5.x
+
+### Build Instructions
+```bash
+# Clone the repository
+git clone https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore.git
+
+# Build the solution
+dotnet build VAutomationCore.sln
+
+# Run tests
+dotnet test VAutomationCore.sln
+```
+
+### Project Structure
+- `Core/`: Core framework services and utilities
+- `Services/`: Plugin-specific services
+- `Patches/`: Harmony patches for game methods
+- `docs/`: API documentation
+- `tests/`: Test suite
+- `scripts/`: Build and deployment scripts
+
+## Contributing
+
+- Check issues for bugs and feature requests
+- Create a feature branch for your changes
+- Add tests for new functionality
+- Submit a pull request with clear descriptions
+- Follow the coding style guidelines

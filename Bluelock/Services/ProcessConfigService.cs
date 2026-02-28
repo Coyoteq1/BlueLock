@@ -286,6 +286,7 @@ namespace VAuto.Zone.Services
                     {
                         warnings.Add($"Flows folder not found: {flowDir}");
                     }
+
                     return errors.Count == 0;
                 }
 

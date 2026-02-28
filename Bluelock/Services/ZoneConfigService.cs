@@ -664,6 +664,30 @@ namespace VAuto.Zone.Services
                     GlowTileAutoSpawnOnReset = true,
                     GlowSpawnHeight = 0.3f,
                     AutoGlowWithZone = true,
+                    
+                    // Border glow boundaries configuration
+                    GlowBoundariesEnabled = true,
+                    GlowBoundariesAutoSpawn = false,
+                    GlowBoundariesSpacing = 3f,
+                    GlowBoundariesSpawnHeight = 25f,
+                    GlowBoundariesTeleportToLibrary = true,
+                    GlowBoundariesAutoCleanup = true,
+                    
+                    // Zone-specific glow prefabs for borders
+                    GlowBoundariesPrefab = i switch
+                    {
+                        0 => "AB_Vampire_VeilOfBlood_Group",
+                        1 => "AB_Vampire_VeilOfChaos_Group", 
+                        2 => "AB_Vampire_VeilOfFrost_Group",
+                        _ => "AB_Militia_LightArrow_SpawnMinions_Summon"
+                    },
+                    GlowBoundariesPrefabId = i switch
+                    {
+                        0 => 4345235,
+                        1 => 54252435,
+                        2 => 65245252,
+                        _ => 4345235
+                    },
                     EnterMessage = $"Entered arena zone {id}.",
                     ExitMessage = $"Exited arena zone {id}.",
                     TeleportOnEnter = true,

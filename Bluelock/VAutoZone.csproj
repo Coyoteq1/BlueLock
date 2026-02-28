@@ -28,6 +28,37 @@
 
   <ItemGroup>
     <Compile Remove="Commands\Core\ArenaEcsCommands.cs" />
+    <Compile Remove="Components\ZoneBorderGlowTag.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="config\database\abilities.json">
+      <LogicalName>VAuto.Zone.Assets.Database.abilities.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\database\armors.json">
+      <LogicalName>VAuto.Zone.Assets.Database.armors.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\database\buffs.json">
+      <LogicalName>VAuto.Zone.Assets.Database.buffs.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\database\vbloods.json">
+      <LogicalName>VAuto.Zone.Assets.Database.vbloods.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\database\weapons.json">
+      <LogicalName>VAuto.Zone.Assets.Database.weapons.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\flows\ZoneDefault.json">
+      <LogicalName>VAuto.Zone.Assets.Flows.ZoneDefault.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\flows\A1.json">
+      <LogicalName>VAuto.Zone.Assets.Flows.A1.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\flows\B1.json">
+      <LogicalName>VAuto.Zone.Assets.Flows.B1.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="config\flows\T3.json">
+      <LogicalName>VAuto.Zone.Assets.Flows.T3.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
