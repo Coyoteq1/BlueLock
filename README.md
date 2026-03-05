@@ -9,8 +9,7 @@ Created by **Coyoteq1**
 ## Contributor
 
 Contributor: **Ace** ()
-Contributor: **Ray** ()
-Contributor: **9o** ()
+
 
 ## Support
 
