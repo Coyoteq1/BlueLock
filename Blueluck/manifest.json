@@ -1,11 +1,11 @@
 {
     "name": "Blueluck",
-    "version_number": "1.0.0",
+    "version_number": "1.1.1",
     "website_url": "https://github.com/Blueluck/Blueluck",
     "description": "Zone management system for VRising with BossZone and ArenaZone support.",
     "dependencies": [
         "BepInEx.Unity.IL2CPP=6.0.0-be.733",
         "deca-VampireCommandFramework-0.10.4",
-        "Coyoteq1-VAutomationCore-1.0.1"
+        "Coyoteq1-VAutomationCore-1.1.0"
     ]
 }

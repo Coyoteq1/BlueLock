@@ -1,6 +1,6 @@
 {
     "name": "VAutomationCore",
-    "version_number": "1.0.1",
+    "version_number": "1.1.0",
     "website_url": "https://github.com/Coyoteq1/VAutomationCore",
     "description": "Core library for Vauto mods providing shared utilities, ECS helpers, and configuration management Automations flow and hotreload.",
     "dependencies": ["deca-VampireCommandFramework-0.10.4"

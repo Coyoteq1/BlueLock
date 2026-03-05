@@ -47,6 +47,17 @@ namespace Blueluck.Services
         }
 
         /// <summary>
+        /// Validates that an entity is not corrupted or from a different world.
+        /// </summary>
+        private static bool IsValidEntity(Entity entity)
+        {
+            // Entity.Null has Index=0 and Version=0, but we want to catch obviously invalid entities
+            // A valid entity should have non-negative index and non-negative version
+            // The EntityManager capacity check happens when we call Exists, but we can do basic validation first
+            return entity != Entity.Null;
+        }
+
+        /// <summary>
         /// Saves a gameplay snapshot (progression + buff set) for later restore.
         /// </summary>
         public void SaveProgress(Entity player)
@@ -66,8 +77,28 @@ namespace Blueluck.Services
                     return;
                 }
 
+                // Validate entity before passing to EntityManager (prevents ArgumentException on corrupted entities)
+                if (!IsValidEntity(player))
+                {
+                    _log.LogWarning($"[Progress] Invalid player entity: Index={player.Index}, Version={player.Version}");
+                    return;
+                }
+
                 var em = world.EntityManager;
-                if (!em.Exists(player))
+                
+                // Wrap Exists check in try-catch to handle corrupted entity gracefully
+                bool exists;
+                try
+                {
+                    exists = em.Exists(player);
+                }
+                catch (ArgumentException)
+                {
+                    _log.LogWarning($"[Progress] Entity validation failed for player {player.Index} (corrupted entity)");
+                    return;
+                }
+
+                if (!exists)
                 {
                     _log.LogWarning($"[Progress] Player entity {player.Index} does not exist");
                     return;

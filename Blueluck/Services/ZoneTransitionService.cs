@@ -282,8 +282,10 @@ namespace Blueluck.Services
                 _log.LogWarning($"[ZoneTransition] Arena '{zone.Name}' is missing required AbilitySet.");
             }
 
-            // Back-compat: if "abilitySet" is present but Ability UI is removed, treat it as a kit name.
-            if (Plugin.Kits?.IsInitialized == true && !string.IsNullOrWhiteSpace(arenaConfig.AbilitySet))
+            // Only apply abilitySet as kit fallback if no explicit kitOnEnter was already applied.
+            // This handles legacy configs where abilitySet was used as a kit name.
+            var kitAlreadyApplied = !string.IsNullOrWhiteSpace(zone.KitOnEnter);
+            if (!kitAlreadyApplied && Plugin.Kits?.IsInitialized == true && !string.IsNullOrWhiteSpace(arenaConfig.AbilitySet))
             {
                 Plugin.Kits.ApplyKit(player, arenaConfig.AbilitySet);
             }
