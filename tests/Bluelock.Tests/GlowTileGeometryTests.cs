@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
-using VAuto.Zone.Services;
+using VAutomationCore.Services;
 using Xunit;
 
 namespace VAuto.Zone.Tests

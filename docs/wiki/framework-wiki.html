@@ -62,7 +62,7 @@
   <main class="wrap">
     <section class="hero">
       <h1>VAutomation Framework Wiki</h1>
-      <p>Operational reference for <code>VAutomationCore</code>, <code>Bluelock</code>, and <code>CycleBorn</code> with ECS runtime mode, config governance, and maintenance guardrails.</p>
+      <p>Operational reference for <code>VAutomationCore</code> and <code>Blueluck</code> with ECS runtime mode, config governance, and maintenance guardrails.</p>
     </section>
 
     <section class="card">
@@ -77,7 +77,7 @@
           </ul>
         </div>
         <div>
-          <h3>Bluelock</h3>
+          <h3>Blueluck</h3>
           <ul>
             <li>Zone runtime entrypoint and command surface</li>
             <li>ECS bootstrap, detection, and transition routing</li>
@@ -85,7 +85,7 @@
           </ul>
         </div>
         <div>
-          <h3>CycleBorn</h3>
+          <!-- CycleBorn removed from the simplified build -->
           <ul>
             <li>Lifecycle orchestration and stage execution</li>
             <li>Unified lifecycle config loading/migration</li>
@@ -106,7 +106,7 @@
 
     <section class="card">
       <h2>Runtime Mode Model</h2>
-      <p>Bluelock runtime behavior is selected by <code>Runtime.ZoneRuntimeMode</code>:</p>
+      <p>Blueluck runtime behavior is selected by <code>Runtime.ZoneRuntimeMode</code>:</p>
       <ul>
         <li><code>Legacy</code>: legacy pipeline only</li>
         <li><code>Hybrid</code>: ECS detection/router plus legacy compatibility path</li>
@@ -118,12 +118,12 @@
     <section class="card">
       <h2>Config Sources</h2>
       <ul>
-        <li><code>Bluelock/config/VAuto.Zones.json</code> (zone data, flow IDs, radii, priorities)</li>
-        <li><code>Bluelock/config/VAuto.ZoneLifecycle.json</code> (mapping actions, flow metadata, schema/version)</li>
-        <li><code>Bluelock/config/flows/*.json</code> (flow definitions)</li>
+        <li><code>Blueluck/config/zones.json</code> (zone data, flow IDs, radii, priorities)</li>
+        <li><code>BepInEx/config/Blueluck/flows.json</code> (flow definitions)</li>
+        <li><code>BepInEx/config/Blueluck/kits.json</code> (kit definitions)</li>
         <li><code>config/VAuto.unified_config.schema.json</code> (schema contract)</li>
       </ul>
-      <p>Validation entrypoint: <code>Bluelock/Services/ProcessConfigService.ValidateAllConfigs(...)</code></p>
+      <p>Validation entrypoint: config is validated on load; runtime source of truth is the Blueluck config folder.</p>
     </section>
 
     <section class="card">

@@ -6,25 +6,31 @@ namespace Bluelock.Tests
     public class RuntimeModeOptionsTests
     {
         [Fact]
-        public void Legacy_Mode_MapsToLegacyOnly()
+        public void Legacy_Mode_IsNormalizedToEcsPipeline()
         {
             var options = ZoneRuntimeModeOptions.FromMode(ZoneRuntimeMode.Legacy);
             Assert.Equal(ZoneRuntimeMode.Legacy, options.RuntimeMode);
-            Assert.False(options.EcsZoneDetectionEnabled);
-            Assert.False(options.EcsFlowExecutionEnabled);
-            Assert.False(options.EcsTemplateLifecycleEnabled);
-            Assert.True(options.LegacyZonePipelineEnabled);
-        }
-
-        [Fact]
-        public void Hybrid_Mode_MapsToMixedPipeline()
-        {
-            var options = ZoneRuntimeModeOptions.FromMode(ZoneRuntimeMode.Hybrid);
-            Assert.Equal(ZoneRuntimeMode.Hybrid, options.RuntimeMode);
+            // Legacy mode is normalized to ECS pipeline at boot
             Assert.True(options.EcsZoneDetectionEnabled);
             Assert.True(options.EcsFlowExecutionEnabled);
             Assert.True(options.EcsTemplateLifecycleEnabled);
-            Assert.True(options.LegacyZonePipelineEnabled);
+            Assert.False(options.LegacyZonePipelineEnabled);
+            Assert.True(options.WasDeprecatedModeRequested);
+            Assert.Contains("deprecated", options.GetDeprecationWarning(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Hybrid_Mode_IsNormalizedToEcsPipeline()
+        {
+            var options = ZoneRuntimeModeOptions.FromMode(ZoneRuntimeMode.Hybrid);
+            Assert.Equal(ZoneRuntimeMode.Hybrid, options.RuntimeMode);
+            // Hybrid mode is normalized to ECS-only pipeline
+            Assert.True(options.EcsZoneDetectionEnabled);
+            Assert.True(options.EcsFlowExecutionEnabled);
+            Assert.True(options.EcsTemplateLifecycleEnabled);
+            Assert.False(options.LegacyZonePipelineEnabled);
+            Assert.True(options.WasDeprecatedModeRequested);
+            Assert.Contains("deprecated", options.GetDeprecationWarning(), StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -36,6 +42,8 @@ namespace Bluelock.Tests
             Assert.True(options.EcsFlowExecutionEnabled);
             Assert.True(options.EcsTemplateLifecycleEnabled);
             Assert.False(options.LegacyZonePipelineEnabled);
+            Assert.False(options.WasDeprecatedModeRequested);
+            Assert.Equal(string.Empty, options.GetDeprecationWarning());
         }
     }
 }

@@ -49,6 +49,14 @@ namespace VAutomationCore.Core.ECS
                 return $"Prefab_0x{prefabGuid.GuidHash:X8}";
             }
         }
+
+        /// <summary>
+        /// Compatibility alias used by older command surfaces.
+        /// </summary>
+        public static string LookupName(this PrefabGUID prefabGuid)
+        {
+            return Name(prefabGuid);
+        }
         
         /// <summary>
         /// Gets the prefab name from a GUID hash.

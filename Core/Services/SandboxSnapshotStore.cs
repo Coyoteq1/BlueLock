@@ -70,6 +70,28 @@ namespace VAuto.Core.Services
         public float PosZ { get; set; }
     }
 
+    internal sealed class FlowSnapshot
+    {
+        public string FlowId { get; set; } = string.Empty;
+        public string ZoneId { get; set; } = string.Empty;
+        public string StepId { get; set; } = string.Empty;
+        public ulong PlatformId { get; set; }
+        public int PlayerEntityIndex { get; set; }
+        public DateTime CapturedUtc { get; set; }
+        public string Result { get; set; } = string.Empty;
+    }
+
+    internal sealed class ActionSnapshot
+    {
+        public string ActionName { get; set; } = string.Empty;
+        public string ZoneId { get; set; } = string.Empty;
+        public string StepId { get; set; } = string.Empty;
+        public ulong PlatformId { get; set; }
+        public int PlayerEntityIndex { get; set; }
+        public DateTime CapturedUtc { get; set; }
+        public string Result { get; set; } = string.Empty;
+    }
+
     internal sealed class SandboxBaselineSnapshot
     {
         public string PlayerKey { get; set; } = string.Empty;
@@ -98,6 +120,8 @@ namespace VAuto.Core.Services
         private static readonly Dictionary<string, SandboxPendingContext> PendingContexts = new(StringComparer.Ordinal);
         private static readonly Dictionary<string, SandboxBaselineSnapshot> ActiveBaselines = new(StringComparer.Ordinal);
         private static readonly Dictionary<string, SandboxDeltaSnapshot> ActiveDeltas = new(StringComparer.Ordinal);
+        private static readonly List<FlowSnapshot> FlowSnapshots = new();
+        private static readonly List<ActionSnapshot> ActionSnapshots = new();
         private static bool _dirty;
 
         // ============== Diagnostic Methods ==============
@@ -147,6 +171,8 @@ namespace VAuto.Core.Services
                 PendingContexts.Clear();
                 ActiveBaselines.Clear();
                 ActiveDeltas.Clear();
+                FlowSnapshots.Clear();
+                ActionSnapshots.Clear();
                 _dirty = false;
             }
         }
@@ -283,6 +309,50 @@ namespace VAuto.Core.Services
             lock (Sync)
             {
                 return ActiveDeltas.Values.ToArray();
+            }
+        }
+
+        public static FlowSnapshot[] GetFlowSnapshots()
+        {
+            lock (Sync)
+            {
+                return FlowSnapshots.ToArray();
+            }
+        }
+
+        public static ActionSnapshot[] GetActionSnapshots()
+        {
+            lock (Sync)
+            {
+                return ActionSnapshots.ToArray();
+            }
+        }
+
+        public static void RecordFlowSnapshot(FlowSnapshot snapshot)
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            lock (Sync)
+            {
+                FlowSnapshots.Add(snapshot);
+                _dirty = true;
+            }
+        }
+
+        public static void RecordActionSnapshot(ActionSnapshot snapshot)
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            lock (Sync)
+            {
+                ActionSnapshots.Add(snapshot);
+                _dirty = true;
             }
         }
 

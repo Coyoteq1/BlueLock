@@ -1,9 +1,0 @@
-{
-    "name": "CycleBorn",
-    "version_number": "1.0.1",
-    "website_url": "https://github.com/Coyoteq1/Vauto-Private-Mods",
-    "description": "Player lifecycle management system for VRising with arena entry/exit handling, state persistence, and spellbook menu.",
-    "dependencies": ["deca-VampireCommandFramework-0.10.4",
-        "Coyoteq1-VAutomationCore-1.0.1"
-    ]
-}

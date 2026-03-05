@@ -14,30 +14,37 @@ function Resolve-FullPath([string]$Path) {
 Write-Host "[deploy] Starting deploy (Configuration=$Configuration)" -ForegroundColor Cyan
 
 $root = Resolve-FullPath "."
-$serverRoot = Resolve-FullPath $ServerBepInExPath
-$plugins = Join-Path $serverRoot 'plugins'
-$configDir = Join-Path $serverRoot 'config/Bluelock'
+$inputPath = Resolve-FullPath $ServerBepInExPath
+if ((Split-Path -Leaf $inputPath).ToLowerInvariant() -eq "plugins") {
+    $plugins = $inputPath
+    $bepInExRoot = Split-Path -Parent $plugins
+}
+elseif ((Split-Path -Leaf $inputPath).ToLowerInvariant() -eq "bepinex") {
+    $bepInExRoot = $inputPath
+    $plugins = Join-Path $bepInExRoot 'plugins'
+}
+else {
+    throw "[deploy] ServerBepInExPath must point to either a BepInEx folder or a BepInEx/plugins folder. Received: $inputPath"
+}
+
+$blueluckConfigDir = Join-Path $bepInExRoot 'config/Blueluck'
 
 if (-not $SkipBuild) {
     Write-Host "[deploy] Building projects..." -ForegroundColor Cyan
-    dotnet build "$root/VAutomationCore.csproj" -c $Configuration | Out-Host
-    dotnet build "$root/Bluelock/VAutoZone.sln" -c $Configuration | Out-Host
-    dotnet build "$root/CycleBorn/Vlifecycle.sln" -c $Configuration | Out-Host
+    dotnet build "$root/VAutomationCore.sln" -c $Configuration --nologo | Out-Host
 }
 
 Write-Host "[deploy] Ensuring target directories..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $plugins | Out-Null
-New-Item -ItemType Directory -Force -Path $configDir | Out-Null
+New-Item -ItemType Directory -Force -Path $blueluckConfigDir | Out-Null
 
 Write-Host "[deploy] Collecting artifacts..." -ForegroundColor Cyan
 $tfm = 'net6.0'
 $artifacts = @(
     (Join-Path $root "bin/$Configuration/$tfm/VAutomationCore.dll"),
     (Join-Path $root "bin/$Configuration/$tfm/VAutomationCore.pdb"),
-    (Join-Path $root "Bluelock/bin/$Configuration/$tfm/BlueLock.dll"),
-    (Join-Path $root "Bluelock/bin/$Configuration/$tfm/BlueLock.pdb"),
-    (Join-Path $root "CycleBorn/bin/$Configuration/$tfm/Cycleborn.dll"),
-    (Join-Path $root "CycleBorn/bin/$Configuration/$tfm/Cycleborn.pdb")
+    (Join-Path $root "Blueluck/bin/$Configuration/$tfm/Blueluck.dll"),
+    (Join-Path $root "Blueluck/bin/$Configuration/$tfm/Blueluck.pdb")
 ) | Where-Object { Test-Path $_ }
 
 if ($artifacts.Count -eq 0) {
@@ -49,19 +56,10 @@ foreach ($f in $artifacts) {
     Copy-Item -Force -Path $f -Destination $plugins
 }
 
-Write-Host "[deploy] Copying Bluelock config JSONs to: $configDir" -ForegroundColor Cyan
-$bluelockConfigSrc = Join-Path $root 'Bluelock/config'
-if (Test-Path $bluelockConfigSrc) {
-    Get-ChildItem -Path $bluelockConfigSrc -Recurse -Filter '*.json' | ForEach-Object {
-        $relativePath = $_.FullName.Substring($bluelockConfigSrc.Length).TrimStart('\', '/')
-        $targetPath = Join-Path $configDir $relativePath
-        $targetDir = Split-Path -Parent $targetPath
-        New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-        Copy-Item -Force -Path $_.FullName -Destination $targetPath
-    }
-}
+Write-Host "[deploy] Blueluck will generate config files on first run under: $blueluckConfigDir" -ForegroundColor Cyan
 
 Write-Host "[deploy] Done." -ForegroundColor Green
+Write-Host "[deploy] BepInEx: $bepInExRoot" -ForegroundColor Green
 Write-Host "[deploy] Plugins: $plugins" -ForegroundColor Green
-Write-Host "[deploy] Configs:  $configDir" -ForegroundColor Green
+Write-Host "[deploy] Configs(Blueluck): $blueluckConfigDir" -ForegroundColor Green
 

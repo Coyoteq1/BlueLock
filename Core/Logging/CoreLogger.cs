@@ -41,12 +41,24 @@ namespace VAutomationCore.Core.Logging
             => _log.LogInfo($"[{_source}][{caller}] {message}");
 
         /// <summary>
+        /// Logs an informational message (alias for Info).
+        /// </summary>
+        public void LogInfo(string message, [CallerMemberName] string caller = null)
+            => Info(message, caller);
+
+        /// <summary>
         /// Logs an error message with caller context.
         /// </summary>
         /// <param name="message">The message to log.</param>
         /// <param name="caller">The calling member name (auto-populated).</param>
         public void Error(string message, [CallerMemberName] string caller = null)
             => _log.LogError($"[{_source}][{caller}] {message}");
+
+        /// <summary>
+        /// Logs an error message (alias for Error).
+        /// </summary>
+        public void LogError(string message, [CallerMemberName] string caller = null)
+            => Error(message, caller);
 
         /// <summary>
         /// Logs a warning message with caller context.
@@ -57,6 +69,12 @@ namespace VAutomationCore.Core.Logging
             => _log.LogWarning($"[{_source}][{caller}] {message}");
 
         /// <summary>
+        /// Logs a warning message (alias for Warning).
+        /// </summary>
+        public void LogWarning(string message, [CallerMemberName] string caller = null)
+            => Warning(message, caller);
+
+        /// <summary>
         /// Logs a debug message with caller context. Only outputs in DEBUG builds.
         /// </summary>
         /// <param name="message">The message to log.</param>
@@ -64,6 +82,13 @@ namespace VAutomationCore.Core.Logging
         [System.Diagnostics.Conditional("DEBUG")]
         public void Debug(string message, [CallerMemberName] string caller = null)
             => _log.LogInfo($"[DEBUG][{_source}][{caller}] {message}");
+
+        /// <summary>
+        /// Logs a debug message (alias for Debug).
+        /// </summary>
+        [System.Diagnostics.Conditional("DEBUG")]
+        public void LogDebug(string message, [CallerMemberName] string caller = null)
+            => Debug(message, caller);
 
         /// <summary>
         /// Logs an exception with full stack trace and caller context.
@@ -120,26 +145,26 @@ namespace VAutomationCore.Core.Logging
         /// <summary>
         /// Logs an informational message statically.
         /// </summary>
-        public static void LogInfo(string message, string source = "Core")
+        public static void LogInfoStatic(string message, string source = "Core")
             => _staticLog.LogInfo($"[{source}] {message}");
 
         /// <summary>
         /// Logs a warning message statically.
         /// </summary>
-        public static void LogWarning(string message, string source = "Core")
+        public static void LogWarningStatic(string message, string source = "Core")
             => _staticLog.LogWarning($"[{source}] {message}");
 
         /// <summary>
         /// Logs an error message statically.
         /// </summary>
-        public static void LogError(string message, string source = "Core")
+        public static void LogErrorStatic(string message, string source = "Core")
             => _staticLog.LogError($"[{source}] {message}");
 
         /// <summary>
         /// Logs a debug message statically.
         /// </summary>
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void LogDebug(string message, string source = "Core")
+        public static void LogDebugStatic(string message, string source = "Core")
             => _staticLog.LogInfo($"[DEBUG][{source}] {message}");
 
         /// <summary>

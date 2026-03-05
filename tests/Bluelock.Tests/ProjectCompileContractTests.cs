@@ -94,6 +94,28 @@ namespace Bluelock.Tests
         }
 
         [Fact]
+        public void FlowExecutionSystem_UsesDeterministicResolutionChain_AndOptionalGlow()
+        {
+            var repoRoot = ResolveRepoRoot();
+            var flowPath = Path.Combine(repoRoot, "Bluelock", "Systems", "FlowExecutionSystem.cs");
+            Assert.True(File.Exists(flowPath), "FlowExecutionSystem.cs missing.");
+
+            var flowText = File.ReadAllText(flowPath);
+            Assert.Contains("BuildFlowResolutionCandidates", flowText, StringComparison.Ordinal);
+
+            var baseCandidate = flowText.IndexOf("flowId.Trim() + \".\" + direction", StringComparison.Ordinal);
+            var zoneCandidate = flowText.IndexOf("\"zone.\" + direction + \".\" + zoneId.Trim()", StringComparison.Ordinal);
+            var defaultCandidate = flowText.IndexOf("\"zone.\" + direction + \".default\"", StringComparison.Ordinal);
+            Assert.True(baseCandidate >= 0, "Missing base flow candidate pattern.");
+            Assert.True(zoneCandidate >= 0, "Missing zone-specific flow candidate pattern.");
+            Assert.True(defaultCandidate >= 0, "Missing default flow candidate pattern.");
+            Assert.True(baseCandidate < zoneCandidate && zoneCandidate < defaultCandidate,
+                "Flow resolution candidates must be ordered as base, zone-specific, default.");
+
+            Assert.Contains("if (!FlowService.TryGetFlow(glowFlowId, out _))", flowText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcludedArenaCommands_AreNotDocumentedAsActiveRuntimeSurface()
         {
             var repoRoot = ResolveRepoRoot();

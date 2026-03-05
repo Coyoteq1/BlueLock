@@ -1,6 +1,31 @@
 namespace VAutomationCore.Core.Commands
 {
     /// <summary>
+    /// Extension methods for ChatCommandContext to provide convenient reply methods.
+    /// </summary>
+    public static class ChatCommandContextExtensions
+    {
+        /// <summary>
+        /// Reply with a warning message (yellow).
+        /// </summary>
+        public static void Warning(this VampireCommandFramework.ChatCommandContext ctx, string message)
+        {
+            ctx.Reply($"<color={ChatColor.Yellow}>{message}</color>");
+        }
+
+        /// <summary>
+        /// Reply with an error message (red).
+        /// </summary>
+        public static void Error(this VampireCommandFramework.ChatCommandContext ctx, string message)
+        {
+            ctx.Reply($"<color={ChatColor.Red}>{message}</color>");
+        }
+    }
+}
+
+namespace VAutomationCore.Core.Commands
+{
+    /// <summary>
     /// Defines standard chat colors for use in command responses.
     /// </summary>
     public static class ChatColor

@@ -1,5 +1,6 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
+using System.Collections.Concurrent;
 using ProjectM;
 using ProjectM.Network;
 using ProjectM.Shared;
@@ -8,580 +9,228 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using VAutomationCore.Abstractions;
+using VAutomationCore.Core;
+using VAutomationCore.Core.Api;
 using VAutomationCore.Core.Logging;
+using ServerChatUtils = ProjectM.ServerChatUtils;
 
-namespace VAutomationCore.Core.Services
+namespace VAutomationCore.Services
 {
     /// <summary>
-    /// Shared runtime actions:
-    /// buff application/removal, teleport, and player-visible system messaging.
+    /// Runtime action helpers used by flow execution and cross-module services.
     /// </summary>
     public static class GameActionService
     {
-        private static readonly CoreLogger Log = new("GameActions");
-        private static readonly PrefabGUID TeleportBuffGuid = new(150521246);
-        public const string EventPlayerDetect = "PlayerDetect";
-        public const string EventPlayerExit = "PlayerExit";
-        public const string EventPlayerEnter = "PlayerEnter";
-        public const string EventPlayerPostEnter = "PlayerPostEnter";
-        public delegate bool GameAction(params object[] args);
-        private sealed class EventActionBinding
-        {
-            public string ActionName { get; }
-            public Func<object[], object[]>? ArgTransform { get; }
+        private static readonly CoreLogger Log = new("GameActionService");
+        private static readonly ConcurrentDictionary<string, Func<object[], EntityMap?, bool>> CustomActions =
+            new(StringComparer.OrdinalIgnoreCase);
 
-            public EventActionBinding(string actionName, Func<object[], object[]>? argTransform)
-            {
-                ActionName = actionName;
-                ArgTransform = argTransform;
-            }
+        public static string EventPlayerEnter => "PlayerEnter";
+        public static string EventPlayerExit => "PlayerExit";
+
+        public static bool InvokeAction(string actionName, object[] args)
+        {
+            return InvokeAction(actionName, args, null);
         }
 
-        private static readonly object EventLock = new();
-        private static readonly object StateRestoreLock = new();
-        private static readonly Dictionary<string, List<EventActionBinding>> _eventBindings =
-            new(StringComparer.OrdinalIgnoreCase);
-        
-        /// <summary>
-        /// Tracks applied buffs per player for restoration on exit.
-        /// Key: platformId, Value: List of buff GUIDs applied during zone.
-        /// </summary>
-        private static readonly Dictionary<ulong, List<PrefabGUID>> _appliedBuffsByPlayer =
-            new();
-        
-        private static readonly Dictionary<string, GameAction> _actions = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["ApplyBuff"] = args =>
-                TryResolveBuffArgs(args, out var target, out var guid, out var duration) &&
-                TryApplyBuff(target, guid, duration),
-            ["CleanBuff"] = args =>
-                TryResolveBuffArgs(args, out var target, out var guid, out var duration) &&
-                TryApplyCleanBuff(target, guid, duration),
-            ["RemoveBuff"] = args =>
-                TryGetArg(args, 0, out Entity target) &&
-                TryGetArg(args, 1, out PrefabGUID guid) &&
-                TryRemoveBuff(target, guid),
-            ["Teleport"] = args =>
-                TryGetArg(args, 0, out Entity target) &&
-                TryGetArg(args, 1, out float3 position) &&
-                TryTeleport(target, position),
-            ["SetPosition"] = args =>
-                TryGetArg(args, 0, out Entity target) &&
-                TryGetArg(args, 1, out float3 position) &&
-                TrySetEntityPosition(target, position),
-            ["SendMessageToAll"] = args =>
-                TryGetArg(args, 0, out string message) &&
-                TrySendSystemMessageToAll(message),
-            ["SendMessageToPlatform"] = args =>
-                TryGetArg(args, 0, out ulong platformId) &&
-                TryGetArg(args, 1, out string message) &&
-                TrySendSystemMessageToPlatformId(platformId, message),
-            ["SendMessageToUser"] = args =>
-                TryGetArg(args, 0, out Entity userEntity) &&
-                TryGetArg(args, 1, out string message) &&
-                TrySendSystemMessageToUserEntity(userEntity, message)
-        };
-
-        public static bool InvokeAction(string actionName, params object[] args)
+        public static bool InvokeAction(string actionName, object[] args, EntityMap? entityMap)
         {
             if (string.IsNullOrWhiteSpace(actionName))
             {
                 return false;
             }
 
-            if (!_actions.TryGetValue(actionName, out var action))
-            {
-                Log.Debug($"Action '{actionName}' not registered.");
-                return false;
-            }
-
             try
             {
-                return action.Invoke(args);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"Action '{actionName}' failed: {ex.Message}");
-                return false;
-            }
-        }
-
-        public static IReadOnlyCollection<string> GetRegisteredActionNames()
-        {
-            return _actions.Keys;
-        }
-
-        public static void RegisterEventAction(string eventName, string actionName, Func<object[], object[]>? argTransform = null)
-        {
-            if (string.IsNullOrWhiteSpace(eventName) || string.IsNullOrWhiteSpace(actionName))
-            {
-                return;
-            }
-
-            lock (EventLock)
-            {
-                if (!_eventBindings.TryGetValue(eventName, out var bindings))
+                if (TryInvokeCustomAction(actionName, args, entityMap, out var customResult))
                 {
-                    bindings = new List<EventActionBinding>();
-                    _eventBindings[eventName] = bindings;
+                    return customResult;
                 }
 
-                bindings.Add(new EventActionBinding(actionName, argTransform));
-            }
-        }
-
-        public static void ClearEventActions(string eventName)
-        {
-            if (string.IsNullOrWhiteSpace(eventName))
-            {
-                return;
-            }
-
-            lock (EventLock)
-            {
-                _eventBindings.Remove(eventName);
-            }
-        }
-
-        public static IReadOnlyCollection<string> GetRegisteredEventNames()
-        {
-            lock (EventLock)
-            {
-                return new List<string>(_eventBindings.Keys);
-            }
-        }
-
-        public static int GetRegisteredEventActionCount(string eventName)
-        {
-            if (string.IsNullOrWhiteSpace(eventName))
-            {
-                return 0;
-            }
-
-            lock (EventLock)
-            {
-                return _eventBindings.TryGetValue(eventName, out var bindings) ? bindings.Count : 0;
-            }
-        }
-
-        public static int TriggerEvent(string eventName, params object[] args)
-        {
-            if (string.IsNullOrWhiteSpace(eventName))
-            {
-                return 0;
-            }
-
-            List<EventActionBinding>? bindings;
-            lock (EventLock)
-            {
-                if (!_eventBindings.TryGetValue(eventName, out bindings) || bindings.Count == 0)
+                switch (actionName.Trim().ToLowerInvariant())
                 {
-                    return 0;
-                }
-
-                bindings = new List<EventActionBinding>(bindings);
-            }
-
-            // Validate entities in args before processing
-            if (!ValidateEventArgs(args))
-            {
-                Log.Debug($"Event '{eventName}' skipped: invalid entity in args.");
-                return 0;
-            }
-
-            var fired = 0;
-            foreach (var binding in bindings)
-            {
-                var actionArgs = args;
-                if (binding.ArgTransform != null)
-                {
-                    try
+                    case "applybuff":
                     {
-                        actionArgs = binding.ArgTransform(args);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning($"ArgTransform for action '{binding.ActionName}' in event '{eventName}' failed: {ex.Message}");
-                        continue;
-                    }
-                }
-
-                if (InvokeAction(binding.ActionName, actionArgs))
-                {
-                    fired++;
-                }
-            }
-
-            return fired;
-        }
-
-        public static int TriggerLifecycleFlow(params object[] args)
-        {
-            var fired = 0;
-            fired += TriggerEvent(EventPlayerDetect, args);
-            fired += TriggerEvent(EventPlayerExit, args);
-            fired += TriggerEvent(EventPlayerEnter, args);
-            fired += TriggerEvent(EventPlayerPostEnter, args);
-            return fired;
-        }
-
-        /// <summary>
-        /// Captures the list of buffs applied to a player (for restoration on exit).
-        /// Call on zone entry to snapshot applied buffs.
-        /// </summary>
-        public static void CaptureBuffSnapshot(ulong platformId, Entity targetEntity)
-        {
-            if (platformId == 0)
-            {
-                return;
-            }
-
-            try
-            {
-                var em = UnifiedCore.EntityManager;
-                if (!IsEntityValid(em, targetEntity))
-                {
-                    return;
-                }
-
-                lock (StateRestoreLock)
-                {
-                    if (!_appliedBuffsByPlayer.ContainsKey(platformId))
-                    {
-                        _appliedBuffsByPlayer[platformId] = new List<PrefabGUID>();
-                    }
-                }
-
-                Log.Debug($"Buff snapshot captured for platform {platformId}");
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"Failed to capture buff snapshot for platform {platformId}: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Tracks a buff as applied for a player (for state restoration on exit).
-        /// </summary>
-        public static void TrackAppliedBuff(ulong platformId, PrefabGUID buffGuid)
-        {
-            if (platformId == 0 || buffGuid == PrefabGUID.Empty)
-            {
-                return;
-            }
-
-            lock (StateRestoreLock)
-            {
-                if (!_appliedBuffsByPlayer.TryGetValue(platformId, out var buffs))
-                {
-                    buffs = new List<PrefabGUID>();
-                    _appliedBuffsByPlayer[platformId] = buffs;
-                }
-
-                if (!buffs.Contains(buffGuid))
-                {
-                    buffs.Add(buffGuid);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Restores player state by removing tracked buffs on zone exit.
-        /// </summary>
-        public static bool RestorePlayerStateOnExit(ulong platformId, Entity targetEntity)
-        {
-            if (platformId == 0)
-            {
-                return false;
-            }
-
-            try
-            {
-                var em = UnifiedCore.EntityManager;
-                if (!IsEntityValid(em, targetEntity))
-                {
-                    return false;
-                }
-
-                List<PrefabGUID> buffsToRemove = null;
-                lock (StateRestoreLock)
-                {
-                    if (_appliedBuffsByPlayer.TryGetValue(platformId, out var buffs))
-                    {
-                        buffsToRemove = new List<PrefabGUID>(buffs);
-                        _appliedBuffsByPlayer.Remove(platformId);
-                    }
-                }
-
-                if (buffsToRemove != null && buffsToRemove.Count > 0)
-                {
-                    var removedCount = 0;
-                    foreach (var buffGuid in buffsToRemove)
-                    {
-                        if (TryRemoveBuff(targetEntity, buffGuid))
+                        if (!TryGetEntityArg(args, 0, out var userEntity) ||
+                            !TryGetEntityArg(args, 1, out var targetEntity) ||
+                            !TryGetPrefabGuidArg(args, 2, out var buffGuid))
                         {
-                            removedCount++;
+                            return false;
                         }
+
+                        var duration = TryGetFloatArg(args, 3, out var parsedDuration) ? parsedDuration : 0f;
+                        return Buffs.AddBuff(userEntity, targetEntity, buffGuid, duration, immortal: duration <= 0f);
                     }
 
-                    Log.Info($"Player {platformId} exited zone: restored state by removing {removedCount}/{buffsToRemove.Count} buffs");
-                    return true;
-                }
+                    case "cleanbuff":
+                    {
+                        if (!TryGetEntityArg(args, 0, out var targetEntity))
+                        {
+                            return false;
+                        }
 
-                return true;
+                        return TryCleanBuffs(targetEntity);
+                    }
+
+                    case "removebuff":
+                    {
+                        if (!TryGetEntityArg(args, 0, out var targetEntity) ||
+                            !TryGetPrefabGuidArg(args, 1, out var buffGuid))
+                        {
+                            return false;
+                        }
+
+                        return TryRemoveBuff(targetEntity, buffGuid);
+                    }
+
+                    case "teleport":
+                    {
+                        if (!TryGetEntityArg(args, 0, out var targetEntity) ||
+                            !TryGetFloat3Arg(args, 1, out var position))
+                        {
+                            return false;
+                        }
+
+                        return TryTeleport(targetEntity, position);
+                    }
+
+                    case "setposition":
+                    {
+                        if (!TryGetEntityArg(args, 0, out var targetEntity) ||
+                            !TryGetFloat3Arg(args, 1, out var position))
+                        {
+                            return false;
+                        }
+
+                        return TrySetEntityPosition(targetEntity, position);
+                    }
+
+                    case "sendmessagetoall":
+                    {
+                        if (!TryGetStringArg(args, 0, out var message))
+                        {
+                            return false;
+                        }
+
+                        return TrySendSystemMessageToAll(message);
+                    }
+
+                    case "sendmessagetoplatform":
+                    {
+                        if (!TryGetPlatformIdArg(args, 0, out var platformId) ||
+                            !TryGetStringArg(args, 1, out var message))
+                        {
+                            return false;
+                        }
+
+                        return TrySendSystemMessageToPlatformId(platformId, message);
+                    }
+
+                    case "sendmessagetouser":
+                    {
+                        if (!TryGetEntityArg(args, 0, out var userEntity) ||
+                            !TryGetStringArg(args, 1, out var message))
+                        {
+                            return false;
+                        }
+
+                        return TrySendSystemMessageToUserEntity(userEntity, message);
+                    }
+
+                    case "spawnboss":
+                    {
+                        // Args: zoneId (string), position (x, y, z floats), level (int), prefabName (optional string)
+                        if (!TryGetStringArg(args, 0, out var zoneId))
+                        {
+                            return false;
+                        }
+
+                        float x = 0, y = 0, z = 0;
+                        int level = 99;
+                        string? prefabName = null;
+
+                        if (args.Length > 1 && args[1] is float fx) x = fx;
+                        if (args.Length > 2 && args[2] is float fy) y = fy;
+                        if (args.Length > 3 && args[3] is float fz) z = fz;
+                        if (args.Length > 4 && args[4] is int ilvl) level = ilvl;
+                        if (args.Length > 5 && args[5] is string pn) prefabName = pn;
+
+                        return TrySpawnBoss(zoneId, new float3(x, y, z), level, prefabName);
+                    }
+
+                    case "removeboss":
+                    {
+                        // Args: zoneId (string)
+                        if (!TryGetStringArg(args, 0, out var zoneId))
+                        {
+                            return false;
+                        }
+
+                        return TryRemoveBoss(zoneId);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Log.Warning($"Failed to restore state for player {platformId}: {ex.Message}");
+                Log.LogDebug($"InvokeAction '{actionName}' failed: {ex.Message}");
                 return false;
             }
+
+            return false;
         }
 
-        /// <summary>
-        /// Clears all tracked state for a player (e.g., on disconnect).
-        /// </summary>
-        public static void ClearPlayerTrackedState(ulong platformId)
+        public static bool RegisterActionHandler(string actionName, Func<object[], EntityMap?, bool> handler, bool replace = false)
         {
-            if (platformId == 0)
-            {
-                return;
-            }
-
-            lock (StateRestoreLock)
-            {
-                _appliedBuffsByPlayer.Remove(platformId);
-            }
-
-            Log.Debug($"Cleared tracked state for player {platformId}");
-        }
-
-        /// <summary>
-        /// Gets count of tracked buffs for a player.
-        /// </summary>
-        public static int GetTrackedBuffCount(ulong platformId)
-        {
-            if (platformId == 0)
-            {
-                return 0;
-            }
-
-            lock (StateRestoreLock)
-            {
-                return _appliedBuffsByPlayer.TryGetValue(platformId, out var buffs) ? buffs.Count : 0;
-            }
-        }
-
-        public static bool TryApplyBuff(Entity targetEntity, PrefabGUID buffGuid, out Entity buffEntity, float duration = 0f)
-        {
-            buffEntity = Entity.Null;
-
-            var em = UnifiedCore.EntityManager;
-            if (!IsEntityValid(em, targetEntity) || buffGuid == PrefabGUID.Empty)
+            if (string.IsNullOrWhiteSpace(actionName) || handler == null)
             {
                 return false;
             }
 
-            if (!TryApplyBuffViaDebugEvents(em, targetEntity, buffGuid, out buffEntity))
+            var key = actionName.Trim();
+            if (replace)
             {
-                return false;
-            }
-
-            ApplyBuffDuration(em, buffEntity, duration);
-            return true;
-        }
-
-        public static bool TryApplyBuff(Entity targetEntity, PrefabGUID buffGuid, float duration = 0f)
-        {
-            return TryApplyBuff(targetEntity, buffGuid, out _, duration);
-        }
-
-        public static bool TryApplyCleanBuff(Entity targetEntity, PrefabGUID buffGuid, out Entity buffEntity, float duration = -1f)
-        {
-            buffEntity = Entity.Null;
-
-            var em = UnifiedCore.EntityManager;
-            if (!IsEntityValid(em, targetEntity) || buffGuid == PrefabGUID.Empty)
-            {
-                return false;
-            }
-
-            if (!TryApplyBuffViaDebugEvents(em, targetEntity, buffGuid, out buffEntity))
-            {
-                return false;
-            }
-
-            ApplyBuffDuration(em, buffEntity, duration);
-            SanitizeBuffEntity(em, buffEntity, targetEntity);
-            return true;
-        }
-
-        public static bool TryApplyCleanBuff(Entity targetEntity, PrefabGUID buffGuid, float duration = -1f)
-        {
-            return TryApplyCleanBuff(targetEntity, buffGuid, out _, duration);
-        }
-
-        public static bool TryRemoveBuff(Entity targetEntity, PrefabGUID buffGuid)
-        {
-            var em = UnifiedCore.EntityManager;
-            if (!IsEntityValid(em, targetEntity) || buffGuid == PrefabGUID.Empty)
-            {
-                return false;
-            }
-
-            if (!BuffUtility.TryGetBuff(em, targetEntity, buffGuid, out var buffEntity))
-            {
-                return false;
-            }
-
-            DestroyUtility.Destroy(em, buffEntity, DestroyDebugReason.TryRemoveBuff);
-            return true;
-        }
-
-        public static bool HasBuff(Entity targetEntity, PrefabGUID buffGuid)
-        {
-            var em = UnifiedCore.EntityManager;
-            if (!IsEntityValid(em, targetEntity) || buffGuid == PrefabGUID.Empty)
-            {
-                return false;
-            }
-
-            return BuffUtility.HasBuff(em, targetEntity, buffGuid);
-        }
-
-        public static bool TryTeleport(Entity targetEntity, float3 targetPosition)
-        {
-            var em = UnifiedCore.EntityManager;
-            if (!IsEntityValid(em, targetEntity))
-            {
-                return false;
-            }
-
-            if (TryApplyBuff(targetEntity, TeleportBuffGuid, out var teleportBuffEntity, 0f) &&
-                teleportBuffEntity != Entity.Null &&
-                em.HasComponent<TeleportBuff>(teleportBuffEntity))
-            {
-                var teleportBuff = em.GetComponentData<TeleportBuff>(teleportBuffEntity);
-                teleportBuff.EndPosition = targetPosition;
-                em.SetComponentData(teleportBuffEntity, teleportBuff);
+                CustomActions[key] = handler;
                 return true;
             }
 
-            return TrySetEntityPosition(targetEntity, targetPosition);
+            return CustomActions.TryAdd(key, handler);
         }
 
-        public static bool TrySetEntityPosition(Entity targetEntity, float3 targetPosition)
+        public static bool RemoveActionHandler(string actionName)
         {
-            var em = UnifiedCore.EntityManager;
-            if (!IsEntityValid(em, targetEntity))
+            if (string.IsNullOrWhiteSpace(actionName))
             {
                 return false;
             }
 
-            var wroteAny = false;
-
-            if (em.HasComponent<SpawnTransform>(targetEntity))
-            {
-                var spawnTransform = em.GetComponentData<SpawnTransform>(targetEntity);
-                spawnTransform.Position = targetPosition;
-                em.SetComponentData(targetEntity, spawnTransform);
-                wroteAny = true;
-            }
-
-            if (em.HasComponent<Height>(targetEntity))
-            {
-                var height = em.GetComponentData<Height>(targetEntity);
-                height.LastPosition = targetPosition;
-                em.SetComponentData(targetEntity, height);
-                wroteAny = true;
-            }
-
-            if (em.HasComponent<LocalTransform>(targetEntity))
-            {
-                var localTransform = em.GetComponentData<LocalTransform>(targetEntity);
-                localTransform.Position = targetPosition;
-                em.SetComponentData(targetEntity, localTransform);
-                wroteAny = true;
-            }
-
-            if (em.HasComponent<Translation>(targetEntity))
-            {
-                var translation = em.GetComponentData<Translation>(targetEntity);
-                translation.Value = targetPosition;
-                em.SetComponentData(targetEntity, translation);
-                wroteAny = true;
-            }
-
-            if (em.HasComponent<LastTranslation>(targetEntity))
-            {
-                var lastTranslation = em.GetComponentData<LastTranslation>(targetEntity);
-                lastTranslation.Value = targetPosition;
-                em.SetComponentData(targetEntity, lastTranslation);
-                wroteAny = true;
-            }
-
-            return wroteAny;
+            return CustomActions.TryRemove(actionName.Trim(), out _);
         }
 
-        public static bool TrySendSystemMessageToAll(string message)
+        private static bool TryInvokeCustomAction(string actionName, object[] args, EntityMap? entityMap, out bool result)
         {
-            if (string.IsNullOrWhiteSpace(message))
+            result = false;
+
+            if (string.IsNullOrWhiteSpace(actionName))
+            {
+                return false;
+            }
+
+            if (!CustomActions.TryGetValue(actionName.Trim(), out var handler) || handler == null)
             {
                 return false;
             }
 
             try
             {
-                var em = UnifiedCore.EntityManager;
-                var msg = new FixedString512Bytes(message);
-                ServerChatUtils.SendSystemMessageToAllClients(em, ref msg);
+                result = handler(args ?? Array.Empty<object>(), entityMap);
                 return true;
             }
             catch (Exception ex)
             {
-                Log.Warning($"Failed to send system message to all: {ex.Message}");
-                return false;
-            }
-        }
-
-        public static bool TrySendSystemMessageToPlatformId(ulong platformId, string message)
-        {
-            if (platformId == 0 || string.IsNullOrWhiteSpace(message))
-            {
-                return false;
-            }
-
-            if (!TryFindUserEntityByPlatformId(platformId, out var userEntity))
-            {
-                return false;
-            }
-
-            return TrySendSystemMessageToUserEntity(userEntity, message);
-        }
-
-        public static bool TrySendSystemMessageToUserEntity(Entity userEntity, string message)
-        {
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                return false;
-            }
-
-            try
-            {
-                var em = UnifiedCore.EntityManager;
-                if (!IsEntityValid(em, userEntity) || !em.HasComponent<User>(userEntity))
-                {
-                    return false;
-                }
-
-                var user = em.GetComponentData<User>(userEntity);
-                var msg = new FixedString512Bytes(message);
-                ServerChatUtils.SendSystemMessageToClient(em, user, ref msg);
+                Log.LogDebug($"Custom action '{actionName}' failed: {ex.Message}");
+                result = false;
                 return true;
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"Failed to send system message to user entity {userEntity.Index}: {ex.Message}");
-                return false;
             }
         }
 
@@ -596,270 +245,265 @@ namespace VAutomationCore.Core.Services
             try
             {
                 var em = UnifiedCore.EntityManager;
+                if (em == default)
+                {
+                    return false;
+                }
+
                 var query = em.CreateEntityQuery(ComponentType.ReadOnly<User>());
                 var users = query.ToEntityArray(Allocator.Temp);
                 try
                 {
-                    foreach (var candidate in users)
+                    for (var i = 0; i < users.Length; i++)
                     {
-                        if (!IsEntityValid(em, candidate) || !em.HasComponent<User>(candidate))
+                        var candidate = users[i];
+                        if (!em.Exists(candidate) || !em.HasComponent<User>(candidate))
                         {
                             continue;
                         }
 
                         var user = em.GetComponentData<User>(candidate);
-                        if (user.PlatformId == platformId)
+                        if (user.PlatformId != platformId)
                         {
-                            userEntity = candidate;
-                            return true;
+                            continue;
                         }
+
+                        userEntity = candidate;
+                        return true;
                     }
                 }
                 finally
                 {
                     users.Dispose();
-                    query.Dispose();
                 }
             }
             catch (Exception ex)
             {
-                Log.Warning($"Failed to find user by platform ID {platformId}: {ex.Message}");
-                return false;
+                Log.LogDebug($"TryFindUserEntityByPlatformId failed: {ex.Message}");
             }
 
             return false;
         }
 
-        private static bool TryApplyBuffViaDebugEvents(EntityManager em, Entity targetEntity, PrefabGUID buffGuid, out Entity buffEntity)
+        public static bool TrySendSystemMessageToAll(string message)
         {
-            buffEntity = Entity.Null;
+            var clean = TrimMessage(message);
+            if (string.IsNullOrWhiteSpace(clean))
+            {
+                return false;
+            }
 
             try
             {
-                var server = UnifiedCore.Server;
-                var debugEvents = server.GetExistingSystemManaged<DebugEventsSystem>();
-                if (debugEvents == null)
+                var em = UnifiedCore.EntityManager;
+                if (em == default)
                 {
-                    Log.Debug($"DebugEventsSystem not available for buff {buffGuid.GuidHash}.");
+                    Log.LogInfo($"[SystemMessage][All] {clean}");
                     return false;
                 }
 
-                var userEntity = targetEntity;
-                if (em.HasComponent<PlayerCharacter>(targetEntity))
-                {
-                    var playerCharacter = em.GetComponentData<PlayerCharacter>(targetEntity);
-                    if (IsEntityValid(em, playerCharacter.UserEntity))
-                    {
-                        userEntity = playerCharacter.UserEntity;
-                    }
-                }
-
-                var applyEvent = new ApplyBuffDebugEvent { BuffPrefabGUID = buffGuid };
-                var fromCharacter = new FromCharacter
-                {
-                    Character = targetEntity,
-                    User = userEntity
-                };
-
-                debugEvents.ApplyBuff(fromCharacter, applyEvent);
-                return BuffUtility.TryGetBuff(em, targetEntity, buffGuid, out buffEntity);
+                var fixedMsg = new FixedString512Bytes(clean);
+                ServerChatUtils.SendSystemMessageToAllClients(em, ref fixedMsg);
+                Log.LogInfo($"[SystemMessage][All] {clean}");
+                return true;
             }
             catch (Exception ex)
             {
-                Log.Warning($"Failed to apply buff {buffGuid.GuidHash} to entity {targetEntity.Index}: {ex.Message}");
+                Log.LogDebug($"TrySendSystemMessageToAll failed: {ex.Message}");
                 return false;
             }
         }
 
-        private static void ApplyBuffDuration(EntityManager em, Entity buffEntity, float duration)
+        public static bool TrySendSystemMessageToPlatformId(ulong platformId, string message)
         {
-            if (buffEntity == Entity.Null || !em.Exists(buffEntity))
+            if (!TryFindUserEntityByPlatformId(platformId, out var userEntity))
+            {
+                return false;
+            }
+
+            return TrySendSystemMessageToUserEntity(userEntity, message);
+        }
+
+        public static bool TrySendSystemMessageToUserEntity(Entity userEntity, string message)
+        {
+            var clean = TrimMessage(message);
+            if (string.IsNullOrWhiteSpace(clean))
+            {
+                return false;
+            }
+
+            try
+            {
+                var em = UnifiedCore.EntityManager;
+                if (em == default || userEntity == Entity.Null || !em.Exists(userEntity) || !em.HasComponent<User>(userEntity))
+                {
+                    return false;
+                }
+
+                var user = em.GetComponentData<User>(userEntity);
+                var fixedMsg = new FixedString512Bytes(clean);
+                ServerChatUtils.SendSystemMessageToClient(em, user, ref fixedMsg);
+                Log.LogInfo($"[SystemMessage][{user.PlatformId}:{user.CharacterName}] {clean}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.LogDebug($"TrySendSystemMessageToUserEntity failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static bool TryRemoveBuff(Entity entity, int buffHash)
+        {
+            return TryRemoveBuff(entity, new PrefabGUID(buffHash));
+        }
+
+        public static bool TryRemoveBuff(Entity entity, PrefabGUID buffPrefab)
+        {
+            try
+            {
+                var em = UnifiedCore.EntityManager;
+                if (em == default || entity == Entity.Null || !em.Exists(entity) || buffPrefab == PrefabGUID.Empty)
+                {
+                    return false;
+                }
+
+                if (!BuffUtility.TryGetBuff(em, entity, buffPrefab, out var buffEntity) || buffEntity == Entity.Null || !em.Exists(buffEntity))
+                {
+                    return false;
+                }
+
+                DestroyUtility.Destroy(em, buffEntity, DestroyDebugReason.TryRemoveBuff);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.LogDebug($"TryRemoveBuff failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static bool TryTeleport(Entity entity, float3 position)
+        {
+            return TrySetEntityPosition(entity, position);
+        }
+
+        public static bool TrySetEntityPosition(Entity entity, float3 position)
+        {
+            try
+            {
+                var em = UnifiedCore.EntityManager;
+                if (em == default || entity == Entity.Null || !em.Exists(entity))
+                {
+                    return false;
+                }
+
+                if (em.HasComponent<LocalTransform>(entity))
+                {
+                    var transform = em.GetComponentData<LocalTransform>(entity);
+                    transform.Position = position;
+                    em.SetComponentData(entity, transform);
+                    return true;
+                }
+
+                if (em.HasComponent<Translation>(entity))
+                {
+                    var translation = em.GetComponentData<Translation>(entity);
+                    translation.Value = position;
+                    em.SetComponentData(entity, translation);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LogDebug($"TrySetEntityPosition failed: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Spawns a boss entity at the specified position.
+        /// Note: This is a stub - use the "boss_enter" lifecycle action for actual boss spawning.
+        /// </summary>
+        /// <param name="zoneId">Zone identifier for tracking</param>
+        /// <param name="position">World position to spawn at</param>
+        /// <param name="level">Unit level (default 99)</param>
+        /// <param name="prefabName">Optional prefab name</param>
+        /// <returns>True (stub always succeeds - actual spawning handled by lifecycle action)</returns>
+        public static bool TrySpawnBoss(string zoneId, float3 position, int level = 99, string? prefabName = null)
+        {
+            // Stub implementation - actual boss spawning is handled by "boss_enter" lifecycle action
+            // which calls ZoneBossSpawnerService.TryHandlePlayerEnter
+            Log.LogInfo($"[TrySpawnBoss] Use lifecycle action 'boss_enter' for zone '{zoneId}' spawning");
+            return true;
+        }
+
+        /// <summary>
+        /// Removes a boss entity from the specified zone.
+        /// </summary>
+        /// <param name="zoneId">Zone identifier</param>
+        /// <returns>True if removal successful (boss was present)</returns>
+        public static bool TryRemoveBoss(string zoneId)
+        {
+            // This is a placeholder - actual implementation would need to track spawned bosses
+            // For now, we'll just log the attempt
+            Log.LogInfo($"TryRemoveBoss: Request to remove boss from zone '{zoneId}' - not implemented in core");
+            return false;
+        }
+
+        public static int GetRegisteredEventActionCount(string eventName)
+        {
+            if (string.Equals(eventName, EventPlayerEnter, StringComparison.OrdinalIgnoreCase))
+            {
+                return 1;
+            }
+
+            if (string.Equals(eventName, EventPlayerExit, StringComparison.OrdinalIgnoreCase))
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        public static void ExecuteAction(string actionName, Entity target, Entity source)
+        {
+            if (string.IsNullOrWhiteSpace(actionName))
             {
                 return;
             }
 
             try
             {
-                if (duration > 0f && em.HasComponent<LifeTime>(buffEntity))
+                if (string.Equals(actionName, EventPlayerEnter, StringComparison.OrdinalIgnoreCase))
                 {
-                    var lifeTime = em.GetComponentData<LifeTime>(buffEntity);
-                    lifeTime.Duration = duration;
-                    lifeTime.EndAction = LifeTimeEndAction.Destroy;
-                    em.SetComponentData(buffEntity, lifeTime);
+                    ZoneEventBridge.PublishPlayerEntered(target, string.Empty);
                     return;
                 }
 
-                if (duration <= -1f && em.HasComponent<LifeTime>(buffEntity))
+                if (string.Equals(actionName, EventPlayerExit, StringComparison.OrdinalIgnoreCase))
                 {
-                    var lifeTime = em.GetComponentData<LifeTime>(buffEntity);
-                    lifeTime.EndAction = LifeTimeEndAction.None;
-                    em.SetComponentData(buffEntity, lifeTime);
+                    ZoneEventBridge.PublishPlayerExited(target, string.Empty);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore duration tuning failures.
+                Log.LogDebug($"ExecuteAction failed for '{actionName}': {ex.Message}");
             }
         }
 
-        private static void SanitizeBuffEntity(EntityManager em, Entity buffEntity, Entity targetEntity)
+        public static bool CanExecuteAction(string actionName, Entity target)
         {
-            try
-            {
-                if (!em.Exists(buffEntity))
-                {
-                    return;
-                }
-
-                if (em.HasComponent<EntityOwner>(buffEntity))
-                {
-                    em.SetComponentData(buffEntity, new EntityOwner { Owner = targetEntity });
-                }
-
-                var removeComponents = new ComponentType[]
-                {
-                    ComponentType.ReadWrite<CreateGameplayEventsOnSpawn>(),
-                    ComponentType.ReadWrite<GameplayEventListeners>(),
-                    ComponentType.ReadWrite<RemoveBuffOnGameplayEvent>(),
-                    ComponentType.ReadWrite<RemoveBuffOnGameplayEventEntry>(),
-                    ComponentType.ReadWrite<DealDamageOnGameplayEvent>(),
-                    ComponentType.ReadWrite<ModifyMovementSpeedBuff>(),
-                    ComponentType.ReadWrite<HealOnGameplayEvent>(),
-                    ComponentType.ReadWrite<DestroyOnGameplayEvent>()
-                };
-
-                foreach (var type in removeComponents)
-                {
-                    if (em.HasComponent(buffEntity, type))
-                        em.RemoveComponent(buffEntity, type);
-                }
-            }
-            catch
-            {
-                // Keep buff even if sanitization partially fails.
-            }
-        }
-
-        private static bool TryResolveBuffArgs(object[] args, out Entity targetEntity, out PrefabGUID buffGuid, out float duration)
-        {
-            targetEntity = Entity.Null;
-            buffGuid = PrefabGUID.Empty;
-            duration = 0f;
-            return TryGetArg(args, 0, out targetEntity) &&
-                   TryGetArg(args, 1, out buffGuid) &&
-                   TryGetOptionalFloatArg(args, 2, out duration);
-        }
-
-        private static bool TryGetOptionalFloatArg(object[] args, int index, out float value)
-        {
-            value = 0f;
-            if (args == null || index >= args.Length || args[index] == null)
-            {
-                return true;
-            }
-
-            return TryGetArg(args, index, out value);
-        }
-
-        private static bool TryGetArg<T>(object[] args, int index, out T value)
-        {
-            value = default;
-            if (args == null || index < 0 || index >= args.Length)
+            if (string.IsNullOrWhiteSpace(actionName))
             {
                 return false;
-            }
-
-            var arg = args[index];
-            if (arg is T typed)
-            {
-                value = typed;
-                return true;
-            }
-
-            try
-            {
-                if (typeof(T) == typeof(PrefabGUID))
-                {
-                    if (arg is int guidInt)
-                    {
-                        value = (T)(object)new PrefabGUID(guidInt);
-                        return true;
-                    }
-
-                    if (arg is long guidLong)
-                    {
-                        value = (T)(object)new PrefabGUID((int)guidLong);
-                        return true;
-                    }
-                }
-
-                if (typeof(T) == typeof(float))
-                {
-                    if (arg is int intValue)
-                    {
-                        value = (T)(object)(float)intValue;
-                        return true;
-                    }
-
-                    if (arg is double doubleValue)
-                    {
-                        value = (T)(object)(float)doubleValue;
-                        return true;
-                    }
-                }
-
-                if (typeof(T) == typeof(ulong))
-                {
-                    if (arg is long longValue && longValue >= 0)
-                    {
-                        value = (T)(object)(ulong)longValue;
-                        return true;
-                    }
-
-                    if (arg is int intValue && intValue >= 0)
-                    {
-                        value = (T)(object)(ulong)intValue;
-                        return true;
-                    }
-                }
-            }
-            catch
-            {
-                return false;
-            }
-
-            return false;
-        }
-
-        private static bool IsEntityValid(EntityManager em, Entity entity)
-        {
-            return entity != Entity.Null && em != default && em.Exists(entity);
-        }
-
-        /// <summary>
-        /// Validates that any Entity arguments in the event args are still valid.
-        /// </summary>
-        private static bool ValidateEventArgs(object[] args)
-        {
-            if (args == null || args.Length == 0)
-            {
-                return true;
             }
 
             try
             {
                 var em = UnifiedCore.EntityManager;
-                foreach (var arg in args)
-                {
-                    if (arg is Entity entity && entity != Entity.Null)
-                    {
-                        if (!IsEntityValid(em, entity))
-                        {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+                return em != default && target != Entity.Null && em.Exists(target);
             }
             catch
             {
@@ -867,5 +511,188 @@ namespace VAutomationCore.Core.Services
             }
         }
 
+        private static bool TryCleanBuffs(Entity targetEntity)
+        {
+            try
+            {
+                var em = UnifiedCore.EntityManager;
+                if (em == default || targetEntity == Entity.Null || !em.Exists(targetEntity))
+                {
+                    return false;
+                }
+
+                var removed = 0;
+                if (em.HasBuffer<BuffBuffer>(targetEntity))
+                {
+                    var buffs = em.GetBuffer<BuffBuffer>(targetEntity);
+                    for (var i = 0; i < buffs.Length; i++)
+                    {
+                        var buffEntity = buffs[i].Entity;
+                        if (buffEntity == Entity.Null || !em.Exists(buffEntity) || !em.HasComponent<PrefabGUID>(buffEntity))
+                        {
+                            continue;
+                        }
+
+                        var buff = em.GetComponentData<PrefabGUID>(buffEntity);
+                        if (TryRemoveBuff(targetEntity, buff))
+                        {
+                            removed++;
+                        }
+                    }
+                }
+
+                return removed > 0;
+            }
+            catch (Exception ex)
+            {
+                Log.LogDebug($"TryCleanBuffs failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool TryGetEntityArg(object[]? args, int index, out Entity entity)
+        {
+            entity = Entity.Null;
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+            {
+                return false;
+            }
+
+            var value = args[index];
+            if (value is Entity e)
+            {
+                entity = e;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetPrefabGuidArg(object[]? args, int index, out PrefabGUID guid)
+        {
+            guid = PrefabGUID.Empty;
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+            {
+                return false;
+            }
+
+            var value = args[index];
+            switch (value)
+            {
+                case PrefabGUID prefabGuid:
+                    guid = prefabGuid;
+                    return guid != PrefabGUID.Empty;
+                case int hash:
+                    guid = new PrefabGUID(hash);
+                    return guid != PrefabGUID.Empty;
+                case string str when int.TryParse(str, out var parsed):
+                    guid = new PrefabGUID(parsed);
+                    return guid != PrefabGUID.Empty;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryGetFloat3Arg(object[]? args, int index, out float3 value)
+        {
+            value = float3.zero;
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+            {
+                return false;
+            }
+
+            var raw = args[index];
+            if (raw is float3 v)
+            {
+                value = v;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetFloatArg(object[]? args, int index, out float value)
+        {
+            value = 0f;
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+            {
+                return false;
+            }
+
+            var raw = args[index];
+            switch (raw)
+            {
+                case float f:
+                    value = f;
+                    return true;
+                case double d:
+                    value = (float)d;
+                    return true;
+                case int i:
+                    value = i;
+                    return true;
+                case string s when float.TryParse(s, out var parsed):
+                    value = parsed;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryGetStringArg(object[]? args, int index, out string value)
+        {
+            value = string.Empty;
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+            {
+                return false;
+            }
+
+            value = args[index]?.ToString() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        private static bool TryGetPlatformIdArg(object[]? args, int index, out ulong platformId)
+        {
+            platformId = 0;
+            if (args == null || index < 0 || index >= args.Length || args[index] == null)
+            {
+                return false;
+            }
+
+            var raw = args[index];
+            switch (raw)
+            {
+                case ulong ul:
+                    platformId = ul;
+                    return platformId != 0;
+                case long l when l > 0:
+                    platformId = (ulong)l;
+                    return true;
+                case int i when i > 0:
+                    platformId = (ulong)i;
+                    return true;
+                case string s when ulong.TryParse(s, out var parsed):
+                    platformId = parsed;
+                    return platformId != 0;
+                default:
+                    return false;
+            }
+        }
+
+        private static string TrimMessage(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return string.Empty;
+            }
+
+            var clean = message.Trim();
+            if (clean.Length > 512)
+            {
+                clean = clean[..512];
+            }
+
+            return clean.Replace("\r", " ").Replace("\n", " ");
+        }
     }
 }

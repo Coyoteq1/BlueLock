@@ -44,11 +44,11 @@ namespace VAutomationCore.Examples
         /// </summary>
         public static void SubscribeToModEvents()
         {
-            // Subscribe to Bluelock events
-            ModAPI.SendToBluelock("subscribe", "onPlayerEnter");
+            // Subscribe to Blueluck events
+            ModAPI.SendToMod("Blueluck", "subscribe", new object[] { "onPlayerEnter" });
             
             // Register handler
-            ModAPI.Subscribe("Bluelock", "onPlayerEnter", (key, data) => 
+            ModAPI.Subscribe("Blueluck", "onPlayerEnter", (key, data) => 
             {
                 Debug.Log($"Player entered: {data}");
             });
@@ -108,7 +108,7 @@ namespace VAutomationCore.Examples
         public static void SyncAfterRestart()
         {
             // Request state from each registered mod
-            var mods = new[] { "Bluelock", "CycleBorn", "VCFCommands" };
+            var mods = new[] { "Blueluck", "VCFCommands" };
             
             foreach (var mod in mods)
             {

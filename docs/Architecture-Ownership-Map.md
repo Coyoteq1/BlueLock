@@ -2,10 +2,12 @@
 
 - Runtime engine owner: `VAutomationCore`
 - Owns: shared contracts, ECS utilities/components used across modules, lifecycle/runtime option contracts, API primitives.
-- Feature/plugin owner: `Bluelock`
-- Owns: zone runtime behavior, zone config execution, template manifestation path, plugin bootstrap/patch wiring.
-- Lifecycle/content owner: `CycleBorn`
-- Owns: lifecycle content and headless operator command surface (`.lifecycle`).
+- World-state owner: `Bluelock`
+- Owns: zones, castles/building restrictions, kits, abilities, glow/tile world-state behavior, zone runtime execution and plugin bootstrap/patch wiring.
+- Policy/content owner: `CycleBorn`
+- Owns: lifecycle content, flow registry definitions, snapshot orchestration policy, and headless operator command surface (`.lifecycle`).
+- Combat map-icon owner: `Vexil`
+- Owns: PvP combat tracking and global combat map-icon lifecycle (spawn/refresh/expire), with no ownership of zone/building domain data.
 
 ## Minimal mode guardrails
 - `Bluelock/Plugin.cs` runtime lifecycle JSON models (`ZoneJsonConfig`, `ZoneMapping`, `ZoneMustFlow`) are authoritative in minimal mode.
@@ -17,9 +19,9 @@
 - `Bluelock/Commands/Core/ArenaEcsCommands.cs` remains excluded by csproj and is not an active command surface.
 
 ## Runtime modes
-- Runtime selector: `Runtime.ZoneRuntimeMode` (`Legacy`, `Hybrid`, `EcsOnly`)
-- Derived options contract: `ZoneRuntimeModeOptions.FromMode(...)`
-- Boot mode lock: resolved once at startup and stored in `_bootRuntimeMode`
+- Effective runtime mode: `EcsOnly` (forced).
+- Compatibility API: `Runtime.ZoneRuntimeMode` and `ZoneRuntimeModeOptions.FromMode(...)` remain available for developers in Core.
+- Boot mode lock: preserved for startup diagnostics and compatibility logging.
 - ECS detection tick: `Runtime.EcsDetectionTickSeconds`
 - ECS ops warning threshold: `Runtime.ZoneDetectionOpsWarningThreshold`
 
@@ -32,10 +34,10 @@
 4. Router destroys transition event entity.
 
 ## Config governance ownership
-- Zones: `Bluelock/config/VAuto.Zones.json`
-- Zone lifecycle mapping: `Bluelock/config/VAuto.ZoneLifecycle.json`
-- Flow definitions: `Bluelock/config/flows/*.json`
-- Canonical lifecycle runtime config: `VAuto.Lifecycle.json` (CycleBorn)
+- BlueLock canonical domain: `Bluelock/config/bluelock.domain.json`
+- CycleBorn flow registry: `CycleBorn/Configuration/flows.registry.json`
+- CycleBorn lifecycle policy: `CycleBorn/Configuration/lifecycle.policy.json`
+- Vexil combat icons: `Vexil/Configuration/combat.mapicons.json`
 
 ## Validation entrypoint
 - `Bluelock/Services/ProcessConfigService.ValidateAllConfigs(...)`

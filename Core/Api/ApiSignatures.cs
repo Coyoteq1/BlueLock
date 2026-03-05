@@ -52,8 +52,11 @@ namespace VAutomationCore.Core.Api
     {
         bool RegisterFlow(string name, IEnumerable<FlowStep> steps, bool replace = false);
         bool RegisterFlow(FlowDefinition definition, bool replace = false);
+        bool RegisterModuleFlows(string moduleId, IReadOnlyDictionary<string, FlowDefinition> flows, bool replace = false);
+        bool UnregisterModuleFlows(string moduleId);
         bool RemoveFlow(string name);
         bool TryGetFlow(string name, out FlowDefinition definition);
+        bool TryExecuteFlow(string flowId, EntityMap entityMap, out FlowExecutionResult result);
         IReadOnlyCollection<string> GetFlowNames();
         bool RegisterActionAlias(string alias, string actionName, bool replace = false);
         bool RemoveActionAlias(string alias);

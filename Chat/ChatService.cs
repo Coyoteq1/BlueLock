@@ -1,5 +1,6 @@
 using System;
 using VAutomationCore.Core.Services;
+using VAutomationCore.Services;
 
 namespace VAuto.Core.Chat
 {

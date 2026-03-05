@@ -1,0 +1,24 @@
+// Global using directives for Blueluck
+global using System;
+global using System.Collections.Generic;
+global using System.IO;
+global using System.Linq;
+global using System.Text.Json;
+global using BepInEx;
+global using BepInEx.Configuration;
+global using BepInEx.Logging;
+global using BepInEx.Unity.IL2CPP;
+global using HarmonyLib;
+global using Unity.Entities;
+global using Unity.Mathematics;
+global using Unity.Transforms;
+global using VampireCommandFramework;
+global using ProjectM;
+global using ProjectM.Network;
+global using ProjectM.Shared;
+global using ProjectM.Gameplay.Systems;
+global using Unity.Collections;
+global using Stunlock.Core;
+global using Stunlock.Network;
+global using Il2CppInterop.Runtime;
+global using Il2CppInterop.Runtime.Injection;

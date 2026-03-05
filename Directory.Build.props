@@ -9,6 +9,11 @@
     <BepInExConfigPath Condition="'$(BepInExConfigPath)' == '' and '$(VAutoServerRoot)' != ''">$(VAutoServerRoot)\config</BepInExConfigPath>
     <DeployToServer Condition="'$(DeployToServer)' == ''">false</DeployToServer>
   </PropertyGroup>
+
+  <!-- NuGet audit can time out in dev environments; keep it enabled for Release/CI. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
   <ItemGroup Condition="'$(VAutoServerInteropPath)' != ''">
     <Reference Include="Backtrace.Unity" HintPath="$(VAutoServerInteropPath)Backtrace.Unity.dll" Condition="Exists('$(VAutoServerInteropPath)Backtrace.Unity.dll')" />
     <Reference Include="com.rlabrecque.steamworks.net" HintPath="$(VAutoServerInteropPath)com.rlabrecque.steamworks.net.dll" Condition="Exists('$(VAutoServerInteropPath)com.rlabrecque.steamworks.net.dll')" />

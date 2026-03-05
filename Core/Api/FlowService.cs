@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Entities;
 using VAutomationCore.Core.Services;
+using VAutomationCore.Services;
 
 namespace VAutomationCore.Core.Api
 {
@@ -117,6 +118,14 @@ namespace VAutomationCore.Core.Api
     {
         private static readonly ConcurrentDictionary<string, FlowDefinition> Flows = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, string> ActionAliases = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, string> _flowModuleOwners = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> ModuleFlowIndex = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object ModuleFlowSync = new();
+
+        /// <summary>
+        /// Public accessor for flow ownership tracking (for ModuleIdRegistry validation).
+        /// </summary>
+        public static IReadOnlyDictionary<string, string> FlowModuleOwners => _flowModuleOwners;
 
         static FlowService()
         {
@@ -145,6 +154,7 @@ namespace VAutomationCore.Core.Api
             if (replace)
             {
                 Flows[key] = definition;
+                DetachFlowOwnership(key);
                 return true;
             }
 
@@ -158,7 +168,14 @@ namespace VAutomationCore.Core.Api
                 return false;
             }
 
-            return Flows.TryRemove(name.Trim(), out _);
+            var key = name.Trim();
+            var removed = Flows.TryRemove(key, out _);
+            if (removed)
+            {
+                DetachFlowOwnership(key);
+            }
+
+            return removed;
         }
 
         public static bool TryGetFlow(string name, out FlowDefinition definition)
@@ -175,6 +192,94 @@ namespace VAutomationCore.Core.Api
         public static IReadOnlyCollection<string> GetFlowNames()
         {
             return Flows.Keys.ToArray();
+        }
+
+        /// <summary>
+        /// Registers all flows owned by a module in one operation.
+        /// When replace=true, previously registered flows for the module are removed first.
+        /// Compatibility note: this API is additive and does not remove existing single-flow registration methods.
+        /// </summary>
+        public static bool RegisterModuleFlows(string moduleId, IReadOnlyDictionary<string, FlowDefinition> flows, bool replace = false)
+        {
+            if (string.IsNullOrWhiteSpace(moduleId) || flows == null || flows.Count == 0)
+            {
+                return false;
+            }
+
+            var moduleKey = moduleId.Trim();
+            lock (ModuleFlowSync)
+            {
+                if (replace)
+                {
+                    UnregisterModuleFlowsInternal(moduleKey);
+                }
+
+                // Pre-validate conflicts when replace is not requested.
+                foreach (var pair in flows)
+                {
+                    var flowName = pair.Key?.Trim();
+                    if (string.IsNullOrWhiteSpace(flowName) || pair.Value == null)
+                    {
+                        return false;
+                    }
+
+                    if (Flows.ContainsKey(flowName) &&
+                        _flowModuleOwners.TryGetValue(flowName, out var owner) &&
+                        !string.Equals(owner, moduleKey, StringComparison.OrdinalIgnoreCase) &&
+                        !replace)
+                    {
+                        return false;
+                    }
+                }
+
+                var moduleSet = ModuleFlowIndex.GetOrAdd(moduleKey, _ => new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase));
+                foreach (var pair in flows)
+                {
+                    var flowName = pair.Key.Trim();
+                    var flow = pair.Value;
+                    var normalized = string.Equals(flow.Name, flowName, StringComparison.OrdinalIgnoreCase)
+                        ? flow
+                        : new FlowDefinition(flowName, flow.Steps);
+
+                    Flows[flowName] = normalized;
+                    _flowModuleOwners[flowName] = moduleKey;
+                    moduleSet[flowName] = 0;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Unregisters all flows owned by a module.
+        /// </summary>
+        public static bool UnregisterModuleFlows(string moduleId)
+        {
+            if (string.IsNullOrWhiteSpace(moduleId))
+            {
+                return false;
+            }
+
+            lock (ModuleFlowSync)
+            {
+                return UnregisterModuleFlowsInternal(moduleId.Trim());
+            }
+        }
+
+        /// <summary>
+        /// Tries to execute a named flow.
+        /// Returns false when the flow is missing or execution fails.
+        /// </summary>
+        public static bool TryExecuteFlow(string flowId, EntityMap entityMap, out FlowExecutionResult result)
+        {
+            if (!TryGetFlow(flowId, out var definition))
+            {
+                result = FlowExecutionResult.Fail(0, 0, 0, $"Flow '{flowId}' not found.");
+                return false;
+            }
+
+            result = Execute(definition, entityMap, stopOnFailure: true);
+            return result.Success;
         }
 
         public static bool RegisterActionAlias(string alias, string actionName, bool replace = false)
@@ -284,7 +389,7 @@ namespace VAutomationCore.Core.Api
                 }
 
                 var resolvedArgs = ResolveArgs(step.Args, entityMap);
-                var ok = GameActionService.InvokeAction(actionName, resolvedArgs);
+                var ok = GameActionService.InvokeAction(actionName, resolvedArgs, entityMap);
                 if (!ok)
                 {
                     failed++;
@@ -340,7 +445,7 @@ namespace VAutomationCore.Core.Api
                 }
 
                 var resolvedArgs = ResolveArgs(step.Args, entityMap);
-                var ok = GameActionService.InvokeAction(actionName, resolvedArgs);
+                var ok = GameActionService.InvokeAction(actionName, resolvedArgs, entityMap);
                 if (!ok)
                 {
                     failed++;
@@ -416,6 +521,49 @@ namespace VAutomationCore.Core.Api
 
             var token = actionAliasOrName.Trim();
             return ActionAliases.TryGetValue(token, out var mapped) ? mapped : token;
+        }
+
+        private static bool UnregisterModuleFlowsInternal(string moduleId)
+        {
+            if (!ModuleFlowIndex.TryGetValue(moduleId, out var moduleSet) || moduleSet == null || moduleSet.IsEmpty)
+            {
+                return false;
+            }
+
+            foreach (var flowName in moduleSet.Keys.ToArray())
+            {
+                if (_flowModuleOwners.TryGetValue(flowName, out var owner) &&
+                    string.Equals(owner, moduleId, StringComparison.OrdinalIgnoreCase))
+                {
+                    Flows.TryRemove(flowName, out _);
+                    _flowModuleOwners.TryRemove(flowName, out _);
+                }
+            }
+
+            ModuleFlowIndex.TryRemove(moduleId, out _);
+            return true;
+        }
+
+        private static void DetachFlowOwnership(string flowName)
+        {
+            if (string.IsNullOrWhiteSpace(flowName))
+            {
+                return;
+            }
+
+            if (!_flowModuleOwners.TryRemove(flowName, out var owner) || string.IsNullOrWhiteSpace(owner))
+            {
+                return;
+            }
+
+            if (ModuleFlowIndex.TryGetValue(owner, out var moduleSet))
+            {
+                moduleSet.TryRemove(flowName, out _);
+                if (moduleSet.IsEmpty)
+                {
+                    ModuleFlowIndex.TryRemove(owner, out _);
+                }
+            }
         }
 
         private static void RegisterDefaultActionAliases()

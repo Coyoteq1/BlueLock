@@ -41,8 +41,7 @@ namespace Bluelock.Tests
                 Path.Combine(repoRoot, "Bluelock", "VAutoZone.csproj"),
                 Path.Combine(repoRoot, "CycleBorn", "Vlifecycle.csproj"),
                 Path.Combine(repoRoot, "VAutoannounce", "VAutoannounce.csproj"),
-                Path.Combine(repoRoot, "VAutoTraps", "VAutoTraps.csproj"),
-                Path.Combine(repoRoot, "Swapkits", "Swapkits.csproj")
+                Path.Combine(repoRoot, "VAutoTraps", "VAutoTraps.csproj")
             };
 
             var allowedByProject = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
@@ -61,10 +60,6 @@ namespace Bluelock.Tests
                     "../VAutomationCore.csproj"
                 },
                 ["VAutoTraps.csproj"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "../VAutomationCore.csproj"
-                },
-                ["Swapkits.csproj"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "../VAutomationCore.csproj"
                 }
@@ -228,8 +223,7 @@ namespace Bluelock.Tests
                 new { Name = "Bluelock", Folder = "Bluelock", ExpectedGuid = "gg.coyote.BlueLock" },
                 new { Name = "VAutoannounce", Folder = "VAutoannounce", ExpectedGuid = "gg.coyote.VAutoannounce" },
                 new { Name = "VAutoTraps", Folder = "VAutoTraps", ExpectedGuid = "gg.coyote.VAutomationtrap" },
-                new { Name = "CycleBorn", Folder = "CycleBorn", ExpectedGuid = "gg.coyote.lifecycle" },
-                new { Name = "Swapkits", Folder = "Swapkits", ExpectedGuid = "gg.coyote.ExtraSlots" }
+                new { Name = "CycleBorn", Folder = "CycleBorn", ExpectedGuid = "gg.coyote.lifecycle" }
             };
 
             foreach (var plugin in plugins)

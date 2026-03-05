@@ -19,72 +19,35 @@
         "apiPort": { "type": "integer", "minimum": 1024, "maximum": 65535, "default": 8080 }
       }
     },
-    "vlifecycle": {
+    "blueluck": {
       "type": "object",
-      "description": "Vlifecycle plugin settings",
+      "description": "Blueluck plugin settings",
       "properties": {
         "enabled": { "type": "boolean", "default": true },
-        "arena": {
+        "detection": {
           "type": "object",
           "properties": {
-            "saveInventory": { "type": "boolean", "default": true },
-            "restoreInventory": { "type": "boolean", "default": true },
-            "saveBuffs": { "type": "boolean", "default": true },
-            "restoreBuffs": { "type": "boolean", "default": true },
-            "clearArenaBuffsOnExit": { "type": "boolean", "default": true },
-            "resetAbilityCooldowns": { "type": "boolean", "default": true },
-            "resetCooldownsOnExit": { "type": "boolean", "default": true }
+            "checkIntervalMs": { "type": "integer", "default": 500 },
+            "positionThreshold": { "type": "number", "default": 1.0 },
+            "debugMode": { "type": "boolean", "default": false }
           }
         },
-        "playerState": {
+        "flows": {
           "type": "object",
           "properties": {
-            "saveEquipment": { "type": "boolean", "default": true },
-            "saveBlood": { "type": "boolean", "default": true },
-            "saveSpells": { "type": "boolean", "default": true },
-            "saveHealth": { "type": "boolean", "default": true },
-            "restoreHealth": { "type": "boolean", "default": true }
+            "enabled": { "type": "boolean", "default": true }
           }
         },
-        "transitions": {
+        "kits": {
           "type": "object",
           "properties": {
-            "enterDelayMs": { "type": "integer", "default": 0 },
-            "exitDelayMs": { "type": "integer", "default": 0 },
-            "lockMovementDuringTransition": { "type": "boolean", "default": false },
-            "showTransitionMessages": { "type": "boolean", "default": true }
+            "enabled": { "type": "boolean", "default": true }
           }
-        }
-      }
-    },
-    "vautozone": {
-      "type": "object",
-      "description": "VAutoZone plugin settings",
-      "properties": {
-        "enabled": { "type": "boolean", "default": true },
-        "glowZones": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "string" },
-              "enabled": { "type": "boolean", "default": true },
-              "center": { "$ref": "#/definitions/vec3" },
-              "radius": { "type": "number" },
-              "borderSpacing": { "type": "number", "default": 5 },
-              "glowPrefabs": {
-                "type": "array",
-                "items": { "type": "string" }
-              },
-              "rotation": {
-                "type": "object",
-                "properties": {
-                  "enabled": { "type": "boolean", "default": false },
-                  "intervalSeconds": { "type": "integer", "default": 120 },
-                  "mode": { "type": "string", "enum": ["sequential", "random"], "default": "sequential" }
-                }
-              }
-            }
+        },
+        "progress": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true }
           }
         }
       }

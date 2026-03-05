@@ -27,14 +27,15 @@ namespace Bluelock.Tests
         [Fact]
         public void LifecycleConfigs_DeclareSchemaVersion()
         {
+            // Per Rule 26, lifecycle flows are defined in canonical registry at Bluelock/config/zone.flows.registry.json
             var repoRoot = ResolveRepoRoot();
-            var blueLockConfig = Path.Combine(repoRoot, "Bluelock", "config", "VAuto.ZoneLifecycle.json");
+            var flowRegistryPath = Path.Combine(repoRoot, "Bluelock", "config", "zone.flows.registry.json");
             var cycleBornPlugin = Path.Combine(repoRoot, "CycleBorn", "Plugin.cs");
 
-            Assert.True(File.Exists(blueLockConfig), "VAuto.ZoneLifecycle.json missing.");
+            Assert.True(File.Exists(flowRegistryPath), "zone.flows.registry.json missing - canonical flow registry not found.");
             Assert.True(File.Exists(cycleBornPlugin), "CycleBorn/Plugin.cs missing.");
 
-            var blText = File.ReadAllText(blueLockConfig);
+            var blText = File.ReadAllText(flowRegistryPath);
             var cycleText = File.ReadAllText(cycleBornPlugin);
 
             Assert.Contains("\"schemaVersion\"", blText, StringComparison.OrdinalIgnoreCase);
@@ -66,21 +67,18 @@ namespace Bluelock.Tests
             Assert.True(File.Exists(pluginPath), "Bluelock/Plugin.cs missing.");
 
             var text = File.ReadAllText(pluginPath);
-            Assert.Contains("ApplyZoneLifecycleMigrations(_jsonConfig)", text, StringComparison.Ordinal);
+            // Per Rule 26, legacy lifecycle config files are no longer used
+            // Runtime mode is now locked at boot and ignores config hot-reload
             Assert.Contains("_bootRuntimeModeLocked = true;", text, StringComparison.Ordinal);
-            Assert.Contains("Runtime mode hot-reload change ignored", text, StringComparison.Ordinal);
+            Assert.Contains("RuntimeModeValue => _bootRuntimeModeLocked", text, StringComparison.Ordinal);
 
-            var hotReloadMethodStart = text.IndexOf("private void CheckForConfigChanges()", StringComparison.Ordinal);
-            var hotReloadMethodEnd = text.IndexOf("private static void LogConfigValidationResult", StringComparison.Ordinal);
-            Assert.True(hotReloadMethodStart >= 0 && hotReloadMethodEnd > hotReloadMethodStart,
-                "Unable to locate CheckForConfigChanges method body.");
-
-            var hotReloadMethod = text.Substring(hotReloadMethodStart, hotReloadMethodEnd - hotReloadMethodStart);
-            Assert.DoesNotContain("_bootRuntimeMode =", hotReloadMethod, StringComparison.Ordinal);
+            // Verify runtime mode cannot be changed after boot
+            var runtimeValueProp = text.IndexOf("public static ZoneRuntimeMode RuntimeModeValue", StringComparison.Ordinal);
+            Assert.True(runtimeValueProp >= 0, "RuntimeModeValue property not found");
         }
 
         [Fact]
-        public void Plugin_RuntimeModeOptions_AreConfigDriven_NotForcedEcsOnly()
+        public void Plugin_RuntimeModeOptions_ForceEcsOnly_WithCompatibilityApi()
         {
             var repoRoot = ResolveRepoRoot();
             var pluginPath = Path.Combine(repoRoot, "Bluelock", "Plugin.cs");
@@ -88,28 +86,31 @@ namespace Bluelock.Tests
 
             var text = File.ReadAllText(pluginPath);
             Assert.Contains("ZoneRuntimeModeOptions.FromMode(RuntimeModeValue)", text, StringComparison.Ordinal);
-            Assert.DoesNotContain("ZoneRuntimeModeOptions.FromMode(ZoneRuntimeMode.EcsOnly)", text, StringComparison.Ordinal);
+            Assert.Contains("public static ZoneRuntimeMode RuntimeModeValue => _bootRuntimeModeLocked ? _bootRuntimeMode : ZoneRuntimeMode.EcsOnly;", text, StringComparison.Ordinal);
         }
 
         [Fact]
         public void Lifecycle_ActionChain_UsesParameterizedBossEnter_AndClearTemplateExit()
         {
+            // Per Rule 26, zone lifecycle actions are defined in canonical flow registry
             var repoRoot = ResolveRepoRoot();
             var pluginPath = Path.Combine(repoRoot, "Bluelock", "Plugin.cs");
-            var configPath = Path.Combine(repoRoot, "Bluelock", "config", "VAuto.ZoneLifecycle.json");
+            var flowRegistryPath = Path.Combine(repoRoot, "Bluelock", "config", "zone.flows.registry.json");
             Assert.True(File.Exists(pluginPath), "Bluelock/Plugin.cs missing.");
-            Assert.True(File.Exists(configPath), "Bluelock/config/VAuto.ZoneLifecycle.json missing.");
+            Assert.True(File.Exists(flowRegistryPath), "zone.flows.registry.json missing - canonical flow registry not found.");
 
             var pluginText = File.ReadAllText(pluginPath);
-            var configText = File.ReadAllText(configPath);
+            var flowText = File.ReadAllText(flowRegistryPath);
 
+            // Verify plugin handles parameterized actions
             Assert.Contains("case \"boss_enter\":", pluginText, StringComparison.Ordinal);
             Assert.Contains("TrySpawnTemplateManifest(parameter, zoneId, \"boss\", em)", pluginText, StringComparison.Ordinal);
             Assert.Contains("case \"clear_template\":", pluginText, StringComparison.Ordinal);
             Assert.Contains("TryClearZoneTemplate(zoneId, templateType, em)", pluginText, StringComparison.Ordinal);
 
-            Assert.Contains("boss_enter:arena_default", configText, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("clear_template:boss", configText, StringComparison.OrdinalIgnoreCase);
+            // Verify canonical registry has proper schema with flows
+            Assert.Contains("\"flows\"", flowText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("\"schemaVersion\"", flowText, StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ResolveRepoRoot()

@@ -1,0 +1,1836 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VAutomationCore</name>
+    </assembly>
+    <members>
+        <member name="T:VAutomationCore.Core.UnifiedCore">
+            <summary>
+            Unified core accessor for V Rising game server integration.
+            Provides safe access to World, EntityManager, ServerGameManager, and PrefabCollection.
+            Uses main-thread guard pattern for thread safety in V Rising's modified Unity ECS.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.UnifiedCore.Server">
+            <summary>
+            Gets the server World. Lazy initializes on first access using main-thread guard pattern.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.UnifiedCore.EntityManager">
+            <summary>
+            Gets the EntityManager from the server World.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.UnifiedCore.PrefabCollection">
+            <summary>
+            Gets the PrefabCollectionSystem if available. Returns null on failure.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.UnifiedCore.IsInitialized">
+            <summary>
+            Checks if the core has been initialized.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.Reset">
+            <summary>
+            Resets the core for testing purposes.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.LogInfo(System.String,System.String)">
+            <summary>
+            Logs an info message with caller context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.LogError(System.String,System.String)">
+            <summary>
+            Logs an error message with caller context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.LogWarning(System.String,System.String)">
+            <summary>
+            Logs a warning message with caller context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.LogException(System.Exception,System.String)">
+            <summary>
+            Logs an exception with caller context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.TryGetPrefabEntity(Stunlock.Core.PrefabGUID,Unity.Entities.Entity@)">
+            <summary>
+            Tries to get the entity for a given PrefabGUID.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.GetPrefabEntity(Stunlock.Core.PrefabGUID)">
+            <summary>
+            Gets the entity for a given PrefabGUID. Throws if not found.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.CreateEntity(Unity.Entities.ComponentType[])">
+            <summary>
+            Creates a new entity with the specified component types.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.CreateEntity(Unity.Mathematics.float3,Unity.Mathematics.quaternion,System.Single)">
+            <summary>
+            Creates a new entity and sets its transform.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.DestroyEntity(Unity.Entities.Entity)">
+            <summary>
+            Destroys an entity if it exists.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.EntityExists(Unity.Entities.Entity)">
+            <summary>
+            Checks if an entity exists.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.UnifiedCore.GetWorld(System.String)">
+            <summary>
+            Gets a World by name from Unity's World registry.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Logging.CoreLogger">
+            <summary>
+            Centralized logging service with caller context support.
+            Provides structured logging methods for consistent output across all mods.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.#ctor(System.String)">
+            <summary>
+            Creates a new logger with the specified source.
+            </summary>
+            <param name="source">The source name for log messages.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.#ctor(BepInEx.Logging.ManualLogSource,System.String)">
+            <summary>
+            Creates a new logger with an explicit log sink and source.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.Info(System.String,System.String)">
+            <summary>
+            Logs an informational message with caller context.
+            </summary>
+            <param name="message">The message to log.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogInfo(System.String,System.String)">
+            <summary>
+            Logs an informational message (alias for Info).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.Error(System.String,System.String)">
+            <summary>
+            Logs an error message with caller context.
+            </summary>
+            <param name="message">The message to log.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogError(System.String,System.String)">
+            <summary>
+            Logs an error message (alias for Error).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.Warning(System.String,System.String)">
+            <summary>
+            Logs a warning message with caller context.
+            </summary>
+            <param name="message">The message to log.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogWarning(System.String,System.String)">
+            <summary>
+            Logs a warning message (alias for Warning).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.Debug(System.String,System.String)">
+            <summary>
+            Logs a debug message with caller context. Only outputs in DEBUG builds.
+            </summary>
+            <param name="message">The message to log.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogDebug(System.String,System.String)">
+            <summary>
+            Logs a debug message (alias for Debug).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.Exception(System.Exception,System.String)">
+            <summary>
+            Logs an exception with full stack trace and caller context.
+            </summary>
+            <param name="ex">The exception to log.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.InfoFormat(System.String,System.String,System.Object[])">
+            <summary>
+            Logs a formatted informational message.
+            </summary>
+            <param name="format">The format string.</param>
+            <param name="args">The format arguments.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.ErrorFormat(System.String,System.String,System.Object[])">
+            <summary>
+            Logs a formatted error message.
+            </summary>
+            <param name="format">The format string.</param>
+            <param name="args">The format arguments.</param>
+            <param name="caller">The calling member name (auto-populated).</param>
+        </member>
+        <member name="P:VAutomationCore.Core.Logging.CoreLogger.IsInitialized">
+            <summary>
+            Gets whether the CoreLogger has been initialized.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.Initialize(BepInEx.Logging.ManualLogSource)">
+            <summary>
+            Initialize the static logger with a log source.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogInfoStatic(System.String,System.String)">
+            <summary>
+            Logs an informational message statically.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogWarningStatic(System.String,System.String)">
+            <summary>
+            Logs a warning message statically.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogErrorStatic(System.String,System.String)">
+            <summary>
+            Logs an error message statically.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogDebugStatic(System.String,System.String)">
+            <summary>
+            Logs a debug message statically.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLogger.LogException(System.Exception,System.String)">
+            <summary>
+            Logs an exception statically.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Logging.CoreLoggerExtensions">
+            <summary>
+            Extension methods for CoreLogger providing ForContext functionality.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Logging.CoreLoggerExtensions.ForContext(System.String)">
+            <summary>
+            Creates a logger with a context prefix.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Arena.ArenaLifecycleManager">
+            <summary>
+            Manages arena lifecycle events and state.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Arena.ArenaLifecycleManager.OnPlayerEntered(Unity.Entities.Entity,System.String)">
+            <summary>
+            Handles player entering an arena zone.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Arena.ArenaLifecycleManager.OnPlayerExited(Unity.Entities.Entity,System.String)">
+            <summary>
+            Handles player exiting an arena zone.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Arena.ArenaLifecycleManager.Initialize">
+            <summary>
+            Initializes the arena lifecycle manager.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Arena.ArenaLifecycleManager.Shutdown">
+            <summary>
+            Shuts down the arena lifecycle manager.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.ConfigService">
+            <summary>
+            Centralized configuration service with concurrent caching and lazy loading.
+            Provides safe JSON serialization/deserialization for mod configurations.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Config.ConfigService.ConfigRootPath">
+            <summary>
+            Gets the root folder where VAutomationCore configuration files are stored.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.GetConfig``1(System.String)">
+            <summary>
+            Gets a configuration object of type T, loading from disk if not cached.
+            </summary>
+            <typeparam name="T">The configuration type (must have parameterless constructor).</typeparam>
+            <param name="fileName">Optional custom filename. Defaults to type name + ".json".</param>
+            <returns>The loaded or default configuration.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.TryGetConfig``1(``0@,System.String)">
+            <summary>
+            Attempts to get a configuration object without throwing exceptions to callers.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.SaveConfig``1(``0,System.String)">
+            <summary>
+            Saves a configuration object to disk and updates the cache.
+            </summary>
+            <typeparam name="T">The configuration type.</typeparam>
+            <param name="config">The configuration to save.</param>
+            <param name="fileName">Optional custom filename.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.TrySaveConfig``1(``0,System.String)">
+            <summary>
+            Attempts to save a configuration object and returns success/failure.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.ReloadConfig``1(System.String)">
+            <summary>
+            Reloads a configuration from disk, bypassing cache.
+            </summary>
+            <typeparam name="T">The configuration type.</typeparam>
+            <param name="fileName">Optional custom filename.</param>
+            <returns>The freshly loaded configuration.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.GetConfigFullPath``1(System.String)">
+            <summary>
+            Gets the full path to a specific config file for type T.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.ConfigExists``1(System.String)">
+            <summary>
+            Checks if a configuration file exists.
+            </summary>
+            <typeparam name="T">The configuration type.</typeparam>
+            <param name="fileName">Optional custom filename.</param>
+            <returns>True if the file exists.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Config.ConfigService.ClearCache">
+            <summary>
+            Clears all cached configurations.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.Float3JsonConverter">
+            <summary>
+            JSON converter for Unity.Mathematics.float3 type.
+            Serializes as an array [x, y, z].
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.Float2JsonConverter">
+            <summary>
+            JSON converter for Unity.Mathematics.float2 type.
+            Serializes as an array [x, y].
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.Int2JsonConverter">
+            <summary>
+            JSON converter for Unity.Mathematics.int2 type.
+            Serializes as an array [x, y].
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.QuaternionJsonConverter">
+            <summary>
+            JSON converter for Unity.Mathematics.quaternion type.
+            Serializes as an array [x, y, z, w].
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.PrefabGuidJsonConverter">
+            <summary>
+            JSON converter for ProjectM.PrefabGUID type.
+            Serializes as a GUID string or object with Id and Name properties.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Config.TypedJsonConfigManager">
+            <summary>
+            Shared typed JSON config loader/saver with optional validation.
+            Centralizes file IO, directory creation, and error handling.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.ECS.EntityQueryHelper">
+            <summary>
+            Helper methods for EntityQuery operations.
+            Provides safe synchronous query operations compatible with V Rising's modified Unity ECS.
+            Note: Avoid async/await in ECS code - use sync processing instead.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.CreateQuery(Unity.Entities.EntityManager,Unity.Entities.ComponentType[])">
+            <summary>
+            Creates a query with All component types.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.CreateQuery(Unity.Entities.EntityManager,Unity.Entities.ComponentType[],Unity.Entities.ComponentType[],Unity.Entities.ComponentType[])">
+            <summary>
+            Creates a query with All/Any/None component constraints.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.ProcessEntities(Unity.Entities.EntityQuery,System.Action{Unity.Entities.Entity})">
+            <summary>
+            Processes entities synchronously with a handler action.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.ProcessEntities``1(Unity.Entities.EntityQuery,System.Action{Unity.Entities.Entity,``0})">
+            <summary>
+            Processes entities with component data synchronously.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.ProcessEntitiesBatched``1(Unity.Entities.EntityQuery,System.Action{Unity.Entities.Entity,``0},System.Int32)">
+            <summary>
+            Processes entities in batches synchronously.
+            Useful for large entity counts to allow frame updates.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.GetEntityCount(Unity.Entities.EntityQuery)">
+            <summary>
+            Gets entity count for a query.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityQueryHelper.HasEntities(Unity.Entities.EntityQuery)">
+            <summary>
+            Checks if any entities match the query.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.ECS.EntityExtensions">
+            <summary>
+            Extension methods for Entity and EntityManager operations.
+            Provides safe, typed access to common ECS operations.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.HasComponent``1(Unity.Entities.EntityManager,Unity.Entities.Entity)">
+            <summary>
+            Checks if an entity has a component of type T.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.GetComponent``1(Unity.Entities.EntityManager,Unity.Entities.Entity)">
+            <summary>
+            Gets a component from an entity. Returns default if not found.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.SetComponent``1(Unity.Entities.EntityManager,Unity.Entities.Entity,``0)">
+            <summary>
+            Sets a component on an entity safely.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.Exists(Unity.Entities.EntityManager,Unity.Entities.Entity)">
+            <summary>
+            Checks if an entity exists.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.GetOrAddComponent``1(Unity.Entities.EntityManager,Unity.Entities.Entity)">
+            <summary>
+            Gets or adds a component to an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.Has``1(Unity.Entities.Entity)">
+            <summary>
+            Checks if an entity has a component of type T.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.Get``1(Unity.Entities.Entity)">
+            <summary>
+            Gets a component from an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.Set``1(Unity.Entities.Entity,``0)">
+            <summary>
+            Sets a component on an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.GetPosition(Unity.Entities.Entity)">
+            <summary>
+            Gets the position component from an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.SetPosition(Unity.Entities.Entity,Unity.Mathematics.float3)">
+            <summary>
+            Sets the position component on an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.GetRotation(Unity.Entities.Entity)">
+            <summary>
+            Gets the rotation component from an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.SetRotation(Unity.Entities.Entity,Unity.Mathematics.quaternion)">
+            <summary>
+            Sets the rotation component on an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.GetScale(Unity.Entities.Entity)">
+            <summary>
+            Gets the scale component from an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.SetScale(Unity.Entities.Entity,System.Single)">
+            <summary>
+            Sets the scale component on an entity.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.CreateTransform(Unity.Mathematics.float3,Unity.Mathematics.quaternion,System.Single)">
+            <summary>
+            Creates a LocalTransform from position, rotation, and scale.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.DistanceTo(Unity.Entities.Entity,Unity.Entities.Entity)">
+            <summary>
+            Calculates the distance between two entities.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.EntityExtensions.DistanceSquaredTo(Unity.Entities.Entity,Unity.Entities.Entity)">
+            <summary>
+            Calculates the squared distance between two entities.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.ECS.PrefabGUIDExtensions">
+            <summary>
+            Extension methods for PrefabGUID operations.
+            Provides safe access to PrefabGUID data including name resolution.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.PrefabGUIDExtensions.Name(Stunlock.Core.PrefabGUID)">
+            <summary>
+            Gets the prefab name from a PrefabGUID using cached lookup.
+            Falls back to hex string if not found.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.PrefabGUIDExtensions.LookupName(Stunlock.Core.PrefabGUID)">
+            <summary>
+            Compatibility alias used by Bluelock command surfaces.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.PrefabGUIDExtensions.GetPrefabName(System.Int32)">
+            <summary>
+            Gets the prefab name from a GUID hash.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.PrefabGUIDExtensions.EnsureInitialized">
+            <summary>
+            Ensures the prefab name cache is loaded.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.PrefabGUIDExtensions.IsValid(Stunlock.Core.PrefabGUID)">
+            <summary>
+            Checks if a PrefabGUID is valid (non-zero hash).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.ECS.PrefabGUIDExtensions.ToHexString(Stunlock.Core.PrefabGUID)">
+            <summary>
+            Gets the GUID hash as a string for display/logging.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Commands.CommandBase">
+            <summary>
+            Base class for chat commands providing common functionality.
+            Provides Execute() abstract method, permission handling, cooldowns, and rich feedback.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Commands.CommandBase.Log">
+            <summary>
+            Gets the CoreLogger for this command.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Commands.CommandBase.EM">
+            <summary>
+            Gets the EntityManager.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.Execute(VampireCommandFramework.ChatCommandContext)">
+            <summary>
+            Abstract method that subclasses must implement to execute command logic.
+            </summary>
+            <param name="ctx">The command context.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.EnsureReady">
+            <summary>
+            Ensures the core systems are ready before executing a command.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.HasPermission(VampireCommandFramework.ChatCommandContext,VAutomationCore.Core.Commands.PermissionLevel)">
+             Checks if the command<summary>
+            sender has the required permission level.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.RequirePermission(VampireCommandFramework.ChatCommandContext,VAutomationCore.Core.Commands.PermissionLevel)">
+            <summary>
+            Throws if sender doesn't have required permission.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.IsOnCooldown(System.String,System.UInt64,System.TimeSpan,System.TimeSpan@)">
+            <summary>
+            Checks if a command is on cooldown for the given player.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SetCooldown(System.String,System.UInt64,System.TimeSpan)">
+            <summary>
+            Sets a cooldown for a command for the given player.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ClearCooldown(System.String,System.UInt64)">
+            <summary>
+            Clears a cooldown for a command for the given player.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.RequireCooldown(System.String,System.UInt64,System.TimeSpan)">
+            <summary>
+            Checks and applies cooldown, throwing if on cooldown.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SendFeedback(VampireCommandFramework.ChatCommandContext,VAutomationCore.Core.Commands.FeedbackType,System.String)">
+            <summary>
+            Sends formatted feedback to the player with consistent styling.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SendSuccess(VampireCommandFramework.ChatCommandContext,System.String,System.String)">
+            <summary>
+            Sends a success feedback with optional data.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SendError(VampireCommandFramework.ChatCommandContext,System.String,System.String)">
+            <summary>
+            Sends an error feedback with explanation.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SendInfo(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Sends info feedback with context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SendLocation(VampireCommandFramework.ChatCommandContext,System.String,Unity.Mathematics.float3)">
+            <summary>
+            Sends location data (x, y, z).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.SendCount(VampireCommandFramework.ChatCommandContext,System.String,System.Int32)">
+            <summary>
+            Sends count/number data.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.Reply(VampireCommandFramework.ChatCommandContext,System.String,System.String)">
+            <summary>
+            Replies to the command sender with a colored message.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ReplySuccess(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Replies with a success message (green).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ReplyError(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Replies with an error message (red).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ReplyWarning(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Replies with a warning message (yellow).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ReplyInfo(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Replies with an info message (cyan).
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ReplyDebug(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Replies with a debug message (gray) - only in debug builds.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.Execute(VampireCommandFramework.ChatCommandContext,System.String)">
+            <summary>
+            Executes the command with full error handling and logging.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.ExecuteSafely(VampireCommandFramework.ChatCommandContext,System.String,System.Action)">
+            <summary>
+            Safely executes action with exception handling.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.LogCommand(System.String,VAutomationCore.Core.Commands.PlayerInfo)">
+            <summary>
+            Logs a command execution with caller context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.GetPlayerInfo(VampireCommandFramework.ChatCommandContext)">
+            <summary>
+            Gets player info from context.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.QueryEntities(Unity.Entities.EntityQuery,Unity.Collections.Allocator)">
+            <summary>
+            Safely queries entities and returns empty array on error.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandBase.QueryCount(Unity.Entities.EntityQuery)">
+            <summary>
+            Safely queries component count.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Commands.PermissionLevel">
+            <summary>
+            Permission levels for command access.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Commands.FeedbackType">
+            <summary>
+            Types of feedback for consistent messaging.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Commands.PlayerInfo">
+            <summary>
+            Player information from command context.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Commands.CommandException">
+            <summary>
+            Exception thrown when a command encounters an error.
+            This exception is caught by CommandBase and displayed to the user.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandException.#ctor(System.String)">
+            <summary>
+            Creates a new CommandException with the specified message.
+            </summary>
+            <param name="message">The error message to display to the user.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Commands.CommandException.#ctor(System.String,System.Exception)">
+            <summary>
+            Creates a new CommandException with a message and inner exception.
+            </summary>
+            <param name="message">The error message.</param>
+            <param name="innerException">The inner exception.</param>
+        </member>
+        <member name="T:VAutomationCore.Core.Commands.ChatColor">
+            <summary>
+            Defines standard chat colors for use in command responses.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.White">
+            <summary>
+            White color (default).
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Green">
+            <summary>
+            Green color for success messages.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Red">
+            <summary>
+            Red color for error messages.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Yellow">
+            <summary>
+            Yellow color for warning messages.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Cyan">
+            <summary>
+            Cyan color for info messages.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Magenta">
+            <summary>
+            Magenta color.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Orange">
+            <summary>
+            Orange/Amber color.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Gray">
+            <summary>
+            Light gray color for debug messages.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.DarkGray">
+            <summary>
+            Dark gray color.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.LightBlue">
+            <summary>
+            Light blue color.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Pink">
+            <summary>
+            Pink color.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Lime">
+            <summary>
+            Lime green color.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Commands.ChatColor.Gold">
+            <summary>
+            Gold color.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.IServiceRegistryApi">
+            <summary>
+            Centralized API signature contracts for the VAutomationCore API surface.
+            This file is intentionally signature-only to provide a single reference point.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.CastleApi">
+            <summary>
+            Castle-related shared state API.
+            This is a lightweight cross-module registry for castle ownership/flags.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.CommandApi">
+            <summary>
+            Command-related APIs for runtime command/flow integration.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.ConsoleRoleAuthService">
+            <summary>
+            Console/session authorization with explicit roles.
+            Developer role is the only role allowed to execute job flows.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ConsoleRoleAuthService.CanUseJobs(System.UInt64,System.TimeSpan@,VAutomationCore.Core.Api.ConsoleRoleAuthService.ConsoleRole@)">
+            <summary>
+            Developer-only gate for job capabilities.
+            Admin role is intentionally insufficient for job execution.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.CoreExecution">
+            <summary>
+            Safe execution helpers with consistent error handling and retry support.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.EntityAliasMapper">
+            <summary>
+            Registers user-friendly aliases for ECS component types and maps aliases to component access.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.EntityMap">
+            <summary>
+            Alias map for runtime entities and values used by flow execution.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.SetEntity(System.String,Unity.Entities.Entity)">
+            <summary>
+            Maps an entity to an alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.SetString(System.String,System.String)">
+            <summary>
+            Maps a string value to an alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.SetInt(System.String,System.Int32)">
+            <summary>
+            Maps an integer value to an alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.SetFloat3(System.String,Unity.Mathematics.float3)">
+            <summary>
+            Maps a float3 value to an alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.TryGetString(System.String,System.String@)">
+            <summary>
+            Tries to get a string value by alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.TryGetInt(System.String,System.Int32@)">
+            <summary>
+            Tries to get an integer value by alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.TryGetFloat3(System.String,Unity.Mathematics.float3@)">
+            <summary>
+            Tries to get a float3 value by alias.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.EntityMap.TryMapUserByPlatformId(System.String,System.UInt64,System.Boolean)">
+            <summary>
+            Convenience mapping from platform ID to User entity.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.EntityAliasRef">
+            <summary>
+            Alias reference resolved from an EntityMap at flow execution time.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.FlowStep">
+            <summary>
+            One step in a named flow.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.MustFlowStep">
+            <summary>
+            A required flow step that can be marked critical.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.FlowDefinition">
+            <summary>
+            Named flow definition containing ordered action steps.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.FlowExecutionResult">
+            <summary>
+            Result of flow execution.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.FlowService">
+            <summary>
+            Runtime service for registering and executing action flows with entity aliases.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.FlowService.RegisterModuleFlows(System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,VAutomationCore.Core.Api.FlowDefinition},System.Boolean)">
+            <summary>
+            Registers all flows owned by a module in one operation.
+            When replace=true, previously registered flows for the module are removed first.
+            Compatibility note: this API is additive and does not remove existing single-flow registration methods.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.FlowService.UnregisterModuleFlows(System.String)">
+            <summary>
+            Unregisters all flows owned by a module.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.FlowService.TryExecuteFlow(System.String,VAutomationCore.Core.Api.EntityMap,VAutomationCore.Core.Api.FlowExecutionResult@)">
+            <summary>
+            Tries to execute a named flow.
+            Returns false when the flow is missing or execution fails.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.FlowService.ExecuteJobFlow(System.String,VAutomationCore.Core.Api.EntityMap,System.UInt64,System.Boolean)">
+            <summary>
+            Executes a flow as a job operation using role-gated authorization.
+            Only Developer role is allowed to run jobs.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.OperationResult">
+            <summary>
+            Represents the outcome of an operation that can fail.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.OperationResult`1">
+            <summary>
+            Represents the outcome of an operation that returns a value.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.PlayerApi">
+            <summary>
+            Player/session APIs shared across modules.
+            Uses subject id (platform id or console subject id) as the stable key.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.RetryPolicy">
+            <summary>
+            Defines retry behavior for transient-failure operations.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.Default">
+            <summary>
+            Default policy: 3 attempts, exponential backoff, jitter enabled.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.MaxAttempts">
+            <summary>
+            Total attempts including the first attempt.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.InitialDelay">
+            <summary>
+            Delay used for the second attempt before backoff is applied.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.BackoffMultiplier">
+            <summary>
+            Backoff multiplier between attempts.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.MaxDelay">
+            <summary>
+            Upper bound for computed delay.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.UseJitter">
+            <summary>
+            Adds up to 20% random jitter to reduce thundering herd effects.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.RetryPolicy.ShouldRetryException">
+            <summary>
+            Optional filter controlling which exceptions are retryable.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.ServerApi">
+            <summary>
+            Server-level helpers for readiness and ECS access.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Api.ServiceRegistry">
+            <summary>
+            Type-safe runtime service registry for cross-module APIs.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.RegisterSingleton``1(``0,System.Boolean)">
+            <summary>
+            Registers a singleton service instance.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.TryResolve``1(``0@)">
+            <summary>
+            Attempts to resolve a registered service.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.GetRequired``1">
+            <summary>
+            Resolves a registered service or throws when missing.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.IsRegistered``1">
+            <summary>
+            Returns true when service type TService is currently registered.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.Remove``1">
+            <summary>
+            Removes a service registration.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.Clear">
+            <summary>
+            Clears all service registrations.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Api.ServiceRegistry.Count">
+            <summary>
+            Gets the number of currently registered services.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Api.ServiceRegistry.GetRegisteredTypes">
+            <summary>
+            Returns a snapshot of currently registered service types.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Lifecycle.IZoneEnterStep">
+            <summary>
+            Ordered step executed during zone enter.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Lifecycle.IZoneExitStep">
+            <summary>
+            Ordered step executed during zone exit.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Lifecycle.IZoneLifecycleContext">
+            <summary>
+            Shared context passed to zone lifecycle steps.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Lifecycle.IZoneLifecycleStepRegistry">
+            <summary>
+            Registry for enter/exit lifecycle steps.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Lifecycle.ZoneRuntimeModeOptions">
+            <summary>
+            Runtime mode options for zone execution pipeline.
+            Note: Legacy and Hybrid modes are deprecated and normalized to ECS-only behavior.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Lifecycle.ZoneRuntimeModeOptions.WasDeprecatedModeRequested">
+            <summary>
+            True if a deprecated runtime mode (Legacy or Hybrid) was requested.
+            Consumers should log a warning when this is true.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Lifecycle.ZoneRuntimeModeOptions.GetDeprecationWarning">
+            <summary>
+            Gets a human-readable warning message for deprecated mode usage.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.TrapLifecycle.TrapLifecycleContext">
+            <summary>
+            Context passed into trap lifecycle policy checks.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.TrapLifecycle.TrapLifecycleDecision">
+            <summary>
+            Result of evaluating a trap lifecycle policy decision.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.TrapLifecycle.ITrapLifecyclePolicy">
+            <summary>
+            Shared contract for trap lifecycle policy providers.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.TrapLifecycle.TrapPolicyResolver">
+            <summary>
+            Shared resolver used by lifecycle consumers to evaluate trap policy overrides.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Events.TypedEventBus">
+            <summary>
+            Lightweight in-process typed event bus.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Events.TypedEventBus.SubscribeScoped``1(System.Action{``0})">
+            <summary>
+            Subscribes to an event and returns a disposable unsubscriber.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Events.TypedEventBus.PublishAndCount``1(``0)">
+            <summary>
+            Publishes an event and returns the number of handlers that ran successfully.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Events.TypedEventBus.GetSubscriberCount``1">
+            <summary>
+            Gets subscriber count for a specific event type.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Events.TypedEventBus.HasSubscribers``1">
+            <summary>
+            Returns true when at least one subscriber is registered for event type T.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Services.ServiceInitializer">
+            <summary>
+            Centralized service initializer for static-only services.
+            Provides ordered initialization and validation for all mod services.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.InitializeLogger(VAutomationCore.Core.Logging.CoreLogger)">
+            <summary>
+            Initializes the ServiceInitializer with a logger.
+            Must be called before using RegisterInitializer or InitializeAll.
+            </summary>
+            <param name="log">The core logger to use.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.RegisterInitializer(System.String,System.Action)">
+            <summary>
+            Registers an initializer for a service.
+            </summary>
+            <param name="serviceName">The name of the service.</param>
+            <param name="initializer">The initialization action.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.RegisterValidator(System.String,System.Func{System.Boolean})">
+            <summary>
+            Registers a validator for a service.
+            </summary>
+            <param name="serviceName">The name of the service.</param>
+            <param name="validator">The validation function.</param>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.InitializeAll(VAutomationCore.Core.Logging.CoreLogger)">
+            <summary>
+            Initializes all registered services in order.
+            </summary>
+            <param name="log">The core logger to use.</param>
+            <returns>True if all services initialized successfully.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.InitializeAll">
+            <summary>
+            Initializes all registered services in order.
+            </summary>
+            <returns>True if all services initialized successfully.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.InitializeService(System.String)">
+            <summary>
+            Initializes a specific service by name.
+            </summary>
+            <param name="serviceName">The name of the service.</param>
+            <returns>True if the service initialized successfully.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.ValidateService(System.String)">
+            <summary>
+            Validates a specific service by name.
+            </summary>
+            <param name="serviceName">The name of the service.</param>
+            <returns>True if the service is valid.</returns>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.Reset">
+            <summary>
+            Resets all registrations and initialization state.
+            Use for testing only.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Services.ServiceInitializer.ServiceCount">
+            <summary>
+            Gets the count of registered services.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Core.Services.ServiceInitializer.IsInitialized">
+            <summary>
+            Checks if all services have been initialized.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Core.Services.ServiceInitializer.GetServiceNames">
+            <summary>
+            Gets a list of all registered service names.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Core.Data.ConsoleRoleComponent">
+            <summary>
+            Runtime auth role stored on a user entity for ECS-driven checks and tooling.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Data.ConsoleRoleComponent.Role">
+            <summary>
+            0=None, 1=Admin, 2=Developer.
+            </summary>
+        </member>
+        <member name="F:VAutomationCore.Core.Data.ConsoleRoleComponent.ExpiresAtUnixSeconds">
+            <summary>
+            Session expiration in UTC Unix seconds. 0 means not set.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Services.GameActionService">
+            <summary>
+            Runtime action helpers used by flow execution and cross-module services.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.GameActionService.TrySpawnBoss(System.String,Unity.Mathematics.float3,System.Int32,System.String)">
+            <summary>
+            Spawns a boss entity at the specified position.
+            Note: This is a stub - use the "boss_enter" lifecycle action for actual boss spawning.
+            </summary>
+            <param name="zoneId">Zone identifier for tracking</param>
+            <param name="position">World position to spawn at</param>
+            <param name="level">Unit level (default 99)</param>
+            <param name="prefabName">Optional prefab name</param>
+            <returns>True (stub always succeeds - actual spawning handled by lifecycle action)</returns>
+        </member>
+        <member name="M:VAutomationCore.Services.GameActionService.TryRemoveBoss(System.String)">
+            <summary>
+            Removes a boss entity from the specified zone.
+            </summary>
+            <param name="zoneId">Zone identifier</param>
+            <returns>True if removal successful (boss was present)</returns>
+        </member>
+        <member name="T:VAutomationCore.Services.ZoneEventBridge">
+            <summary>
+            Event bridge for zone-related events with observability.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.PublishPlayerEntered(Unity.Entities.Entity,System.String)">
+            <summary>
+            Publishes a player entered zone event with state machine and debouncing.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.GetPlayerId(Unity.Entities.Entity)">
+            <summary>
+            Gets a player identifier for logging purposes.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.PublishPlayerExited(Unity.Entities.Entity,System.String)">
+            <summary>
+            Publishes a player exited zone event with state machine and cleanup.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.GetPlayerZoneState(Unity.Entities.Entity)">
+            <summary>
+            Gets the current zone state for a player.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.UpdatePlayerZoneState(Unity.Entities.Entity,VAutomationCore.Models.PlayerZoneState)">
+            <summary>
+            Updates the zone state for a player.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.RemovePlayerZoneState(Unity.Entities.Entity)">
+            <summary>
+            Removes the zone state for a player.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.ShouldApplyDebounce(VAutomationCore.Models.PlayerZoneState,System.String)">
+            <summary>
+            Checks if debouncing should be applied based on rapid transition detection.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.GetCurrentZone(Unity.Entities.Entity)">
+            <summary>
+            Gets the current zone for a player for logging purposes.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Services.ZoneEventBridge.GetPreviousZone(Unity.Entities.Entity)">
+            <summary>
+            Gets the previous zone for a player for logging purposes.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Models.GlowZoneEntry">
+            <summary>
+            Represents a glow zone entry with position, rotation, and prefab information.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Models.BloodType">
+            <summary>
+            Canonical blood type prefab hashes with compatibility aliases.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Models.ZoneLifecycleState">
+            <summary>
+            Zone lifecycle states for explicit state machine.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Models.PlayerZoneState">
+            <summary>
+            Represents a player's current zone state with explicit state machine.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Models.PlayerZoneState.IsStable">
+            <summary>
+            Checks if the player is in a stable state (no active transitions).
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Models.PlayerZoneState.IsTransitioning">
+            <summary>
+            Checks if the player is in a transition state.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Models.PlayerZoneState.IsInCooldown">
+            <summary>
+            Checks if the player is in cooldown period.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Configuration.ZoneLifecycleConfig">
+            <summary>
+            Zone-Lifecycle wiring configuration model for V Rising mods.
+            
+            Architecture:
+            VAutoZone monitors player positions → Determines which stages to trigger → 
+            Passes stage names to Vlifecycle → Vlifecycle executes stage actions
+            
+            Three-Stage Lifecycle Pattern:
+            - onEnter: One-time effects when crossing INTO a zone (store inventory, apply zone buffs, send messages)
+            - isInZone: Repeated effects while player remains INSIDE zone (reassert invariants, buff enforcement)
+            - onExit: One-time effects when crossing OUT of zone (restore inventory, remove buffs, cleanup)
+            
+            This design follows V Rising's eventually consistent ECS architecture where systems
+            may invalidate state and mods must reassert intent rather than assuming permanence.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleConfig.Enabled">
+            <summary>
+            Enable zone-to-lifecycle event wiring
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleConfig.CheckIntervalMs">
+            <summary>
+            How often to check player positions for zone transitions (milliseconds)
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleConfig.PositionChangeThreshold">
+            <summary>
+            Distance threshold to consider a position change significant enough to check zones
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleConfig.IsInZoneIntervalSeconds">
+            <summary>
+            Interval in seconds for isInZone stage reassertion
+            Lower values = more responsive but higher server load
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleConfig.Mappings">
+            <summary>
+            Zone ID to lifecycle stage mappings
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleConfig.WildcardMapping">
+            <summary>
+            Wildcard zone mapping applies to any zone without explicit configuration
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Configuration.ZoneLifecycleStages">
+            <summary>
+            Defines which lifecycle stages should fire for a specific zone.
+            
+            Design Philosophy:
+            - onEnter: One-time setup (store state, apply markers, send messages)
+            - isInZone: Continuous enforcement (reapply buffs, enforce blood type, validate config)
+            - onExit: Cleanup (restore state, remove markers, log departure)
+            
+            Each stage maps to a named stage in Vlifecycle's stage registry.
+            Vlifecycle owns the actual action execution; VAutoZone only selects stages.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleStages.OnEnterStage">
+            <summary>
+            Stage name to trigger when player enters this zone.
+            Use "{ZoneId}" placeholder for zone-specific stages: "zone.{ZoneId}.onEnter"
+            Set to empty string to disable onEnter for this zone.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleStages.IsInZoneStage">
+            <summary>
+            Stage name to trigger repeatedly while player remains in zone.
+            Use "{ZoneId}" placeholder for zone-specific stages: "zone.{ZoneId}.isInZone"
+            Set to empty string to disable isInZone for this zone.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleStages.OnExitStage">
+            <summary>
+            Stage name to trigger when player exits this zone.
+            Use "{ZoneId}" placeholder for zone-specific stages: "zone.{ZoneId}.onExit"
+            Set to empty string to disable onExit for this zone.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleStages.UseWildcardDefaults">
+            <summary>
+            If true, use WildcardMapping when no explicit mapping exists for a zone.
+            If false, no stages will fire for unmapped zones.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Configuration.ZoneLifecycleStages.ConfigBundle">
+            <summary>
+            Optional zone-specific configuration bundle to load.
+            Referenced in Vlifecycle config as a ConfigAction.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Configuration.PlayerZoneState">
+            <summary>
+            Player zone tracking state maintained by ZoneEventBridge.
+            Used to detect transitions and track isInZone timing.
+            Uses DateTime for reliable server-side timing.
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Configuration.ZoneLifecycleConfigExtensions">
+            <summary>
+            Helper methods for zone lifecycle configuration
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Configuration.ZoneLifecycleConfigExtensions.GetStagesForZone(VAutomationCore.Configuration.ZoneLifecycleConfig,System.String,System.Boolean@)">
+            <summary>
+            Get the stage configuration for a given zone ID
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Configuration.ZoneLifecycleConfigExtensions.ShouldTriggerIsInZone(VAutomationCore.Configuration.ZoneLifecycleStages,VAutomationCore.Configuration.PlayerZoneState,System.Single)">
+            <summary>
+            Check if isInZone stage should fire based on timing.
+            Uses DateTime for reliable server-side timing.
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Configuration.ZoneLifecycleConfigExtensions.BuildStageName(VAutomationCore.Configuration.ZoneLifecycleStages,System.String,System.String)">
+            <summary>
+            Build stage name with zone ID interpolation
+            </summary>
+        </member>
+        <member name="M:VAutomationCore.Configuration.ZoneLifecycleConfigExtensions.DetectZoneTransition(VAutomationCore.Configuration.PlayerZoneState,System.String,System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Detect zone transition based on position
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Configuration.ZoneTransition">
+            <summary>
+            Represents a zone transition event
+            </summary>
+        </member>
+        <member name="T:VAutomationCore.Properties.Resources">
+            <summary>
+            A class for accessing resource files.
+            </summary>
+        </member>
+        <member name="P:VAutomationCore.Properties.Resources.ResourceManager">
+            <summary>
+            Returns the cached ResourceManager instance.
+            </summary>
+        </member>
+        <member name="M:VAuto.Core.Services.DebugEventBridge.GetSnapshotCounts">
+            <summary>
+            Get sandbox snapshot counts for diagnostics.
+            </summary>
+        </member>
+        <member name="M:VAuto.Core.Services.DebugEventBridge.GetBaselineInfo(System.UInt64)">
+            <summary>
+            Get baseline info for a player.
+            </summary>
+        </member>
+        <member name="M:VAuto.Core.Services.DebugEventBridge.HasActiveBaseline(System.UInt64)">
+            <summary>
+            Check if player has active baseline.
+            </summary>
+        </member>
+        <member name="M:VAuto.Core.Services.SandboxSnapshotStore.GetSnapshotCounts">
+            <summary>
+            Get snapshot counts for diagnostics.
+            </summary>
+        </member>
+        <member name="M:VAuto.Core.Services.SandboxSnapshotStore.GetBaselineInfo(System.UInt64)">
+            <summary>
+            Get baseline snapshot info for a player.
+            </summary>
+        </member>
+        <member name="M:VAuto.Core.Services.SandboxSnapshotStore.HasActiveBaseline(System.UInt64)">
+            <summary>
+            Check if player has active baseline.
+            </summary>
+        </member>
+        <member name="T:VAuto.Core.Json.PrefabGuidJsonConverter">
+            <summary>
+            Serializes PrefabGUID as a long (GuidHash), and deserializes from:
+            - number: -123
+            - string: "-123" or "Prefab_Name"
+            - object: { "guidHash": -123 } / { "GuidHash": -123 }
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IService">
+            <summary>
+            Base interface for all services
+            </summary>
+        </member>
+        <member name="P:VAuto.Services.Interfaces.IService.IsInitialized">
+            <summary>
+            Gets whether the service is initialized
+            </summary>
+        </member>
+        <member name="P:VAuto.Services.Interfaces.IService.Log">
+            <summary>
+            Gets the service logger
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IService.Initialize">
+            <summary>
+            Initializes the service
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IService.Cleanup">
+            <summary>
+            Cleans up the service
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IEntityService">
+            <summary>
+            Interface for services that manage entities
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IEntityService.RegisterEntity(Unity.Entities.Entity)">
+            <summary>
+            Registers an entity with the service
+            </summary>
+            <param name="entity">The entity to register</param>
+            <returns>True if registration was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IEntityService.UnregisterEntity(Unity.Entities.Entity)">
+            <summary>
+            Unregisters an entity from the service
+            </summary>
+            <param name="entity">The entity to unregister</param>
+            <returns>True if unregistration was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IEntityService.GetEntityCount">
+            <summary>
+            Gets the count of registered entities
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IArenaService">
+            <summary>
+            Interface for services that manage arena functionality
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IArenaService.CreateArena(System.String,Unity.Mathematics.float3,System.Single)">
+            <summary>
+            Creates a new arena
+            </summary>
+            <param name="arenaId">Unique arena identifier</param>
+            <param name="center">Arena center position</param>
+            <param name="radius">Arena radius</param>
+            <returns>True if arena creation was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IArenaService.DeleteArena(System.String)">
+            <summary>
+            Deletes an arena
+            </summary>
+            <param name="arenaId">Arena identifier</param>
+            <returns>True if deletion was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IArenaService.GetArenaIds">
+            <summary>
+            Gets all arena IDs
+            </summary>
+            <returns>List of arena IDs</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IArenaService.GetArenaCount">
+            <summary>
+            Gets the count of active arenas
+            </summary>
+            <returns>Number of active arenas</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IPlayerService">
+            <summary>
+            Interface for services that manage player data
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IPlayerService.AddPlayer(System.UInt64,System.String)">
+            <summary>
+            Adds a player to the service
+            </summary>
+            <param name="platformId">Player platform ID</param>
+            <param name="characterName">Player character name</param>
+            <returns>True if player was added successfully</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IPlayerService.RemovePlayer(System.UInt64)">
+            <summary>
+            Removes a player from the service
+            </summary>
+            <param name="platformId">Player platform ID</param>
+            <returns>True if player was removed successfully</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IPlayerService.GetPlayerIds">
+            <summary>
+            Gets all player IDs
+            </summary>
+            <returns>List of player IDs</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IPlayerService.GetPlayerCount">
+            <summary>
+            Gets the count of players
+            </summary>
+            <returns>Number of players</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IPlayerService.PlayerExists(System.UInt64)">
+            <summary>
+            Checks if a player exists
+            </summary>
+            <param name="platformId">Player platform ID</param>
+            <returns>True if player exists</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IDataPersistenceService">
+            <summary>
+            Interface for services that manage data persistence
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDataPersistenceService.SaveData(System.String,System.Object)">
+            <summary>
+            Saves data with the specified key
+            </summary>
+            <param name="key">Data key</param>
+            <param name="data">Data to save</param>
+            <returns>True if save was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDataPersistenceService.LoadData(System.String,System.Type)">
+            <summary>
+            Loads data with the specified key
+            </summary>
+            <param name="key">Data key</param>
+            <param name="dataType">Type of data to load</param>
+            <returns>Loaded data or null</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDataPersistenceService.DeleteData(System.String)">
+            <summary>
+            Deletes data with the specified key
+            </summary>
+            <param name="key">Data key</param>
+            <returns>True if deletion was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDataPersistenceService.DataExists(System.String)">
+            <summary>
+            Checks if data exists for the specified key
+            </summary>
+            <param name="key">Data key</param>
+            <returns>True if data exists</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IComponentService">
+            <summary>
+            Interface for services that manage component data
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IComponentService.SaveComponents(Unity.Entities.Entity,System.String)">
+            <summary>
+            Saves component data for an entity
+            </summary>
+            <param name="entity">Entity to save components for</param>
+            <param name="saveId">Optional save ID</param>
+            <returns>True if save was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IComponentService.RestoreComponents(Unity.Entities.Entity,System.String)">
+            <summary>
+            Restores component data for an entity
+            </summary>
+            <param name="entity">Entity to restore components for</param>
+            <param name="saveId">Optional save ID</param>
+            <returns>True if restore was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IComponentService.DeleteComponents(Unity.Entities.Entity)">
+            <summary>
+            Deletes saved component data
+            </summary>
+            <param name="entity">Entity to delete data for</param>
+            <returns>True if deletion was successful</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IBuildService">
+            <summary>
+            Interface for services that manage build functionality
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IBuildService.BuildStructure(Unity.Entities.Entity,System.String,Unity.Mathematics.float3,System.Nullable{Unity.Mathematics.quaternion})">
+            <summary>
+            Builds a structure
+            </summary>
+            <param name="user">User entity</param>
+            <param name="structureName">Name of structure to build</param>
+            <param name="position">Position to build at</param>
+            <param name="rotation">Optional rotation</param>
+            <returns>True if build was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IBuildService.RemoveStructure(System.String)">
+            <summary>
+            Removes a structure
+            </summary>
+            <param name="structureName">Name of structure to remove</param>
+            <returns>True if removal was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IBuildService.GetAvailableStructures">
+            <summary>
+            Gets available structures
+            </summary>
+            <returns>List of available structure names</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IBuildService.SetBuildPermission(System.UInt64,System.Boolean)">
+            <summary>
+            Sets player build permission
+            </summary>
+            <param name="platformId">Player platform ID</param>
+            <param name="canBuild">Whether the player can build</param>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IVisualEffectService">
+            <summary>
+            Interface for services that manage visual effects
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IVisualEffectService.CreateEffect(System.String,Unity.Mathematics.float3,System.Object,Unity.Mathematics.float4)">
+            <summary>
+            Creates a visual effect
+            </summary>
+            <param name="name">Effect name</param>
+            <param name="position">Effect position</param>
+            <param name="type">Effect type</param>
+            <param name="color">Effect color</param>
+            <returns>True if creation was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IVisualEffectService.RemoveEffect(System.String)">
+            <summary>
+            Removes a visual effect
+            </summary>
+            <param name="name">Effect name</param>
+            <returns>True if removal was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IVisualEffectService.UpdateEffect(System.String,System.Nullable{Unity.Mathematics.float3},System.Nullable{Unity.Mathematics.float4})">
+            <summary>
+            Updates a visual effect
+            </summary>
+            <param name="name">Effect name</param>
+            <param name="position">New position</param>
+            <param name="color">New color</param>
+            <returns>True if update was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IVisualEffectService.GetActiveEffectCount">
+            <summary>
+            Gets active effect count
+            </summary>
+            <returns>Number of active effects</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IDatabaseService">
+            <summary>
+            Interface for services that manage database operations
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDatabaseService.SaveArenaState(System.String,System.Object)">
+            <summary>
+            Saves arena state
+            </summary>
+            <param name="arenaId">Arena ID</param>
+            <param name="arenaState">Arena state data</param>
+            <returns>True if save was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDatabaseService.LoadArenaState(System.String)">
+            <summary>
+            Loads arena state
+            </summary>
+            <param name="arenaId">Arena ID</param>
+            <returns>Loaded arena state or null</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDatabaseService.SavePlayerData(System.UInt64,System.Object)">
+            <summary>
+            Saves player data
+            </summary>
+            <param name="platformId">Player platform ID</param>
+            <param name="playerData">Player data</param>
+            <returns>True if save was successful</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IDatabaseService.LoadPlayerData(System.UInt64)">
+            <summary>
+            Loads player data
+            </summary>
+            <param name="platformId">Player platform ID</param>
+            <returns>Loaded player data or null</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IServiceHealthMonitor">
+            <summary>
+            Interface for health monitoring of services
+            </summary>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IServiceHealthMonitor.GetHealthStatus">
+            <summary>
+            Gets service health status
+            </summary>
+            <returns>Health status information</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IServiceHealthMonitor.GetPerformanceMetrics">
+            <summary>
+            Gets service performance metrics
+            </summary>
+            <returns>Performance metrics</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IServiceHealthMonitor.GetErrorCount">
+            <summary>
+            Gets service error count
+            </summary>
+            <returns>Number of errors</returns>
+        </member>
+        <member name="M:VAuto.Services.Interfaces.IServiceHealthMonitor.GetLastError">
+            <summary>
+            Gets last error message
+            </summary>
+            <returns>Last error message or null</returns>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.ServiceHealthStatus">
+            <summary>
+            Service health status information
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.ServicePerformanceMetrics">
+            <summary>
+            Service performance metrics
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.ILifecycleService">
+            <summary>
+            Additional service interfaces for dependency injection
+            </summary>
+            <summary>
+            Lifecycle management service interface
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IZoneService">
+            <summary>
+            Zone management service interface
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.IHealingService">
+            <summary>
+            Healing service interface
+            </summary>
+        </member>
+        <member name="T:VAuto.Services.Interfaces.ITeleportService">
+            <summary>
+            Teleport service interface
+            </summary>
+        </member>
+        <member name="T:VAutomation.Core.Json.VAutoJsonOptions">
+            <summary>
+            Standard JSON serialization options for VAuto framework.
+            </summary>
+        </member>
+    </members>
+</doc>

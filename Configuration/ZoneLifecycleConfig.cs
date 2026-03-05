@@ -7,8 +7,8 @@ namespace VAutomationCore.Configuration
     /// Zone-Lifecycle wiring configuration model for V Rising mods.
     /// 
     /// Architecture:
-    /// VAutoZone monitors player positions → Determines which stages to trigger → 
-    /// Passes stage names to Vlifecycle → Vlifecycle executes stage actions
+    /// Zone detection monitors player positions → Determines which stages to trigger →
+    /// Passes stage/flow identifiers to Blueluck → Blueluck executes actions (flows, kits, buffs)
     /// 
     /// Three-Stage Lifecycle Pattern:
     /// - onEnter: One-time effects when crossing INTO a zone (store inventory, apply zone buffs, send messages)
@@ -60,8 +60,8 @@ namespace VAutomationCore.Configuration
     /// - isInZone: Continuous enforcement (reapply buffs, enforce blood type, validate config)
     /// - onExit: Cleanup (restore state, remove markers, log departure)
     /// 
-    /// Each stage maps to a named stage in Vlifecycle's stage registry.
-    /// Vlifecycle owns the actual action execution; VAutoZone only selects stages.
+    /// Each stage maps to a named stage/flow in Blueluck's registry.
+    /// Blueluck owns the actual action execution; the zone detector only selects stages.
     /// </summary>
     public class ZoneLifecycleStages
     {
@@ -94,13 +94,13 @@ namespace VAutomationCore.Configuration
 
         /// <summary>
         /// Optional zone-specific configuration bundle to load.
-        /// Referenced in Vlifecycle config as a ConfigAction.
+        /// Referenced in Blueluck config as a ConfigAction.
         /// </summary>
         public string ConfigBundle { get; set; } = "";
     }
 
         /// <summary>
-        /// Player zone tracking state maintained by ZoneEventBridge.
+        /// Player zone tracking state maintained by the zone transition system.
         /// Used to detect transitions and track isInZone timing.
         /// Uses DateTime for reliable server-side timing.
         /// </summary>

@@ -152,6 +152,7 @@
     <Compile Include="Core\Services\SandboxDeltaComputer.cs" />
     <Compile Include="Core\Services\Sandbox\*.cs" />
     <Compile Include="Core\Data\*.cs" />
+    <Compile Include="Core\Abstractions\*.cs" />
     <Compile Include="Chat\ChatService.cs" />
     <Compile Include="Models\GlowZoneEntry.cs" />
     <Compile Include="Models\BloodType.cs" />

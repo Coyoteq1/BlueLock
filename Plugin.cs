@@ -7,7 +7,9 @@ using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using VampireCommandFramework;
+using VAutomationCore.Core;
 using VAutomationCore.Core.Api;
+using VAutomationCore.Core.Logging;
 
 namespace VAutomationCore
 {
@@ -43,6 +45,10 @@ namespace VAutomationCore
                 CoreLog.LogInfo($"[{MyPluginInfo.NAME}] Loading {MyPluginInfo.VERSION}...");
                 CoreLog.LogInfo($"[{MyPluginInfo.NAME}] Loaded core shared library.");
 
+                // Initialize module ID registry for cross-mod compatibility
+                var coreLogger = new CoreLogger("ModuleRegistry");
+                ModuleIdRegistry.Initialize(coreLogger);
+
                 ConsoleRoleAuthService.Initialize();
                 CommandRegistry.RegisterAll(Assembly.GetExecutingAssembly());
                 CoreLog.LogInfo($"[{MyPluginInfo.NAME}] Commands registered: {CommandRoots}");
@@ -52,6 +58,9 @@ namespace VAutomationCore
 
                 // Keep Harmony instance ready for future patch registration.
                 _harmony = new Harmony(MyPluginInfo.GUID);
+                
+                // Register VAuto patches
+                _harmony.PatchAll();
 
                 LogStartupSummary();
             }
@@ -67,7 +76,8 @@ namespace VAutomationCore
             {
                 if (_harmony != null)
                 {
-                    _harmony.UnpatchAll(MyPluginInfo.GUID);
+                    // Harmony 2.2+: prefer instance-scoped unpatching.
+                    _harmony.UnpatchSelf();
                     _harmony = null;
                 }
 
@@ -94,6 +104,9 @@ namespace VAutomationCore
             CoreLog.LogInfo($"[{MyPluginInfo.NAME}]   ConsoleRoleAuth: {(ConsoleRoleAuthService.IsEnabled ? "Enabled" : "Disabled")}");
             CoreLog.LogInfo($"[{MyPluginInfo.NAME}]   Command Roots: {CommandRoots}");
             CoreLog.LogInfo($"[{MyPluginInfo.NAME}]   Processes: VRisingServer.exe, VRising.exe");
+            
+            // Log registered modules
+            ModuleIdRegistry.LogRegistryState();
         }
 
         private void RegisterPlayerApiEndpoints()

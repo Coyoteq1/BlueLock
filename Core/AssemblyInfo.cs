@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Bluelock.Tests")]
+// Legacy test project name (Bluelock.Tests) removed from the simplified build.

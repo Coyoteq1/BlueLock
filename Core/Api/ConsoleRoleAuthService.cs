@@ -8,6 +8,7 @@ using BepInEx;
 using BepInEx.Logging;
 using VAutomationCore.Core.Data;
 using VAutomationCore.Core.Services;
+using VAutomationCore.Services;
 using Unity.Entities;
 
 namespace VAutomationCore.Core.Api

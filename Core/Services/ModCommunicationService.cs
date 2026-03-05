@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.Collections;
-using Unity.Entities;
 using UnityEngine;
 
 namespace VAutomationCore.Core.Services
@@ -16,7 +14,7 @@ namespace VAutomationCore.Core.Services
         public static ModCommunicationService Instance => _instance ??= new ModCommunicationService();
         
         private readonly Dictionary<string, object> _sharedData = new Dictionary<string, object>();
-        private readonly Dictionary<string, List<Action<string, object>>> _subscribers = new Dictionary<string, string, object>();
+        private readonly Dictionary<string, List<Action<string, object>>> _subscribers = new Dictionary<string, List<Action<string, object>>>();
         private bool _isInitialized;
         
         /// <summary>
@@ -43,7 +41,7 @@ namespace VAutomationCore.Core.Services
             {
                 foreach (var handler in handlers)
                 {
-                    try { handler(channel, data); } catch (Exception ex) { }
+                    try { handler(channel, data); } catch (Exception) { }
                 }
             }
             
@@ -108,14 +106,20 @@ namespace VAutomationCore.Core.Services
         private static ModCommunicationService _comm => ModCommunicationService.Instance;
         
         /// <summary>
-        /// Send message to Bluelock mod.
+        /// Send message to Blueluck mod.
         /// </summary>
-        public static void SendToBluelock(string key, object data) => _comm.SendToMod("Bluelock", key, data);
+        public static void SendToBlueluck(string key, object data) => _comm.SendToMod("Blueluck", key, data);
+
+        [Obsolete("Use SendToBlueluck.")]
+        public static void SendToBluelock(string key, object data) => SendToBlueluck(key, data);
         
         /// <summary>
-        /// Get message from Bluelock mod.
+        /// Get message from Blueluck mod.
         /// </summary>
-        public static T GetFromBluelock<T>(string key) => _comm.GetFromMod<T>("Bluelock", key);
+        public static T GetFromBlueluck<T>(string key) => _comm.GetFromMod<T>("Blueluck", key);
+
+        [Obsolete("Use GetFromBlueluck.")]
+        public static T GetFromBluelock<T>(string key) => GetFromBlueluck<T>(key);
         
         /// <summary>
         /// Send message to VAutomationCore.

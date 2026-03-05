@@ -6,25 +6,25 @@ namespace VAutomationCore.Core.Lifecycle
 {
     public interface IFlowLifecycle
     {
-        void ExecuteEnterFlow(string flowId, Entity player);
-        void ExecuteExitFlow(string flowId, Entity player);
+        void ExecuteEnterFlow(string flowId, string zoneId, Entity player);
+        void ExecuteExitFlow(string flowId, string zoneId, Entity player);
     }
 
     public class FlowLifecycleManager : IFlowLifecycle
     {
         private static readonly CoreLogger Log = new CoreLogger("FlowLifecycleManager");
 
-        public void ExecuteEnterFlow(string flowId, Entity player)
+        public void ExecuteEnterFlow(string flowId, string zoneId, Entity player)
         {
-            _ = TryExecuteEnterFlow(flowId, player);
+            _ = TryExecuteEnterFlow(flowId, zoneId, player);
         }
 
-        public void ExecuteExitFlow(string flowId, Entity player)
+        public void ExecuteExitFlow(string flowId, string zoneId, Entity player)
         {
-            _ = TryExecuteExitFlow(flowId, player);
+            _ = TryExecuteExitFlow(flowId, zoneId, player);
         }
 
-        public LifecycleExecutionResult TryExecuteEnterFlow(string flowId, Entity player)
+        public LifecycleExecutionResult TryExecuteEnterFlow(string flowId, string zoneId, Entity player)
         {
             if (string.IsNullOrEmpty(flowId))
             {
@@ -38,7 +38,8 @@ namespace VAutomationCore.Core.Lifecycle
             }
 
             var entityMap = new EntityMap();
-            entityMap.Map("player", player);
+            entityMap.SetEntity("player", player);
+            entityMap.SetString("zoneId", zoneId ?? string.Empty);
             var result = FlowService.Execute(definition, entityMap, stopOnFailure: false);
             Log.Info("Enter flow executed: " + flowKey + " Result: " + result.Success);
             return result.Success
@@ -46,7 +47,7 @@ namespace VAutomationCore.Core.Lifecycle
                 : LifecycleExecutionResult.Fail(LifecycleExecutionFailureCode.RuntimeActionFailure, result.ErrorMessage ?? "Enter flow execution failed.");
         }
 
-        public LifecycleExecutionResult TryExecuteExitFlow(string flowId, Entity player)
+        public LifecycleExecutionResult TryExecuteExitFlow(string flowId, string zoneId, Entity player)
         {
             if (string.IsNullOrEmpty(flowId))
             {
@@ -61,7 +62,8 @@ namespace VAutomationCore.Core.Lifecycle
             }
 
             var entityMap = new EntityMap();
-            entityMap.Map("player", player);
+            entityMap.SetEntity("player", player);
+            entityMap.SetString("zoneId", zoneId ?? string.Empty);
             var result = FlowService.Execute(definition, entityMap, stopOnFailure: false);
             Log.Info("Exit flow executed: " + flowKey + " Result: " + result.Success);
             return result.Success
