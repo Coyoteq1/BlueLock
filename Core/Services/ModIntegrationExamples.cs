@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
 using VampireCommandFramework;
+using VAutomationCore.Core.Utilities;
 using VAutomationCore.Core.Services;
 
 namespace VAutomationCore.Examples
@@ -17,14 +18,8 @@ namespace VAutomationCore.Examples
         /// </summary>
         public static void ExecuteVCFCommand(EntityManager em, string command)
         {
-            // Use the VCF patch we created
-            VCFCommands.Exec(em, command);
-            
-            // Execute 2 commands
-            VCFCommands.Exec2(em, ".z list", ".tm status arena1");
-            
-            // Execute multiple
-            VCFCommands.ExecAll(em, ".z list", ".tm status arena1", ".match start arena1");
+            AutomationUtils.TryExecVcf(em, command);
+            AutomationUtils.ExecMany(em, ".z list", ".tm status arena1", ".match start arena1");
         }
         
         /// <summary>
@@ -147,6 +142,6 @@ namespace VAutomationCore.Examples
         public static string GetModVersion(string modId) => Core.MyPluginInfo.VERSION;
         
         /// <summary>Send command to VCF.</summary>
-        public static void SendVCF(string cmd, EntityManager em) => VCFCommands.Exec(em, cmd);
+        public static void SendVCF(string cmd, EntityManager em) => AutomationUtils.TryExecVcf(em, cmd);
     }
 }

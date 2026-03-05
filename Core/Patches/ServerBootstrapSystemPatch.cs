@@ -133,38 +133,15 @@ namespace VAutomationCore.Core.Patches
     /// 
     /// Flow Stabilization: P0 - Server Bootstrap (World Initialization phase)
     /// </summary>
-    [HarmonyPatch(typeof(WorldBootstrapSystem), nameof(WorldBootstrapSystem.Initialize))]
     internal static class WorldBootstrapPatch
     {
-        private static readonly string FlowName = "server-bootstrap";
         public static event EventHandler OnWorldInitialized;
 
-        [HarmonyPostfix]
-        static void InitializePostfix(WorldBootstrapSystem __instance)
+        // Compatibility shim for modules that reflect for this type/event.
+        public static void RaiseWorldInitialized(object? sender = null)
         {
-            var correlationId = $"world-init:{DateTime.UtcNow:HHmmss.fff}";
-            
-            try
-            {
-                // START log with correlation context
-                CoreLogger.LogInfoStatic(
-                    $"flow={FlowName} | stage=world_init_start | id={correlationId} | ctx=state=Initializing",
-                    "WorldBootstrap");
-                
-                OnWorldInitialized?.Invoke(__instance, EventArgs.Empty);
-                TypedEventBus.Publish(new WorldInitializedEvent());
-                
-                // END log: World initialized
-                CoreLogger.LogInfoStatic(
-                    $"flow={FlowName} | stage=world_init_complete | id={correlationId} | ctx=state=WorldInitialized",
-                    "WorldBootstrap");
-            }
-            catch (Exception ex)
-            {
-                CoreLogger.LogErrorStatic(
-                    $"flow={FlowName} | stage=world_init_error | id={correlationId} | ctx=error={ex.Message}",
-                    "WorldBootstrap");
-            }
+            OnWorldInitialized?.Invoke(sender ?? typeof(WorldBootstrapPatch), EventArgs.Empty);
+            TypedEventBus.Publish(new WorldInitializedEvent());
         }
     }
 }

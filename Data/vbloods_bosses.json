@@ -1,0 +1,409 @@
+﻿{
+    "generatedAt":  "2026-03-05T22:54:34+03:00",
+    "source":  "Data\\VBloods.cs",
+    "count":  67,
+    "bosses":  [
+                   {
+                       "prefabKey":  "CHAR_Gloomrot_Monster_VBlood",
+                       "guid":  1233988687,
+                       "name":  "Adam the Firstborn",
+                       "shortName":  "Adam"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Cursed_ToadKing_VBlood",
+                       "guid":  -203043163,
+                       "name":  "Albert the Duke of Balaton",
+                       "shortName":  "Albert"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Forest_Wolf_VBlood",
+                       "guid":  -1905691330,
+                       "name":  "Alpha the White Wolf",
+                       "shortName":  "Alpha"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Gloomrot_Purifier_VBlood",
+                       "guid":  106480588,
+                       "name":  "Angram the Purifier",
+                       "shortName":  "Angram"
+                   },
+                   {
+                       "prefabKey":  "CHAR_ChurchOfLight_Cardinal_VBlood",
+                       "guid":  114912615,
+                       "name":  "Azariel the Sunbringer",
+                       "shortName":  "Azariel"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_Infiltrator_VBlood",
+                       "guid":  613251918,
+                       "name":  "Bane the Shadowblade",
+                       "shortName":  "Bane"
+                   },
+                   {
+                       "prefabKey":  "CHAR_ChurchOfLight_Sommelier_VBlood",
+                       "guid":  192051202,
+                       "name":  "Baron du Bouchon the Sommelier",
+                       "shortName":  "Baron"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Villager_Tailor_VBlood",
+                       "guid":  -1942352521,
+                       "name":  "Beatrice the Tailor",
+                       "shortName":  "Beatrice"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Villager_CursedWanderer_VBlood",
+                       "guid":  109969450,
+                       "name":  "Ben the Old Wanderer",
+                       "shortName":  "Ben"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_HoundMaster_VBlood",
+                       "guid":  -784265984,
+                       "name":  "Boyo",
+                       "shortName":  "Boyo"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Hound_VBlood",
+                       "guid":  -1373413273,
+                       "name":  "Brutus the Watcher",
+                       "shortName":  "Brutus"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Nun_VBlood",
+                       "guid":  -99012450,
+                       "name":  "Christina the Sun Priestess",
+                       "shortName":  "Christina"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Bomber_VBlood",
+                       "guid":  1896428751,
+                       "name":  "Clive the Firestarter",
+                       "shortName":  "Clive"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_CursedSmith_VBlood",
+                       "guid":  326378955,
+                       "name":  "Cyril the Cursed Smith",
+                       "shortName":  "Cyril"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Blackfang_Valyr_VBlood",
+                       "guid":  173259239,
+                       "name":  "Dantos the Forgebinder",
+                       "shortName":  "Dantos"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Gloomrot_Voltage_VBlood",
+                       "guid":  -1101874342,
+                       "name":  "Domina the Blade Dancer",
+                       "shortName":  "Domina"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Vampire_Dracula_VBlood",
+                       "guid":  -327335305,
+                       "name":  "Dracula the Immortal King",
+                       "shortName":  "Dracula"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_StoneBreaker_VBlood",
+                       "guid":  -2025101517,
+                       "name":  "Errol the Stonebreaker",
+                       "shortName":  "Errol"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Fisherman_VBlood",
+                       "guid":  -2122682556,
+                       "name":  "Finn the Fisherman",
+                       "shortName":  "Finn"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_ZealousCultist_VBlood",
+                       "guid":  -1208888966,
+                       "name":  "Foulrot the Soultaker",
+                       "shortName":  "Foulrot"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Wendigo_VBlood",
+                       "guid":  24378719,
+                       "name":  "Frostmaw the Mountain Terror",
+                       "shortName":  "Frostmaw"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_ArenaChampion_VBlood",
+                       "guid":  -753453016,
+                       "name":  "Gaius The Cursed Champion",
+                       "shortName":  "Gaius"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Vampire_HighLord_VBlood",
+                       "guid":  -496360395,
+                       "name":  "General Cassius the Betrayer",
+                       "shortName":  "Cassius"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Vampire_IceRanger_VBlood",
+                       "guid":  795262842,
+                       "name":  "General Elena the Hollow",
+                       "shortName":  "Elena"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Vampire_BloodKnight_VBlood",
+                       "guid":  495971434,
+                       "name":  "General Valencia the Depraved",
+                       "shortName":  "Valencia"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Cursed_MountainBeast_VBlood",
+                       "guid":  -1936575244,
+                       "name":  "Gorecrusher the Behemoth",
+                       "shortName":  "Gorecrusher"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_BishopOfDeath_VBlood",
+                       "guid":  577478542,
+                       "name":  "Goreswine the Ravager",
+                       "shortName":  "Goreswine"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Stalker_VBlood",
+                       "guid":  1106149033,
+                       "name":  "Grayson the Armourer",
+                       "shortName":  "Grayson"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Glassblower_VBlood",
+                       "guid":  910988233,
+                       "name":  "Grethel the Glassblower",
+                       "shortName":  "Grethel"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Gloomrot_TheProfessor_VBlood",
+                       "guid":  814083983,
+                       "name":  "Henry Blackbrew the Doctor",
+                       "shortName":  "Henry"
+                   },
+                   {
+                       "prefabKey":  "CHAR_VHunter_Jade_VBlood",
+                       "guid":  -1968372384,
+                       "name":  "Jade the Vampire Hunter",
+                       "shortName":  "Jade"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Blackfang_Livith_VBlood",
+                       "guid":  -1383529374,
+                       "name":  "Jakira the Shadow Huntress",
+                       "shortName":  "Jakira"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Frostarrow_VBlood",
+                       "guid":  1124739990,
+                       "name":  "Keely the Frost Archer",
+                       "shortName":  "Keely"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Forest_Bear_Dire_Vblood",
+                       "guid":  -1391546313,
+                       "name":  "Kodia the Ferocious Bear",
+                       "shortName":  "Kodia"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_Leader_Vblood",
+                       "guid":  -1365931036,
+                       "name":  "Kriig the Undead General",
+                       "shortName":  "Kriig"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_BishopOfShadows_VBlood",
+                       "guid":  939467639,
+                       "name":  "Leandra the Shadow Priestess",
+                       "shortName":  "Leandra"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Chaosarrow_VBlood",
+                       "guid":  763273073,
+                       "name":  "Lidia the Chaos Archer",
+                       "shortName":  "Lidia"
+                   },
+                   {
+                       "prefabKey":  "CHAR_BatVampire_VBlood",
+                       "guid":  1112948824,
+                       "name":  "Lord Styx the Night Champion",
+                       "shortName":  "Styx"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Blackfang_Lucie_VBlood",
+                       "guid":  1295855316,
+                       "name":  "Lucile the Venom Alchemist",
+                       "shortName":  "Lucile"
+                   },
+                   {
+                       "prefabKey":  "CHAR_ArchMage_VBlood",
+                       "guid":  -2013903325,
+                       "name":  "Mairwyn the Elementalist",
+                       "shortName":  "Mairwyn"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Scribe_VBlood",
+                       "guid":  1945956671,
+                       "name":  "Maja the Dark Savant",
+                       "shortName":  "Maja"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Cursed_Witch_VBlood",
+                       "guid":  -910296704,
+                       "name":  "Matka the Curse Weaver",
+                       "shortName":  "Matka"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Blackfang_Morgana_VBlood",
+                       "guid":  591725925,
+                       "name":  "Megara the Serpent Queen",
+                       "shortName":  "Megara"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Longbowman_LightArrow_Vblood",
+                       "guid":  850622034,
+                       "name":  "Meredith the Bright Archer",
+                       "shortName":  "Meredith"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Harpy_Matriarch_VBlood",
+                       "guid":  685266977,
+                       "name":  "Morian the Stormwing Matriarch",
+                       "shortName":  "Morian"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Vermin_DireRat_VBlood",
+                       "guid":  -2039908510,
+                       "name":  "Nibbles the Putrid Rat",
+                       "shortName":  "Nibbles"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Undead_Priest_VBlood",
+                       "guid":  153390636,
+                       "name":  "Nicholaus the Fallen",
+                       "shortName":  "Nicholaus"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Leader_VBlood",
+                       "guid":  1688478381,
+                       "name":  "Octavian the Militia Captain",
+                       "shortName":  "Octavian"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Poloma_VBlood",
+                       "guid":  -484556888,
+                       "name":  "Polora the Feywalker",
+                       "shortName":  "Polora"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Tourok_VBlood",
+                       "guid":  -1659822956,
+                       "name":  "Quincey the Bandit King",
+                       "shortName":  "Quincey"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Leader_VBlood_UNUSED",
+                       "guid":  -175381832,
+                       "name":  "Quincey the Marauder",
+                       "shortName":  "Quincey"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_BishopOfDunley_VBlood",
+                       "guid":  -680831417,
+                       "name":  "Raziel the Shepherd",
+                       "shortName":  "Raziel"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Bandit_Foreman_VBlood",
+                       "guid":  2122229952,
+                       "name":  "Rufus the Foreman",
+                       "shortName":  "Rufus"
+                   },
+                   {
+                       "prefabKey":  "CHAR_VHunter_CastleMan",
+                       "guid":  336560131,
+                       "name":  "Simon Belmont the Vampire Hunter",
+                       "shortName":  "Simon"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Fabian_VBlood",
+                       "guid":  619948378,
+                       "name":  "Sir Erwin the Gallant Cavalier",
+                       "shortName":  "Erwin"
+                   },
+                   {
+                       "prefabKey":  "CHAR_ChurchOfLight_Overseer_VBlood",
+                       "guid":  -26105228,
+                       "name":  "Sir Magnus the Overseer",
+                       "shortName":  "Sir Magnus"
+                   },
+                   {
+                       "prefabKey":  "CHAR_ChurchOfLight_Paladin_VBlood",
+                       "guid":  -740796338,
+                       "name":  "Solarus the Immaculate",
+                       "shortName":  "Solarus"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Blackfang_CarverBoss_VBlood",
+                       "guid":  -1669199769,
+                       "name":  "Stavros the Carver",
+                       "shortName":  "Stavros"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Manticore_VBlood",
+                       "guid":  -393555055,
+                       "name":  "Talzur the Winged Horror",
+                       "shortName":  "Talzur"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Geomancer_Human_VBlood",
+                       "guid":  -1065970933,
+                       "name":  "Terah the Geomancer",
+                       "shortName":  "Terah"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Winter_Yeti_VBlood",
+                       "guid":  -1347412392,
+                       "name":  "Terrorclaw the Ogre",
+                       "shortName":  "Terrorclaw"
+                   },
+                   {
+                       "prefabKey":  "CHAR_VHunter_Leader_VBlood",
+                       "guid":  -1449631170,
+                       "name":  "Tristan the Vampire Hunter",
+                       "shortName":  "Tristan"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Spider_Queen_VBlood",
+                       "guid":  -548489519,
+                       "name":  "Ungora the Spider Queen",
+                       "shortName":  "Ungora"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Militia_Guard_VBlood",
+                       "guid":  -29797003,
+                       "name":  "Vincent the Frostbringer",
+                       "shortName":  "Vincent"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Gloomrot_RailgunSergeant_VBlood",
+                       "guid":  2054432370,
+                       "name":  "Voltatia the Power Master",
+                       "shortName":  "Voltatia"
+                   },
+                   {
+                       "prefabKey":  "CHAR_WerewolfChieftain_Human",
+                       "guid":  -1505705712,
+                       "name":  "Willfred the Werewolf Chief",
+                       "shortName":  "Willfred"
+                   },
+                   {
+                       "prefabKey":  "CHAR_Gloomrot_Iva_VBlood",
+                       "guid":  172235178,
+                       "name":  "Ziva the Engineer",
+                       "shortName":  "Ziva"
+                   }
+               ]
+}

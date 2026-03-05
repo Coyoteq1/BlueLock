@@ -1,0 +1,163 @@
+{
+    "kits":  {
+                 "Kit1":  [
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Headgear_DraculaHelmet"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Chest_T09_Dracula_Warrior"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Legs_T09_Dracula_Warrior"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Gloves_T09_Dracula_Warrior"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Boots_T09_Dracula_Warrior"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Weapon_Sword_T09_ShadowMatter"
+                              }
+                          ],
+                 "Kit2":  [
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Headgear_DraculaHelmet"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Chest_T09_Dracula_Brute"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Legs_T09_Dracula_Brute"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Gloves_T09_Dracula_Brute"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Boots_T09_Dracula_Brute"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Weapon_Mace_T09_ShadowMatter"
+                              }
+                          ],
+                 "Kit3":  [
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Headgear_DraculaHelmet"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Chest_T09_Dracula_Rogue"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Legs_T09_Dracula_Rogue"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Gloves_T09_Dracula_Rogue"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Boots_T09_Dracula_Rogue"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Weapon_Slashers_T09_ShadowMatter"
+                              }
+                          ],
+                 "Kit4":  [
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Headgear_DraculaHelmet"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Chest_T09_Dracula_Scholar"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Legs_T09_Dracula_Scholar"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Gloves_T09_Dracula_Scholar"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Boots_T09_Dracula_Scholar"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Weapon_Reaper_T09_ShadowMatter"
+                              }
+                          ],
+                 "Kit5":  [
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Headgear_DraculaHelmet"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Chest_T09_Dracula"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Legs_T09_Dracula"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Gloves_T09_Dracula"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Boots_T09_Dracula"
+                              },
+                              {
+                                  "qty":  1,
+                                  "prefab":  "Item_Weapon_Whip_T09_ShadowMatter"
+                              }
+                          ],
+                 "arena_enter":  [
+                                     {
+                                         "qty":  1,
+                                         "prefab":  "Item_Headgear_DraculaHelmet"
+                                     },
+                                     {
+                                         "qty":  1,
+                                         "prefab":  "Item_Chest_T09_Dracula_Warrior"
+                                     },
+                                     {
+                                         "qty":  1,
+                                         "prefab":  "Item_Legs_T09_Dracula_Warrior"
+                                     },
+                                     {
+                                         "qty":  1,
+                                         "prefab":  "Item_Gloves_T09_Dracula_Warrior"
+                                     },
+                                     {
+                                         "qty":  1,
+                                         "prefab":  "Item_Boots_T09_Dracula_Warrior"
+                                     },
+                                     {
+                                         "qty":  1,
+                                         "prefab":  "Item_Weapon_Sword_T09_ShadowMatter"
+                                     }
+                                 ],
+                 "arena_exit":  [
+
+                                ]
+             }
+}

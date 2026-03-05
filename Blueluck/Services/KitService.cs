@@ -45,6 +45,20 @@ namespace Blueluck.Services
 
         public void Initialize()
         {
+            Plugin.EnsureConfigFile(
+                "kits.json",
+                json =>
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    return doc.RootElement.TryGetProperty("kits", out var kits)
+                        && kits.ValueKind == JsonValueKind.Object
+                        && kits.EnumerateObject().MoveNext();
+                },
+                new
+                {
+                    kits = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                });
+
             _configPath = Path.Combine(Paths.ConfigPath, "Blueluck", "kits.json");
             Directory.CreateDirectory(Path.GetDirectoryName(_configPath) ?? Paths.ConfigPath);
 
@@ -85,6 +99,16 @@ namespace Blueluck.Services
         public IReadOnlyCollection<string> ListKitNames()
         {
             return _kits.Keys.ToArray();
+        }
+
+        /// <summary>
+        /// Checks if a kit exists by name.
+        /// </summary>
+        public bool KitExists(string kitName)
+        {
+            if (string.IsNullOrWhiteSpace(kitName))
+                return false;
+            return _kits.ContainsKey(kitName.Trim());
         }
 
         public bool ApplyKit(Entity player, string kitName)

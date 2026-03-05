@@ -1,139 +1,140 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using UnityEngine;
+using VAutomationCore.Core.Logging;
 
 namespace VAutomationCore.Core.Services
 {
     /// <summary>
-    /// Inter-mod communication service for sharing data between mods after server restart.
-    /// Uses BepInEx config as persistence layer for cross-mod data exchange.
+    /// Simple service for inter-mod communication using a publish-subscribe pattern.
+    /// This provides a lightweight alternative to ModTalk for our automation system.
     /// </summary>
     public class ModCommunicationService
     {
         private static ModCommunicationService _instance;
-        public static ModCommunicationService Instance => _instance ??= new ModCommunicationService();
+        private static readonly object _lock = new object();
         
-        private readonly Dictionary<string, object> _sharedData = new Dictionary<string, object>();
-        private readonly Dictionary<string, List<Action<string, object>>> _subscribers = new Dictionary<string, List<Action<string, object>>>();
-        private bool _isInitialized;
-        
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Action<string, object>>> _subscribers = new();
+        private readonly CoreLogger _log;
+
+        /// <summary>
+        /// Gets the singleton instance of the ModCommunicationService.
+        /// </summary>
+        public static ModCommunicationService Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_lock)
+                    {
+                        if (_instance == null)
+                        {
+                            _instance = new ModCommunicationService();
+                        }
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the ModCommunicationService class.
+        /// </summary>
+        private ModCommunicationService()
+        {
+            _log = new CoreLogger("ModCommunicationService");
+        }
+
         /// <summary>
         /// Initialize the communication service.
         /// </summary>
         public void Initialize()
         {
-            if (_isInitialized) return;
-            
-            _isInitialized = true;
-            Debug.Log("[ModComm] Inter-mod communication service initialized");
+            _log.Info("ModCommunication service initialized");
         }
-        
+
         /// <summary>
-        /// Send data to another mod. Data persists across restarts if saved.
+        /// Subscribe to messages from a specific mod and topic.
         /// </summary>
-        public void SendToMod(string targetMod, string key, object data)
+        /// <param name="modName">The name of the mod to subscribe to.</param>
+        /// <param name="topic">The topic to subscribe to.</param>
+        /// <param name="handler">The handler to call when a message is received.</param>
+        public void Subscribe(string modName, string topic, Action<string, object> handler)
         {
-            var channel = $"{targetMod}:{key}";
-            _sharedData[channel] = data;
+            var key = $"{modName}.{topic}";
             
-            // Notify subscribers
-            if (_subscribers.TryGetValue(channel, out var handlers))
+            if (!_subscribers.TryGetValue(key, out var handlers))
             {
-                foreach (var handler in handlers)
+                handlers = new ConcurrentDictionary<string, Action<string, object>>();
+                _subscribers.TryAdd(key, handlers);
+            }
+
+            var handlerId = Guid.NewGuid().ToString();
+            handlers.TryAdd(handlerId, handler);
+            
+            _log.Info($"Subscribed to {modName}.{topic}");
+        }
+
+        /// <summary>
+        /// Send a message to a specific mod and topic.
+        /// </summary>
+        /// <param name="fromMod">The name of the mod sending the message.</param>
+        /// <param name="toMod">The name of the mod to send the message to.</param>
+        /// <param name="topic">The topic of the message.</param>
+        /// <param name="message">The message to send.</param>
+        public void SendToMod(string fromMod, string toMod, string topic, object message)
+        {
+            var key = $"{toMod}.{topic}";
+            
+            if (_subscribers.TryGetValue(key, out var handlers))
+            {
+                foreach (var handler in handlers.Values)
                 {
-                    try { handler(channel, data); } catch (Exception) { }
+                    try
+                    {
+                        handler(fromMod, message);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error($"Error in message handler for {toMod}.{topic}: {ex.Message}");
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// Send a message to a specific mod and topic.
+        /// </summary>
+        /// <param name="toMod">The name of the mod to send the message to.</param>
+        /// <param name="topic">The topic of the message.</param>
+        /// <param name="message">The message to send.</param>
+        public void SendToMod(string toMod, string topic, object message)
+        {
+            SendToMod("VAutomationCore", toMod, topic, message);
+        }
+
+        /// <summary>
+        /// Unsubscribe from a specific mod and topic.
+        /// </summary>
+        /// <param name="modName">The name of the mod to unsubscribe from.</param>
+        /// <param name="topic">The topic to unsubscribe from.</param>
+        /// <param name="handler">The handler to remove.</param>
+        public void Unsubscribe(string modName, string topic, Action<string, object> handler)
+        {
+            var key = $"{modName}.{topic}";
             
-            Debug.Log($"[ModComm] Sent {key} to {targetMod}");
-        }
-        
-        /// <summary>
-        /// Receive data from another mod.
-        /// </summary>
-        public T GetFromMod<T>(string sourceMod, string key)
-        {
-            var channel = $"{sourceMod}:{key}";
-            if (_sharedData.TryGetValue(channel, out var data))
+            if (_subscribers.TryGetValue(key, out var handlers))
             {
-                if (data is T typedData)
-                    return typedData;
+                foreach (var kvp in handlers)
+                {
+                    if (kvp.Value == handler)
+                    {
+                        handlers.TryRemove(kvp.Key, out _);
+                        break;
+                    }
+                }
             }
-            return default;
         }
-        
-        /// <summary>
-        /// Subscribe to messages from another mod.
-        /// </summary>
-        public void Subscribe(string sourceMod, string key, Action<string, object> handler)
-        {
-            var channel = $"{sourceMod}:{key}";
-            if (!_subscribers.ContainsKey(channel))
-                _subscribers[channel] = new List<Action<string, object>>();
-            _subscribers[channel].Add(handler);
-        }
-        
-        /// <summary>
-        /// Broadcast to all mods.
-        /// </summary>
-        public void Broadcast(string key, object data)
-        {
-            SendToMod("*", key, data);
-        }
-        
-        /// <summary>
-        /// Check if data exists from a mod.
-        /// </summary>
-        public bool HasData(string sourceMod, string key)
-        {
-            return _sharedData.ContainsKey($"{sourceMod}:{key}");
-        }
-        
-        /// <summary>
-        /// Clear all shared data.
-        /// </summary>
-        public void Clear()
-        {
-            _sharedData.Clear();
-        }
-    }
-    
-    /// <summary>
-    /// Simple mod API for other mods to communicate.
-    /// </summary>
-    public static class ModAPI
-    {
-        private static ModCommunicationService _comm => ModCommunicationService.Instance;
-        
-        /// <summary>
-        /// Send message to Blueluck mod.
-        /// </summary>
-        public static void SendToBlueluck(string key, object data) => _comm.SendToMod("Blueluck", key, data);
-
-        [Obsolete("Use SendToBlueluck.")]
-        public static void SendToBluelock(string key, object data) => SendToBlueluck(key, data);
-        
-        /// <summary>
-        /// Get message from Blueluck mod.
-        /// </summary>
-        public static T GetFromBlueluck<T>(string key) => _comm.GetFromMod<T>("Blueluck", key);
-
-        [Obsolete("Use GetFromBlueluck.")]
-        public static T GetFromBluelock<T>(string key) => GetFromBlueluck<T>(key);
-        
-        /// <summary>
-        /// Send message to VAutomationCore.
-        /// </summary>
-        public static void SendToCore(string key, object data) => _comm.SendToMod("VAutomationCore", key, data);
-        
-        /// <summary>
-        /// Get message from VAutomationCore.
-        /// </summary>
-        public static T GetFromCore<T>(string key) => _comm.GetFromMod<T>("VAutomationCore", key);
-        
-        /// <summary>
-        /// Broadcast to all mods.
-        /// </summary>
-        public static void Broadcast(string key, object data) => _comm.Broadcast(key, data);
     }
 }

@@ -16,12 +16,11 @@
 
 ## Context
 
-The VAutomationCore ecosystem consists of four primary plugins:
+The VAutomationCore ecosystem consists of three primary plugins:
 
-* Bluelock
-* CycleBorn
-* VAutomationCore
-* Vexil
+* **Blueluck** (consolidated - includes former CycleBorn functionality)
+* **VAutomationCore**
+* **Vexil**
 
 Prior iterations allowed partial hybrid execution, distributed domain ownership, and loosely enforced mutation boundaries. This created architectural risks:
 
@@ -69,21 +68,19 @@ All other plugins consume Bluelock data in read-only form.
 
 ### 2. Policy Isolation
 
-**CycleBorn is limited to policy orchestration.**
+**Blueluck owns all policy and domain data.**
 
-CycleBorn owns:
+Blueluck owns:
 
+* Zone definitions
+* Kit definitions
+* Ability definitions
 * Flow definitions
 * Lifecycle orchestration
 * Snapshot policy
-* Non-building runtime metadata
+* Prefab catalog
 
-CycleBorn SHALL NOT:
-
-* Modify zone definitions
-* Modify kit definitions
-* Modify ability definitions
-* Modify prefab catalog entries
+Blueluck SHALL NOT share mutable state with other plugins.
 
 ---
 

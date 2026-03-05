@@ -10,8 +10,9 @@ Core library for V Rising automation mods providing shared utilities, ECS helper
 
 ## Documentation
 
-- [Developer API Reference](./DEVELOPER-README.md)
+- [Developer API Reference](./docs/README.md)
 - [Full Documentation](./docs/README.md)
+- [Framework Wiki](./docs/wiki/framework-wiki.html)
 
 ## Features
 
@@ -23,3 +24,4 @@ Core library for V Rising automation mods providing shared utilities, ECS helper
 ## Support
 
 - Discord: https://discord.gg/68JZU5zaq7
+- GitHub: https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore

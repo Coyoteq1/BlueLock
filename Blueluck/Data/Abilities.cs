@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace VAuto.Zone.Data.DataType
+namespace Blueluck.Data
 {
     public static class Abilities
     {
@@ -6808,3 +6808,4 @@ namespace VAuto.Zone.Data.DataType
         };
     }
 }
+

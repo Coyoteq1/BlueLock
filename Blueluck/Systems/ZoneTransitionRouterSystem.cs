@@ -1,5 +1,6 @@
 using System;
 using Unity.Collections;
+using Il2CppInterop.Runtime;
 using Unity.Entities;
 using VAutomationCore.Core.ECS.Components;
 using Blueluck.Models;
@@ -16,7 +17,18 @@ namespace Blueluck.Systems
 
         public override void OnCreate()
         {
-            _transitionQuery = GetEntityQuery(ComponentType.ReadOnly<ZoneTransitionEvent>());
+            var transitionType = Il2CppType.Of<ZoneTransitionEvent>(throwOnFailure: false);
+            if (transitionType == null)
+            {
+                Plugin.LogWarning("[Blueluck][ECS] ZoneTransitionRouterSystem disabled: ZoneTransitionEvent type missing.");
+                Enabled = false;
+                return;
+            }
+
+            var queryBuilder = new EntityQueryBuilder(Allocator.Temp)
+                .AddAll(new ComponentType(transitionType, ComponentType.AccessMode.ReadOnly));
+            _transitionQuery = GetEntityQuery(ref queryBuilder);
+            queryBuilder.Dispose();
             RequireForUpdate(_transitionQuery);
         }
 

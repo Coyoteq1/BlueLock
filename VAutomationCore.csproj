@@ -15,7 +15,7 @@
 
     <!-- NuGet package metadata -->
     <PackageId>VAutomationCore</PackageId>
-    <Version>1.0.1-beta.3</Version>
+    <Version>1.1.0</Version>
     <Authors>Coyoteq1</Authors>
     <Company>VAutomation</Company>
     <Description>Core library for V Rising automation mods providing shared utilities, ECS helpers, and configuration management.</Description>
@@ -39,6 +39,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <DebugType>portable</DebugType>
     <Deterministic>true</Deterministic>
+    <UseServerAssembliesForBuild Condition="'$(UseServerAssembliesForBuild)' == ''">true</UseServerAssembliesForBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,13 +48,20 @@
     <None Include="packaging\VAutomationCore\icon.png" Pack="true" PackagePath="\" Visible="false" Link="icon.png" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseServerAssembliesForBuild)' != 'true'">
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.733" IncludeAssets="compile" />
     <PackageReference Include="VampireReferenceAssemblies" Version="1.1.11-r96495-b8" />
     <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.4" />
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
     <PackageReference Include="Il2CppInterop.Runtime" Version="1.4.6-ci.426" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseServerAssembliesForBuild)' == 'true'">
+    <Reference Include="VampireCommandFramework" Condition="Exists('$(BepInExPluginsPath)\\VampireCommandFramework.dll')">
+      <HintPath>$(BepInExPluginsPath)\VampireCommandFramework.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -134,9 +142,9 @@
     <Compile Include="Core\ECS\ZoneHashUtility.cs" />
     <Compile Include="Core\ECS\ZoneDetectionOrdering.cs" />
     <Compile Include="Core\ECS\ZoneStateMapper.cs" />
+    <Compile Include="Core\Automation\*.cs" />
+    <Compile Include="Core\Extensions\*.cs" />
     <Compile Include="Core\ECS\Components\*.cs" />
-    <Compile Include="Core\Commands\CommandBase.cs" />
-    <Compile Include="Core\Commands\CommandException.cs" />
     <Compile Include="Core\Commands\ChatColor.cs" />
     <Compile Include="Core\Contracts\*.cs" />
     <Compile Include="Core\Api\**\*.cs" />
@@ -145,12 +153,14 @@
     <Compile Include="Core\Events\*.cs" />
     <Compile Include="Core\AssemblyInfo.cs" />
     <Compile Include="Core\Services\ServiceInitializer.cs" />
+    <Compile Include="Core\Services\ModCommunicationService.cs" />
     <Compile Include="Core\Services\GameActionService.cs" />
     <Compile Include="Core\Services\DebugEventBridge.cs" />
     <Compile Include="Core\Services\SandboxSnapshotStore.cs" />
     <Compile Include="Core\Services\SandboxCsvWriter.cs" />
     <Compile Include="Core\Services\SandboxDeltaComputer.cs" />
     <Compile Include="Core\Services\Sandbox\*.cs" />
+    <Compile Include="Core\Patches\ServerBootstrapSystemPatch.cs" />
     <Compile Include="Core\Data\*.cs" />
     <Compile Include="Core\Abstractions\*.cs" />
     <Compile Include="Chat\ChatService.cs" />
@@ -178,4 +188,3 @@
   </ItemGroup>
 
 </Project>
-

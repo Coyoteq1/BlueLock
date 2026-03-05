@@ -7,7 +7,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using VAutomationCore.Core.Logging;
-using VAuto.Zone.Data.DataType;
+using Blueluck.Data;
 
 namespace VAuto.Core.Services
 {
@@ -438,3 +438,4 @@ namespace VAuto.Core.Services
         public string ZoneId;
     }
 }
+

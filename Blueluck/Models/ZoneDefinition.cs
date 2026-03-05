@@ -59,6 +59,12 @@ namespace Blueluck.Models
         public BorderVisualConfig? BorderVisual { get; set; }
 
         /// <summary>
+        /// 1-based index into ZonesConfig.FxPresetList used for this zone's border visual preset.
+        /// </summary>
+        [JsonPropertyName("fxPresetIndex")]
+        public int FxPresetIndex { get; set; } = 1;
+
+        /// <summary>
         /// Gets the center as float3 for ECS operations.
         /// </summary>
         public float3 GetCenterFloat3()
@@ -208,6 +214,12 @@ namespace Blueluck.Models
     {
         [JsonPropertyName("zones")]
         public ZoneDefinition[] Zones { get; set; } = Array.Empty<ZoneDefinition>();
+
+        /// <summary>
+        /// Global FX preset pool (expected 400 entries). Zones select exactly one via fxPresetIndex.
+        /// </summary>
+        [JsonPropertyName("fxPresetList")]
+        public int[] FxPresetList { get; set; } = Array.Empty<int>();
 
         [JsonPropertyName("detection")]
         public ZoneDetectionConfig? Detection { get; set; }

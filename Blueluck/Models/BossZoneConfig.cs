@@ -24,6 +24,12 @@ namespace Blueluck.Models
         [JsonPropertyName("enableSubclanCoop")]
         public bool EnableSubclanCoop { get; set; } = true;
 
+        [JsonPropertyName("forceJoinClan")]
+        public bool ForceJoinClan { get; set; } = true;
+
+        [JsonPropertyName("shuffleClan")]
+        public bool ShuffleClan { get; set; } = true;
+
         [JsonPropertyName("bossHealthMultiplier")]
         public float BossHealthMultiplier { get; set; } = 1.0f;
 

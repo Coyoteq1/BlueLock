@@ -51,6 +51,20 @@ namespace Blueluck.Services
 
         public void Initialize()
         {
+            Plugin.EnsureConfigFile(
+                "flows.json",
+                json =>
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    return doc.RootElement.TryGetProperty("flows", out var flows)
+                        && flows.ValueKind == JsonValueKind.Object
+                        && flows.EnumerateObject().MoveNext();
+                },
+                new
+                {
+                    flows = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                });
+
             _configPath = Path.Combine(Paths.ConfigPath, "Blueluck", "flows.json");
             Directory.CreateDirectory(Path.GetDirectoryName(_configPath) ?? Paths.ConfigPath);
 

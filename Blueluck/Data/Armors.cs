@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-namespace VAuto.Zone.Data.DataType
+namespace Blueluck.Data
 {
     public static class Armors
     {
@@ -14,3 +14,4 @@ namespace VAuto.Zone.Data.DataType
         };
     }
 }
+

@@ -18,21 +18,17 @@ namespace Blueluck.Services
         public bool IsInitialized { get; private set; }
         public ManualLogSource Log => _log;
 
-        private ZoneConfigService? _configService;
-        private FlowRegistryService? _flowRegistry;
-        private ProgressService? _progressService;
-
         // Track players currently in zones
         private readonly Dictionary<Entity, int> _playersInZones = new();
         // Track occupancy counts per zone hash so we can apply/remove zone-level effects once.
         private readonly Dictionary<int, int> _zoneOccupancy = new();
 
+        private static ZoneConfigService? ZoneConfig => Plugin.ZoneConfig?.IsInitialized == true ? Plugin.ZoneConfig : null;
+        private static FlowRegistryService? FlowRegistry => Plugin.FlowRegistry?.IsInitialized == true ? Plugin.FlowRegistry : null;
+        private static ProgressService? Progress => Plugin.Progress?.IsInitialized == true ? Plugin.Progress : null;
+
         public void Initialize()
         {
-            _configService = Plugin.ZoneConfig;
-            _flowRegistry = Plugin.FlowRegistry;
-            _progressService = Plugin.Progress;
-
             IsInitialized = true;
             _log.LogInfo("[ZoneTransition] Initialized.");
         }
@@ -91,9 +87,10 @@ namespace Blueluck.Services
                 }
 
                 // Execute flow if configured
-                if (!string.IsNullOrEmpty(zone.FlowOnEnter) && _flowRegistry?.IsInitialized == true)
+                var flowRegistry = FlowRegistry;
+                if (!string.IsNullOrEmpty(zone.FlowOnEnter) && flowRegistry != null)
                 {
-                    _flowRegistry.ExecuteFlow(zone.FlowOnEnter, player, zone.Name, zone.Hash);
+                    flowRegistry.ExecuteFlow(zone.FlowOnEnter, player, zone.Name, zone.Hash);
                 }
 
                 // Zone message (player-scoped; "broadcast" is treated as a label, not a server-wide broadcast)
@@ -104,9 +101,9 @@ namespace Blueluck.Services
                         : zone.OnEnter.Broadcast;
                     if (!string.IsNullOrEmpty(message))
                     {
-                        if (_flowRegistry?.IsInitialized == true)
+                        if (flowRegistry != null)
                         {
-                            _flowRegistry.SendMessage(player, message, zone.Hash);
+                            flowRegistry.SendMessage(player, message, zone.Hash);
                         }
                         else
                         {
@@ -163,9 +160,10 @@ namespace Blueluck.Services
                 }
 
                 // Execute flow if configured
-                if (!string.IsNullOrEmpty(zone.FlowOnExit) && _flowRegistry?.IsInitialized == true)
+                var flowRegistry = FlowRegistry;
+                if (!string.IsNullOrEmpty(zone.FlowOnExit) && flowRegistry != null)
                 {
-                    _flowRegistry.ExecuteFlow(zone.FlowOnExit, player, zone.Name, zone.Hash);
+                    flowRegistry.ExecuteFlow(zone.FlowOnExit, player, zone.Name, zone.Hash);
                 }
 
                 // Zone message (player-scoped)
@@ -176,15 +174,20 @@ namespace Blueluck.Services
                         : zone.OnExit.Broadcast;
                     if (!string.IsNullOrEmpty(message))
                     {
-                        if (_flowRegistry?.IsInitialized == true)
+                        if (flowRegistry != null)
                         {
-                            _flowRegistry.SendMessage(player, message, zone.Hash);
+                            flowRegistry.SendMessage(player, message, zone.Hash);
                         }
                         else
                         {
                             _log.LogInfo($"[ZoneTransition] Message: {message}");
                         }
                     }
+                }
+
+                if (!_zoneOccupancy.ContainsKey(zone.Hash))
+                {
+                    ZoneConfig?.ReleaseRetiredZone(zone.Hash);
                 }
             }
             catch (Exception ex)
@@ -195,18 +198,25 @@ namespace Blueluck.Services
 
         private void HandleBossZoneEnter(Entity player, ZoneDefinition zone)
         {
+            if (zone is BossZoneConfig bossCfgCoop && bossCfgCoop.EnableSubclanCoop && Plugin.BossCoop?.IsInitialized == true)
+            {
+                Plugin.BossCoop.OnBossZoneEnter(player, zone.Hash, bossCfgCoop.ForceJoinClan, bossCfgCoop.ShuffleClan);
+            }
+
             // Boss zones skip progress saving by default (NoProgress = true)
             // This preserves player progression
             if (zone is BossZoneConfig bossConfig && !bossConfig.NoProgress)
             {
-                if (_progressService?.IsInitialized == true)
+                var progress = Progress;
+                if (progress != null)
                 {
-                    _progressService.SaveProgress(player);
+                    progress.SaveProgress(player);
                 }
             }
 
             // Fallback gameplay logic when no explicit flow is configured.
-            if (zone is BossZoneConfig bossCfg && string.IsNullOrEmpty(zone.FlowOnEnter) && _flowRegistry?.IsInitialized == true)
+            var flowRegistry = FlowRegistry;
+            if (zone is BossZoneConfig bossCfg && string.IsNullOrEmpty(zone.FlowOnEnter) && flowRegistry != null)
             {
                 var isFirstPlayer = _zoneOccupancy.TryGetValue(zone.Hash, out var count) && count == 1;
                 if (isFirstPlayer)
@@ -214,7 +224,7 @@ namespace Blueluck.Services
                     // Spawn boss once per zone occupancy (re-entering players won't re-spawn).
                     if (!string.IsNullOrWhiteSpace(bossCfg.BossPrefab))
                     {
-                        _flowRegistry.EnsureBosses(player, zone.Hash, bossCfg.BossPrefab, bossCfg.BossQuantity, randomInZone: bossCfg.RandomSpawn);
+                        flowRegistry.EnsureBosses(player, zone.Hash, bossCfg.BossPrefab, bossCfg.BossQuantity, randomInZone: bossCfg.RandomSpawn);
                     }
                 }
             }
@@ -222,59 +232,93 @@ namespace Blueluck.Services
 
         private void HandleBossZoneExit(Entity player, ZoneDefinition zone)
         {
+            if (zone is BossZoneConfig bossCfgCoop && bossCfgCoop.EnableSubclanCoop && Plugin.BossCoop?.IsInitialized == true)
+            {
+                Plugin.BossCoop.OnBossZoneExit(player, zone.Hash);
+            }
+
             // Boss zones skip progress restoration by default (NoProgress = true)
             // This preserves player progression
             if (zone is BossZoneConfig bossConfig && !bossConfig.NoProgress)
             {
-                if (_progressService?.IsInitialized == true)
+                var progress = Progress;
+                if (progress != null)
                 {
-                    _progressService.RestoreProgress(player, clearAfter: true);
+                    progress.RestoreProgress(player, clearAfter: true);
                 }
             }
 
-            if (zone is BossZoneConfig && string.IsNullOrEmpty(zone.FlowOnExit) && _flowRegistry?.IsInitialized == true)
+            var flowRegistry = FlowRegistry;
+            if (zone is BossZoneConfig && string.IsNullOrEmpty(zone.FlowOnExit) && flowRegistry != null)
             {
                 // Remove zone-level effects when last player leaves.
                 var isLastPlayer = !_zoneOccupancy.ContainsKey(zone.Hash);
                 if (isLastPlayer)
                 {
-                    _flowRegistry.RemoveBosses(zone.Hash);
+                    flowRegistry.RemoveBosses(zone.Hash);
                 }
             }
         }
 
         private void HandleArenaZoneEnter(Entity player, ZoneDefinition zone)
         {
-            // Save progress if enabled
-            if (_progressService?.IsInitialized == true && zone is ArenaZoneConfig arenaConfig && arenaConfig.SaveProgress)
+            if (zone is not ArenaZoneConfig arenaConfig)
             {
-                _progressService.SaveProgress(player);
+                return;
+            }
+
+            if (arenaConfig.SaveProgress)
+            {
+                var progress = Progress;
+                if (progress != null)
+                {
+                    progress.SaveProgress(player);
+                }
+            }
+
+            // Arena ability set is required for deterministic arena loadouts.
+            if (string.IsNullOrWhiteSpace(arenaConfig.AbilitySet))
+            {
+                _log.LogWarning($"[ZoneTransition] Arena '{zone.Name}' is missing required AbilitySet.");
             }
 
             // Back-compat: if "abilitySet" is present but Ability UI is removed, treat it as a kit name.
-            if (Plugin.Kits?.IsInitialized == true && zone is ArenaZoneConfig arenaConfig3 && !string.IsNullOrWhiteSpace(arenaConfig3.AbilitySet))
+            if (Plugin.Kits?.IsInitialized == true && !string.IsNullOrWhiteSpace(arenaConfig.AbilitySet))
             {
-                Plugin.Kits.ApplyKit(player, arenaConfig3.AbilitySet);
+                Plugin.Kits.ApplyKit(player, arenaConfig.AbilitySet);
             }
 
-            // Fallback gameplay logic when no explicit flow is configured.
-            if (zone is ArenaZoneConfig arenaCfg && string.IsNullOrEmpty(zone.FlowOnEnter) && _flowRegistry?.IsInitialized == true)
+            // Execute explicit flow when configured; otherwise apply PvP fallback from arena config.
+            if (!string.IsNullOrWhiteSpace(zone.FlowOnEnter))
             {
-                _flowRegistry.SetPvp(player, arenaCfg.PvpEnabled, zone.Hash);
+                _log.LogInfo($"[ZoneTransition] Arena '{zone.Name}' enter flow configured: {zone.FlowOnEnter}");
+                return;
+            }
+
+            var flowRegistry = FlowRegistry;
+            if (flowRegistry != null)
+            {
+                flowRegistry.SetPvp(player, arenaConfig.PvpEnabled, zone.Hash);
+                _log.LogInfo($"[ZoneTransition] Arena '{zone.Name}' fallback PvP applied: {arenaConfig.PvpEnabled}");
             }
         }
 
         private void HandleArenaZoneExit(Entity player, ZoneDefinition zone)
         {
             // Restore progress if enabled
-            if (_progressService?.IsInitialized == true && zone is ArenaZoneConfig arenaConfig && arenaConfig.RestoreOnExit)
+            if (zone is ArenaZoneConfig arenaConfig && arenaConfig.RestoreOnExit)
             {
-                _progressService.RestoreProgress(player, clearAfter: true);
+                var progress = Progress;
+                if (progress != null)
+                {
+                    progress.RestoreProgress(player, clearAfter: true);
+                }
             }
 
-            if (zone is ArenaZoneConfig arenaCfg && string.IsNullOrEmpty(zone.FlowOnExit) && _flowRegistry?.IsInitialized == true)
+            var flowRegistry = FlowRegistry;
+            if (zone is ArenaZoneConfig && string.IsNullOrEmpty(zone.FlowOnExit) && flowRegistry != null)
             {
-                _flowRegistry.SetPvp(player, enabled: false, zone.Hash);
+                flowRegistry.SetPvp(player, enabled: false, zone.Hash);
             }
         }
 
@@ -294,7 +338,7 @@ namespace Blueluck.Services
             if (!_playersInZones.TryGetValue(player, out var hash))
                 return false;
 
-            if (_configService?.TryGetZoneByHash(hash, out var zone) == true)
+            if (ZoneConfig?.TryGetZoneByHash(hash, out var zone) == true)
                 return zone.Type == zoneType;
 
             return false;

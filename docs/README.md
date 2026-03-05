@@ -1,167 +1,153 @@
-# VAutomationCore - Developer API Reference
+# VAutomation Framework Wiki
 
-This is the developer documentation for the VAutomationCore NuGet package. For end-user documentation, see the main [README.md](./README.md).
+> Operational reference for VAutomationCore and Blueluck with ECS runtime mode, config governance, and maintenance guardrails.
 
-## Installation
+## Project Boundaries
 
-### NuGet Package
-```xml
-<PackageReference Include="VAutomationCore" Version="1.0.0" />
-```
+### VAutomationCore (`v1.0.1`)
 
-For prerelease versions:
-```xml
-<PackageReference Include="VAutomationCore" Version="1.0.1-beta.3" />
-```
+- Shared services and API contracts
+- ECS utilities and lifecycle contracts
+- Config infrastructure and typed loading
+- Automation service and sandboxing
+- HTTP server and event scheduling
 
-- NuGet: https://www.nuget.org/packages/VAutomationCore
-- Latest prerelease: https://www.nuget.org/packages/VAutomationCore/1.0.1-beta.3
+### Blueluck (`v1.0.0`)
 
-## Quick Start
+- Zone runtime entrypoint and command surface
+- ECS bootstrap, detection, and transition routing
+- Zone JSON/config validation and migration hooks
+- Kit system for equipment loadouts
+- Snapshot system for progress save/restore
+- Ability loadouts (buff-based)
 
-```csharp
-using System.Reflection;
-using VampireCommandFramework;
-using VAutomationCore.Core.Api;
-using VAutomationCore.Core.Logging;
-using VAutomationCore.Core.Services;
+## Current Versions
 
-public override void Load()
-{
-    var log = new CoreLogger("Module");
-    ServiceInitializer.InitializeLogger(log);
-    ServiceInitializer.RegisterInitializer("your_service", YourService.Initialize);
-    ServiceInitializer.RegisterValidator("your_service", () => YourService.IsReady);
-    ServiceInitializer.InitializeAll(log);
+| Project | Version | Dependencies |
+|---------|---------|--------------|
+| VAutomationCore | `1.0.1` | VampireCommandFramework 0.10.4 |
+| Blueluck | `1.0.0` | VAutomationCore 1.1.0, VampireCommandFramework 0.10.4 |
 
-    CommandRegistry.RegisterAll(Assembly.GetExecutingAssembly());
-}
-```
+## Chat Commands
 
-## Core API Surface
+### Zone Commands
 
-### Runtime/Execution
-- `CoreExecution`: Safe sync/async execution wrappers with retry support
-- `OperationResult` / `OperationResult<T>`: Standard success/failure return model
-- `RetryPolicy`: Retry configuration for resilient operations
+| Command | Shorthand | Description |
+|---------|-----------|-------------|
+| `zone status` | `zs` | Show zone status |
+| `zone list` | `zl` | List all configured zones |
+| `zone reload` | `zr` | Reload zone configuration |
+| `flow reload` | - | Reload flows.json from disk |
+| `zone debug` | - | Toggle zone detection debug mode |
 
-```csharp
-var op = CoreExecution.RunWithRetry(
-    () => { /* work */ },
-    operationName: "startup-work",
-    retryPolicy: RetryPolicy.Default,
-    logger: logger
-);
-```
+### Kit Commands
 
-### Service/State
-- `ServiceRegistry`: Singleton registration/resolution for module services
-- `EntityMap`: Alias-to-entity reference map used by flow/job execution
-- `EntityAliasMapper`: Component alias registration + component query/set helpers
+| Command | Description |
+|---------|-------------|
+| `kit list` | List available kits |
+| `kit [name]` | Apply a kit to yourself |
 
-### Flow APIs
-- `FlowService`: Register, resolve, and execute action flows
-- `FlowDefinition` / `FlowStep`: Flow model types
-- `FlowExecutionResult`: Execution outcome with success/failure details
+### Snapshot Commands
 
-```csharp
-FlowService.RegisterActionAlias("heal", "HealSelf");
-FlowService.RegisterFlow("startup", new[]
-{
-    new FlowStep("heal")
-}, replace: true);
+| Command | Description |
+|---------|-------------|
+| `snap status` | Show snapshot status |
+| `snap save [name]` | Save current progress snapshot |
+| `snap apply [name]` | Apply a snapshot |
+| `snap restore` | Restore last saved snapshot |
+| `snap clear` | Clear snapshot data |
 
-var map = new EntityMap();
-var result = FlowService.Execute("startup", map);
-```
+## Configuration System
 
-### Auth/Console APIs
-- `ConsoleRoleAuthService`: Admin/developer auth session handling
-- `CoreAuthCommands`: Built-in VCF commands (`.coreauth ...`)
-- `CoreJobFlowCommands`: Built-in VCF commands (`.jobs ...`)
+### BepInEx Config Entries (Blueluck)
 
-### Configuration
-- `ConfigService<T>`: Generic config file management with JSON serialization
-- `ServiceInitializer`: Startup orchestration for services
+#### General
+- `General.Enabled` - Enable Blueluck functionality (default: true)
+- `General.LogLevel` - Logging level: Debug, Info, Warning, Error (default: Info)
 
-## Built-in Commands
+#### Detection
+- `Detection.CheckIntervalMs` - Zone detection check interval in ms (default: 500)
+- `Detection.PositionThreshold` - Position change threshold for detection (default: 1.0)
+- `Detection.DebugMode` - Enable debug logging for zone detection (default: false)
 
-### Auth Commands (`.coreauth`)
-- `.coreauth login dev <password>` - Developer login
-- `.coreauth login admin <password>` - Admin login
-- `.coreauth status` - Check auth status
-- `.coreauth logout` - End session
+#### Feature Toggles
+- `Flow.Enabled` - Enable flow system (default: true)
+- `Kits.Enabled` - Enable kit system (default: true)
+- `Progress.Enabled` - Enable progress save/restore (default: true)
+- `Abilities.Enabled` - Enable ability loadouts (default: true)
 
-### Job Commands (`.jobs`)
-- `.jobs flow add/remove/list` - Manage flows
-- `.jobs alias self/user/clear/list` - Manage aliases
-- `.jobs run <flow>` - Execute flow (requires Developer auth)
+## Services Architecture
 
-## Service Registration Pattern
+### Zone Services
 
-```csharp
-// 1. Create a service class
-public class MyService
-{
-    public static bool IsReady { get; private set; }
-    
-    public static void Initialize(CoreLogger log)
-    {
-        log.LogInfo("Initializing MyService...");
-        // Initialize logic
-        IsReady = true;
-    }
-}
+| Service | Description |
+|---------|-------------|
+| `ZoneConfigService` | Zone configuration management |
+| `ZoneTransitionService` | Zone transition handling |
+| `FlowRegistryService` | Flow definitions registry |
+| `ProgressService` | Player progress save/restore |
+| `AbilityService` | Ability loadout management |
+| `BossCoopService` | Boss spawning for co-op |
 
-// 2. Register in Load()
-ServiceInitializer.RegisterInitializer("myservice", MyService.Initialize);
-ServiceInitializer.RegisterValidator("myservice", () => MyService.IsReady);
-ServiceInitializer.InitializeAll(log);
-```
+### Utility Services
 
-## ECS Integration
+| Service | Description |
+|---------|-------------|
+| `PrefabRemapService` | Prefab alias remapping |
+| `PrefabToGuidService` | Prefab GUID resolution |
+| `UnlockService` | Technology/ability unlocks |
+| `KitService` | Equipment kit system |
 
-The framework provides helpers for working with V Rising's ECS system:
+## Config Sources
 
-- Use predefined `EntityQueries` when possible
-- Always dispose `NativeArray` with try-finally blocks
-- Check component existence with `EntityManager.HasComponent<T>()`
+- `Blueluck/config/zones.json` - Zone data, flow IDs, radii, priorities, FX presets
+- `Blueluck/config/flows.json` - Flow definitions (zone.setpvp, zone.sendmessage, zone.spawnboss, etc.)
+- `Blueluck/config/kits.json` - Kit definitions (equipment loadouts)
+- `Blueluck/config/abilities.json` - Ability loadouts (server-side buff application)
+- `config/VAuto.unified_config.schema.json` - Schema contract
 
-```csharp
-var entities = query.ToEntityArray(Allocator.Temp);
-try
-{
-    foreach (var entity in entities)
-    {
-        if (!EntityManager.HasComponent<SomeComponent>(entity)) continue;
-        // Process entity
-    }
-}
-finally
-{
-    entities.Dispose();
-}
-```
+> Validation entrypoint: config is validated on load; runtime source of truth is the Blueluck config folder.
 
-## Namespace Reference
+## Flow Actions
 
-| Namespace | Purpose |
-|-----------|---------|
-| `VAutomationCore.Core` | Core services and utilities |
-| `VAutomationCore.Core.Api` | Public API (FlowService, EntityMap, etc.) |
-| `VAutomationCore.Core.Services` | Service infrastructure |
-| `VAutomationCore.Core.Logging` | Logging abstractions |
-| `VAutomationCore.Core.Commands` | Command handlers |
+Available flow actions in `flows.json`:
 
-## Related Documentation
+| Action | Parameters | Description |
+|--------|------------|-------------|
+| `zone.setpvp` | `value: true/false` | Enable/disable PvP for the zone |
+| `zone.sendmessage` | `message: string` | Send a chat message to players |
+| `zone.spawnboss` | `prefab: string`, `qty: number`, `randomInZone: boolean` | Spawn a VBlood boss |
+| `zone.removeboss` | - | Remove spawned boss entities |
+| `zone.applykit` | `kit: string` | Apply a kit to entering players |
+| `zone.removekit` | - | Remove kit from exiting players |
 
-- [Jobs and Flows API](./docs/api/Jobs-and-Flows-API.md)
-- [Server API](./docs/api/Server-API.md)
-- [Player API](./docs/api/Player-API.md)
-- [Command API](./docs/api/Command-API.md)
-- [Templates and ECS Jobs API](./docs/api/Templates-and-ECS-Jobs-API.md)
+## Runtime Mode Model
 
-## Support
+Blueluck runtime behavior is selected by `Runtime.ZoneRuntimeMode`:
 
-- Discord: [V Rising Mods Community](https://discord.gg/68JZU5zaq7)
-- Issues: https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore/issues
+- `Legacy` - legacy pipeline only
+- `Hybrid` - ECS detection/router plus legacy compatibility path
+- `EcsOnly` - ECS pipeline only
+
+The selected mode is locked at bootstrap and treated as immutable until restart.
+
+## Install Channels
+
+- Thunderstore (V Rising): https://thunderstore.io/c/v-rising/
+- NuGet package: https://www.nuget.org/packages/VAutomationCore
+- NuGet prerelease: https://www.nuget.org/packages/VAutomationCore/1.0.1-beta.3
+
+## Maintenance and Cleanup Discipline
+
+- Use test guardrails to prevent compile/include drift and event ownership regressions.
+- Deprecate first, delete later; only remove legacy paths after a full release cycle with rollback available.
+- Track cleanup actions in release notes and PR guardrail sections.
+
+> Use the rollback playbook before any destructive cleanup on live servers.
+
+## Community and Auth
+
+- V Rising Mods Discord: https://discord.gg/68JZU5zaq7
+- Ownership support Discord: https://discord.gg/Se4wU3s6md
+- Auth/Maintainer: `coyoteq1`
+- Contributors: https://github.com/Coyoteq1/D-VAutomationCore-VAutomationCore/graphs/contributors

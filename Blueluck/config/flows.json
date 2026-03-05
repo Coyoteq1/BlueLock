@@ -1,0 +1,153 @@
+{
+    "flows": {
+        "arena_enter": [
+            { "action": "zone.setpvp", "value": true },
+            { "action": "zone.sendmessage", "message": "⚔️ PVP ARENA: Combat enabled! Fight!" }
+        ],
+        "arena_exit": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🏠 Safe Zone: PvP disabled" }
+        ],
+        "boss_enter": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Gloomrot_Purifier_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS ENCOUNTER: Defeat the boss!" }
+        ],
+        "boss_exit": [
+            { "action": "zone.removeboss" },
+            { "action": "zone.sendmessage", "message": "💀 Boss defeated! Safe to leave." }
+        ],
+        "boss_enter_multi": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Gloomrot_Purifier_VBlood", "qty": 3, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 MULTI-BOSS: 3 bosses spawned!" }
+        ],
+        "boss_enter_tourok": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Bandit_Tourok_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Tourok has appeared!" }
+        ],
+        "boss_enter_gloomrot": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Gloomrot_Purifier_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Gloomrot has appeared!" }
+        ],
+        "boss_enter_stonebreaker": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Bandit_StoneBreaker_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: StoneBreaker has appeared!" }
+        ],
+        "boss_enter_stalker": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Bandit_Stalker_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Stalker has appeared!" }
+        ],
+        "boss_enter_foreman": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Bandit_Foreman_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Bandit Foreman has appeared!" }
+        ],
+        "boss_enter_archmage": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_ArchMage_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: ArchMage has appeared!" }
+        ],
+        "boss_enter_dracula": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Vampire_Dracula_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Dracula has appeared!" }
+        ],
+        "boss_enter_spider_queen": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Spider_Queen_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Spider Queen has appeared!" }
+        ],
+        "boss_enter_wendigo": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Wendigo_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Wendigo has appeared!" }
+        ],
+        "boss_enter_yeti": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Winter_Yeti_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Winter Yeti has appeared!" }
+        ],
+        "boss_enter_manticore": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Manticore_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Manticore has appeared!" }
+        ],
+        "boss_enter_cursed_witch": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Cursed_Witch_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Cursed Witch has appeared!" }
+        ],
+        "boss_enter_poloma": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Poloma_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Poloma has appeared!" }
+        ],
+        "boss_enter_bloodknight": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Vampire_BloodKnight_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Blood Knight has appeared!" }
+        ],
+        "boss_enter_geomancer": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Geomancer_Human_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Geomancer has appeared!" }
+        ],
+        "boss_enter_harpy": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Harpy_Matriarch_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Harpy Matriarch has appeared!" }
+        ],
+        "boss_enter_jade": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_VHunter_Jade_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Jade the Vampire Hunter has appeared!" }
+        ],
+        "boss_enter_bishop_death": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Undead_BishopOfDeath_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Bishop of Death has appeared!" }
+        ],
+        "boss_enter_bishop_shadows": [
+            { "action": "zone.spawnboss", "prefab": "CHAR_Undead_BishopOfShadows_VBlood", "qty": 1, "randomInZone": true },
+            { "action": "zone.sendmessage", "message": "👹 BOSS: Bishop of Shadows has appeared!" }
+        ],
+        "dungeon_enter": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🏰 DUNGEON: Team up to survive!" }
+        ],
+        "dungeon_exit": [
+            { "action": "zone.sendmessage", "message": "🏠 Dungeon complete!" }
+        ],
+        "pvp_ffa_enter": [
+            { "action": "zone.setpvp", "value": true },
+            { "action": "zone.sendmessage", "message": "⚔️ FREE FOR ALL: Last one standing wins!" }
+        ],
+        "pvp_ffa_exit": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🏠 Match ended!" }
+        ],
+        "sanctuary_enter": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🛡️ SANCTUARY: Safe trading zone" }
+        ],
+        "sanctuary_exit": [
+            { "action": "zone.sendmessage", "message": " Leaving sanctuary..." }
+        ],
+        "raid_enter": [
+            { "action": "zone.setpvp", "value": true },
+            { "action": "zone.sendmessage", "message": "⚔️ RAID ZONE: Territory battle!" }
+        ],
+        "raid_exit": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🏠 Raid zone ended" }
+        ],
+        "pve_arena_enter": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "⚔️ PVE ARENA: Fight waves of enemies!" }
+        ],
+        "pve_arena_exit": [
+            { "action": "zone.sendmessage", "message": "🏠 PVE Arena complete!" }
+        ],
+        "duel_enter": [
+            { "action": "zone.setpvp", "value": true },
+            { "action": "zone.sendmessage", "message": "⚔️ DUEL: 1v1 Combat!" }
+        ],
+        "duel_exit": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🏠 Duel ended" }
+        ],
+        "ctf_enter": [
+            { "action": "zone.setpvp", "value": true },
+            { "action": "zone.sendmessage", "message": "⚔️ CAPTURE THE FLAG: Capture the enemy flag!" }
+        ],
+        "ctf_exit": [
+            { "action": "zone.setpvp", "value": false },
+            { "action": "zone.sendmessage", "message": "🏠 CTF match ended" }
+        ]
+    }
+}

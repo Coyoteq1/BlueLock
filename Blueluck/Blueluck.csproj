@@ -5,6 +5,13 @@
     <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
     <AssemblyName>Blueluck</AssemblyName>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageOutputPath>..\artifacts\nuget</PackageOutputPath>
+    <PackageId>Blueluck</PackageId>
+    <Version>1.1.0</Version>
+    <Authors>Coyoteq1</Authors>
+    <Description>Blueluck module for VAutomationCore zone flows, kits, progression, and border FX.</Description>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -13,15 +20,34 @@
     <Nullable>annotations</Nullable>
     <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <Deterministic>true</Deterministic>
+    <UseServerAssembliesForBuild Condition="'$(UseServerAssembliesForBuild)' == ''">true</UseServerAssembliesForBuild>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseServerAssembliesForBuild)' != 'true'">
     <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.4" />
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(UseServerAssembliesForBuild)' == 'true'">
+    <Reference Include="VampireCommandFramework" Condition="Exists('$(BepInExPluginsPath)\\VampireCommandFramework.dll')">
+      <HintPath>$(BepInExPluginsPath)\VampireCommandFramework.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony" Condition="Exists('$(VAutoServerCorePath)0Harmony.dll')">
+      <HintPath>$(VAutoServerCorePath)0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../VAutomationCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="config\zones.json" LogicalName="Blueluck.Templates.zones.json" />
+    <EmbeddedResource Include="config\flows.json" LogicalName="Blueluck.Templates.flows.json" />
+    <EmbeddedResource Include="config\kits.json" LogicalName="Blueluck.Templates.kits.json" />
+    <EmbeddedResource Include="config\buffs_numbered.txt" LogicalName="Blueluck.Templates.buffs_numbered.txt" />
   </ItemGroup>
 
   <ItemGroup>

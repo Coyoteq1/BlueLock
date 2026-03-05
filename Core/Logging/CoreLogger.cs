@@ -10,6 +10,7 @@ namespace VAutomationCore.Core.Logging
     /// </summary>
     public class CoreLogger
     {
+        private static readonly ManualLogSource _fallbackStaticLog = BepInEx.Logging.Logger.CreateLogSource("VAutomationCore.Static");
         private readonly ManualLogSource _log;
         private readonly string _source;
 
@@ -18,9 +19,8 @@ namespace VAutomationCore.Core.Logging
         /// </summary>
         /// <param name="source">The source name for log messages.</param>
         public CoreLogger(string source)
+            : this(Plugin.CoreLog, source)
         {
-            _log = Plugin.CoreLog;
-            _source = source;
         }
 
         /// <summary>
@@ -142,36 +142,38 @@ namespace VAutomationCore.Core.Logging
             _isInitialized = true;
         }
 
+        private static ManualLogSource StaticLog => _staticLog ?? Plugin.CoreLog ?? _fallbackStaticLog;
+
         /// <summary>
         /// Logs an informational message statically.
         /// </summary>
         public static void LogInfoStatic(string message, string source = "Core")
-            => _staticLog.LogInfo($"[{source}] {message}");
+            => StaticLog.LogInfo($"[{source}] {message}");
 
         /// <summary>
         /// Logs a warning message statically.
         /// </summary>
         public static void LogWarningStatic(string message, string source = "Core")
-            => _staticLog.LogWarning($"[{source}] {message}");
+            => StaticLog.LogWarning($"[{source}] {message}");
 
         /// <summary>
         /// Logs an error message statically.
         /// </summary>
         public static void LogErrorStatic(string message, string source = "Core")
-            => _staticLog.LogError($"[{source}] {message}");
+            => StaticLog.LogError($"[{source}] {message}");
 
         /// <summary>
         /// Logs a debug message statically.
         /// </summary>
         [System.Diagnostics.Conditional("DEBUG")]
         public static void LogDebugStatic(string message, string source = "Core")
-            => _staticLog.LogInfo($"[DEBUG][{source}] {message}");
+            => StaticLog.LogInfo($"[DEBUG][{source}] {message}");
 
         /// <summary>
         /// Logs an exception statically.
         /// </summary>
         public static void LogException(Exception ex, string source = "Core")
-            => _staticLog.LogError($"[{source}] Exception: {ex.Message}\n{ex.StackTrace}");
+            => StaticLog.LogError($"[{source}] Exception: {ex.Message}\n{ex.StackTrace}");
 
         #endregion
     }

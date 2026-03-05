@@ -117,7 +117,7 @@ namespace Blueluck.Systems
             }
 
             var cfg = zone.BorderVisual;
-            if (cfg == null || cfg.Range <= 0f || cfg.IntensityMax <= 0)
+            if (cfg == null || cfg.IntensityMax <= 0)
             {
                 EnsureRemoved(em, player);
                 return;
@@ -127,15 +127,22 @@ namespace Blueluck.Systems
             var center = zone.GetCenterFloat3();
             var distFromCenter = math.distance(pos, center);
             var edgeRadius = zone.ExitRadius > 0f ? zone.ExitRadius : zone.EntryRadius;
-            var distToEdge = math.abs(distFromCenter - edgeRadius);
-
-            if (distToEdge > cfg.Range)
+            var isInsideZone = distFromCenter <= edgeRadius;
+            if (!isInsideZone)
             {
                 EnsureRemoved(em, player);
                 return;
             }
 
-            var tier = ComputeTier(distToEdge, cfg.Range, cfg.IntensityMax);
+            var activationRange = math.max(0.01f, cfg.Range);
+            var distToEdge = edgeRadius - distFromCenter;
+            if (distToEdge > activationRange)
+            {
+                EnsureRemoved(em, player);
+                return;
+            }
+
+            var tier = ComputeTier(distToEdge, activationRange, math.max(1, cfg.IntensityMax));
             if (!TryResolveBorderBuffGuid(cfg, tier, out var buffGuid))
             {
                 EnsureRemoved(em, player);

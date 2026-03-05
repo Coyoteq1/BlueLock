@@ -20,6 +20,10 @@ namespace Blueluck.Systems
         private EntityQuery _zoneQuery;
         private int _updateCounter;
         private float _nextDetectionTickTime;
+        private static readonly System.Reflection.MethodInfo? SetComponentDataGeneric = typeof(EntityManager).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .FirstOrDefault(m => m.Name == "SetComponentData" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2 && m.GetParameters()[0].ParameterType == typeof(Entity));
+        private static readonly System.Reflection.MethodInfo? AddComponentGeneric = typeof(EntityManager).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .FirstOrDefault(m => m.Name == "AddComponent" && m.IsGenericMethodDefinition && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(Entity));
 
         private struct ZoneCandidate
         {
@@ -138,7 +142,7 @@ namespace Blueluck.Systems
                         }
                         else
                         {
-                            em.AddComponentData(player, state);
+                            AddOrSetComponentData(em, player, state);
                         }
 
                         if (debugMode)
@@ -157,13 +161,47 @@ namespace Blueluck.Systems
 
         private static void EmitZoneTransition(EntityManager em, Entity player, int oldZone, int newZone)
         {
-            var e = em.CreateEntity();
-            em.AddComponentData(e, new ZoneTransitionEvent
+            var eventType = Il2CppType.Of<ZoneTransitionEvent>(throwOnFailure: false);
+            if (eventType == null)
+            {
+                Plugin.LogWarning("[Blueluck][ECS] ZoneTransitionEvent type unavailable.");
+                return;
+            }
+
+            var e = em.CreateEntity(new ComponentType(eventType, ComponentType.AccessMode.ReadWrite));
+            AddOrSetComponentData(em, e, new ZoneTransitionEvent
             {
                 Player = player,
                 OldZoneHash = oldZone,
                 NewZoneHash = newZone
             });
+        }
+
+        private static void AddOrSetComponentData<T>(EntityManager em, Entity entity, T value) where T : struct
+        {
+            try
+            {
+                if (em.HasComponent<T>(entity))
+                {
+                    em.SetComponentData(entity, value);
+                    return;
+                }
+
+                if (AddComponentGeneric != null)
+                {
+                    AddComponentGeneric.MakeGenericMethod(typeof(T)).Invoke(em, new object[] { entity });
+                }
+
+                if (SetComponentDataGeneric != null)
+                {
+                    SetComponentDataGeneric.MakeGenericMethod(typeof(T)).Invoke(em, new object[] { entity, value });
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.LogWarning($"[Blueluck][ECS] Failed to write component {typeof(T).Name}: {ex.Message}");
+            }
         }
     }
 }

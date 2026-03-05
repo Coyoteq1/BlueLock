@@ -121,7 +121,11 @@ namespace VAuto.Core.Services
             var response = context.Response;
             try
             {
-                response.AddHeader("Access-Control-Allow-Origin", "*");
+                var origin = context.Request.Headers["Origin"];
+                if (IsTrustedOrigin(origin))
+                {
+                    response.AddHeader("Access-Control-Allow-Origin", origin!);
+                }
                 response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
                 response.AddHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
 
@@ -132,8 +136,14 @@ namespace VAuto.Core.Services
                     return;
                 }
 
+                if (string.IsNullOrWhiteSpace(_apiKey))
+                {
+                    await SendJsonAsync(response, 503, ApiResponse<object>.Error(ErrorResponse.BadRequest("API key is not configured.")));
+                    return;
+                }
+
                 var requestApiKey = context.Request.Headers["X-API-Key"];
-                if (!string.IsNullOrEmpty(_apiKey) && requestApiKey != _apiKey)
+                if (requestApiKey != _apiKey)
                 {
                     await SendJsonAsync(response, 401, ApiResponse<object>.Error(ErrorResponse.Unauthorized("Invalid API key")));
                     return;
@@ -187,6 +197,23 @@ namespace VAuto.Core.Services
             using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
             var json = await reader.ReadToEndAsync();
             return JsonSerializer.Deserialize<T>(json) ?? default!;
+        }
+
+        private static bool IsTrustedOrigin(string? origin)
+        {
+            if (string.IsNullOrWhiteSpace(origin))
+            {
+                return false;
+            }
+
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+
+            return IPAddress.TryParse(uri.Host, out var ip)
+                ? IPAddress.IsLoopback(ip)
+                : string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
         }
 
         private void LogEvent(string message)

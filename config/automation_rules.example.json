@@ -1,0 +1,67 @@
+[
+  {
+    "id": "example_bossfight",
+    "name": "Example Boss Fight Event",
+    "trigger": {
+      "command": "bossfight"
+    },
+    "action": {
+      "actionType": "sequence",
+      "commands": [
+        ".announce 'Behold the King!'",
+        ".spawnunit Skeleton_King 1",
+        ".weather thunder",
+        ".buffall speed",
+        ".givesilence all 3"
+      ]
+    },
+    "enabled": true,
+    "createdAt": "2026-03-05T21:30:00Z",
+    "lastModified": "2026-03-05T21:30:00Z"
+  },
+  {
+    "id": "example_halloween",
+    "name": "Halloween Event",
+    "trigger": {
+      "command": "halloween"
+    },
+    "action": {
+      "actionType": "sequence",
+      "commands": [
+        ".announce 'Happy Halloween!'",
+        ".weather fog",
+        ".spawnunit Pumpkin_Head 5",
+        ".buffall luck"
+      ]
+    },
+    "enabled": true,
+    "createdAt": "2026-03-05T21:30:00Z",
+    "lastModified": "2026-03-05T21:30:00Z"
+  },
+  {
+    "id": "example_conditional",
+    "name": "Conditional Admin Test",
+    "trigger": {
+      "command": "testconditional"
+    },
+    "action": {
+      "actionType": "conditional",
+      "condition": "admin",
+      "trueAction": {
+        "actionType": "sequence",
+        "commands": [
+          ".announce 'Admin detected - executing admin sequence'"
+        ]
+      },
+      "falseAction": {
+        "actionType": "sequence",
+        "commands": [
+          ".announce 'Non-admin detected - limited functionality'"
+        ]
+      }
+    },
+    "enabled": true,
+    "createdAt": "2026-03-05T21:30:00Z",
+    "lastModified": "2026-03-05T21:30:00Z"
+  }
+]

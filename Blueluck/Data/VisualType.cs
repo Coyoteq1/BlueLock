@@ -1,7 +1,7 @@
 using System;
 using Unity.Mathematics;
 
-namespace VAuto.Zone.Data.DataType
+namespace Blueluck.Data
 {
     /// <summary>
     /// Visual type definition for zone visual effects
@@ -271,3 +271,4 @@ namespace VAuto.Zone.Data.DataType
         Custom
     }
 }
+

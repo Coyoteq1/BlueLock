@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <VAutoServerRoot Condition="'$(VAutoServerRoot)' == ''">D:\DedicatedServerLauncher\VRisingServer\BepInEx</VAutoServerRoot>
+    <VAutoServerRoot Condition="'$(VAutoServerRoot)' == ''">C:\Program Files (x86)\Steam\steamapps\common\VRising\Server\BepInEx</VAutoServerRoot>
     <VAutoServerInteropPath Condition="'$(VAutoServerInteropPath)' == '' and Exists('$(VAutoServerRoot)\interop\')">$(VAutoServerRoot)\interop\</VAutoServerInteropPath>
     <VAutoServerInteropPath Condition="'$(VAutoServerInteropPath)' != '' and !HasTrailingSlash('$(VAutoServerInteropPath)')">$(VAutoServerInteropPath)\</VAutoServerInteropPath>
     <VAutoServerCorePath Condition="'$(VAutoServerCorePath)' == '' and Exists('$(VAutoServerRoot)\core\')">$(VAutoServerRoot)\core\</VAutoServerCorePath>
