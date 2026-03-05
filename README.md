@@ -3,7 +3,7 @@
 Advanced V Rising mod providing enhanced gameplay with custom zones, kit loadouts, and an ECS-powered flow automation system with cross-mod support.
 
 ## Features
-
+- **Co-op Mod+** - New areas Heavy systen with timers for co-ops againsts NPCs full gamecustom automation game play over 20 zones inside each others each zones has own level (testesd for strong servers only)
 - **Zone Management** - Custom zone detection with PvP, PvE, sanctuary, raid, and more
 - **Kit Commands** - Apply custom loadouts to players
 - **Flow Registry** - Game state management with triggers and actions
